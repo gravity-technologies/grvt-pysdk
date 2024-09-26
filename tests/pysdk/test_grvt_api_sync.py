@@ -1,21 +1,8 @@
-import os
-
 from pysdk import types
-from pysdk.grvt_api_base import GrvtApiConfig, GrvtError
+from pysdk.grvt_api_base import GrvtError
 from pysdk.grvt_api_sync import GrvtApiSync
-from pysdk.grvt_env import GrvtEnv
 
-
-def get_config() -> GrvtApiConfig:
-    conf = GrvtApiConfig(
-        env=GrvtEnv(os.getenv("GRVT_ENV", "dev")),
-        trading_account_id=os.getenv("GRVT_SUB_ACCOUNT_ID"),
-        private_key=os.getenv("GRVT_PRIVATE_KEY"),
-        api_key=os.getenv("GRVT_API_KEY"),
-        logger=None,
-    )
-    print(conf)  # noqa: T201
-    return conf
+from .test_utils import get_config, get_test_order
 
 
 def test_get_all_instruments() -> None:
@@ -46,9 +33,21 @@ def test_open_orders() -> None:
         )
     )
     if isinstance(resp, GrvtError):
-        print(f"Received error: {resp}")  # noqa: T201
+        api.logger.error(f"Received error: {resp}")
         return None
     if resp.orders is None:
         raise ValueError("Expected orders to be non-null")
     if len(resp.orders) == 0:
-        print("Expected orders to be non-empty")  # noqa: T201
+        api.logger.info("Expected orders to be non-empty")
+
+
+def test_create_order_with_signing() -> None:
+    api = GrvtApiSync(config=get_config())
+
+    order = get_test_order(api)
+    resp = api.create_order_v1(types.ApiCreateOrderRequest(order=order))
+
+    if isinstance(resp, GrvtError):
+        raise ValueError(f"Received error: {resp}")
+    if resp.order is None:
+        raise ValueError("Expected order to be non-null")

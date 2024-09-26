@@ -227,44 +227,46 @@ class Positions:
     sub_account_id: str
     # The instrument being represented
     instrument: str
-    # The balance of the position, expressed in underlying asset decimal units. Negative for short positions
-    balance: str
-    # The value of the position, negative for short assets, expressed in quote asset decimal units
-    value: str
+    # The size of the position, expressed in underlying asset decimal units. Negative for short positions
+    size: str
+    # The notional value of the position, negative for short assets, expressed in quote asset decimal units
+    notional: str
     """
     The entry price of the position, expressed in `9` decimals
-    Whenever increasing the balance of a position, the entry price is updated to the new average entry price
-    newEntryPrice = (oldEntryPrice * oldBalance + tradePrice * tradeBalance) / (oldBalance + tradeBalance)
+    Whenever increasing the size of a position, the entry price is updated to the new average entry price
+    `new_entry_price = (old_entry_price * old_size + trade_price * trade_size) / (old_size + trade_size)`
     """
     entry_price: str
     """
     The exit price of the position, expressed in `9` decimals
-    Whenever decreasing the balance of a position, the exit price is updated to the new average exit price
-    newExitPrice = (oldExitPrice * oldExitBalance + tradePrice * tradeBalance) / (oldExitBalance + tradeBalance)
+    Whenever decreasing the size of a position, the exit price is updated to the new average exit price
+    `new_exit_price = (old_exit_price * old_exit_trade_size + trade_price * trade_size) / (old_exit_trade_size + trade_size)`
     """
     exit_price: str
     # The mark price of the position, expressed in `9` decimals
     mark_price: str
     """
     The unrealized PnL of the position, expressed in quote asset decimal units
-    unrealizedPnl = (markPrice - entryPrice) * balance
+    `unrealized_pnl = (mark_price - entry_price) * size`
     """
     unrealized_pnl: str
     """
     The realized PnL of the position, expressed in quote asset decimal units
-    realizedPnl = (exitPrice - entryPrice) * exitBalance
+    `realized_pnl = (exit_price - entry_price) * exit_trade_size`
     """
     realized_pnl: str
     """
     The total PnL of the position, expressed in quote asset decimal units
-    totalPnl = realizedPnl + unrealizedPnl
+    `total_pnl = realized_pnl + unrealized_pnl`
     """
-    pnl: str
+    total_pnl: str
     """
     The ROI of the position, expressed as a percentage
-    roi = (pnl / (entryPrice * balance)) * 100
+    `roi = (total_pnl / (entry_price * abs(size))) * 100^`
     """
     roi: str
+    # The index price of the quote currency. (reported in `USD`)
+    quote_index_price: str
 
 
 @dataclass
@@ -363,12 +365,10 @@ class ApiSubAccountSummaryRequest:
 class SpotBalance:
     # The currency you hold a spot balance in
     currency: Currency
-    """
-    The balance of the asset, expressed in underlying asset decimal units
-    Must take into account the value of all positions with this quote asset
-    ie. for USDT denominated subaccounts, this is is identical to total balance
-    """
+    # This currency's balance in this trading account.
     balance: str
+    # The index price of this currency. (reported in `USD`)
+    index_price: str
 
 
 @dataclass
@@ -380,26 +380,44 @@ class SubAccount:
     # The type of margin algorithm this subaccount uses
     margin_type: MarginType
     """
-    The Quote Currency that this Sub Account is denominated in
-    This subaccount can only open derivative positions denominated in this quote currency
-    All other assets are converted to this quote currency for the purpose of calculating margin
+    The settlement, margin, and reporting currency of this account.
+    This subaccount can only open positions quoted in this currency
+
     In the future, when users select a Multi-Currency Margin Type, this will be USD
+    All other assets are converted to this currency for the purpose of calculating margin
     """
-    quote_currency: Currency
-    # The total unrealized PnL of all positions owned by this subaccount, denominated in quote currency decimal units
+    settle_currency: Currency
+    """
+    The total unrealized PnL of all positions owned by this subaccount, denominated in quote currency decimal units.
+    `unrealized_pnl = sum(position.unrealized_pnl * position.quote_index_price) / settle_index_price`
+    """
     unrealized_pnl: str
-    # The total value across all spot assets, or in other words, the current margin
-    total_value: str
-    # The initial margin requirement of all positions owned by this vault, denominated in quote currency decimal units
+    """
+    The notional value of your account if all positions are closed, excluding trading fees (reported in `settle_currency`).
+    `total_equity = sum(spot_balance.balance * spot_balance.index_price) / settle_index_price + unrealized_pnl`
+    """
+    total_equity: str
+    """
+    The `total_equity` required to open positions in the account (reported in `settle_currency`).
+    Computation is different depending on account's `margin_type`
+    """
     initial_margin: str
-    # The maintanence margin requirement of all positions owned by this vault, denominated in quote currency decimal units
-    maintanence_margin: str
-    # The margin available for withdrawal, denominated in quote currency decimal units
-    available_margin: str
+    """
+    The `total_equity` required to avoid liquidation of positions in the account (reported in `settle_currency`).
+    Computation is different depending on account's `margin_type`
+    """
+    maintenance_margin: str
+    """
+    The notional value available to transfer out of the trading account into the funding account (reported in `settle_currency`).
+    `available_balance = total_equity - initial_margin - min(unrealized_pnl, 0)`
+    """
+    available_balance: str
     # The list of spot assets owned by this sub account, and their balances
     spot_balances: list[SpotBalance]
     # The list of positions owned by this sub account
     positions: list[Positions]
+    # The index price of the settle currency. (reported in `USD`)
+    settle_index_price: str
 
 
 @dataclass
@@ -456,35 +474,23 @@ class ApiLatestSnapSubAccountsResponse:
 
 
 @dataclass
-class MarkPrice:
-    # The currency you hold a spot balance in
-    currency: Currency
-    # The mark price of the asset, expressed in `9` decimals
-    mark_price: str
-
-
-@dataclass
 class ApiAggregatedAccountSummaryResponse:
     # The main account ID of the account to which the summary belongs
     main_account_id: str
-    # Total equity of the account, denominated in USD
+    # Total equity of the main (+ sub) account, denominated in USD
     total_equity: str
-    # The list of spot assets owned by this sub account, and their balances
+    # The list of spot assets owned by this main (+ sub) account, and their balances
     spot_balances: list[SpotBalance]
-    # The list of mark prices for the assets owned by this account
-    mark_prices: list[MarkPrice]
 
 
 @dataclass
 class ApiFundingAccountSummaryResponse:
     # The main account ID of the account to which the summary belongs
     main_account_id: str
-    # Total equity of the account, denominated in USD
+    # Total equity of the main account, denominated in USD
     total_equity: str
-    # The list of spot assets owned by this account, and their balances
+    # The list of spot assets owned by this main account, and their balances
     spot_balances: list[SpotBalance]
-    # The list of mark prices for the assets owned by this account
-    mark_prices: list[MarkPrice]
 
 
 @dataclass
@@ -551,32 +557,32 @@ class ApiMiniTickerRequest:
 @dataclass
 class MiniTicker:
     # Time at which the event was emitted in unix nanoseconds
-    event_time: str | None
+    event_time: str | None = None
     """
     The readable name of the instrument. For Perpetual: ETH_USDT_Perp [Underlying Quote Perp]
     For Future: BTC_USDT_Fut_20Oct23 [Underlying Quote Fut DateFormat]
     For Call: ETH_USDT_Call_20Oct23_4123 [Underlying Quote Call DateFormat StrikePrice]
     For Put: ETH_USDT_Put_20Oct23_4123 [Underlying Quote Put DateFormat StrikePrice]
     """
-    instrument: str | None
+    instrument: str | None = None
     # The mark price of the instrument, expressed in `9` decimals
-    mark_price: str | None
+    mark_price: str | None = None
     # The index price of the instrument, expressed in `9` decimals
-    index_price: str | None
+    index_price: str | None = None
     # The last traded price of the instrument (also close price), expressed in `9` decimals
-    last_price: str | None
+    last_price: str | None = None
     # The number of assets traded in the last trade, expressed in underlying asset decimal units
-    last_size: str | None
+    last_size: str | None = None
     # The mid price of the instrument, expressed in `9` decimals
-    mid_price: str | None
+    mid_price: str | None = None
     # The best bid price of the instrument, expressed in `9` decimals
-    best_bid_price: str | None
+    best_bid_price: str | None = None
     # The number of assets offered on the best bid price of the instrument, expressed in underlying asset decimal units
-    best_bid_size: str | None
+    best_bid_size: str | None = None
     # The best ask price of the instrument, expressed in `9` decimals
-    best_ask_price: str | None
+    best_ask_price: str | None = None
     # The number of assets offered on the best ask price of the instrument, expressed in underlying asset decimal units
-    best_ask_size: str | None
+    best_ask_size: str | None = None
 
 
 @dataclass
@@ -615,58 +621,58 @@ class Ticker:
     """
 
     # Time at which the event was emitted in unix nanoseconds
-    event_time: str | None
+    event_time: str | None = None
     """
     The readable name of the instrument. For Perpetual: ETH_USDT_Perp [Underlying Quote Perp]
     For Future: BTC_USDT_Fut_20Oct23 [Underlying Quote Fut DateFormat]
     For Call: ETH_USDT_Call_20Oct23_4123 [Underlying Quote Call DateFormat StrikePrice]
     For Put: ETH_USDT_Put_20Oct23_4123 [Underlying Quote Put DateFormat StrikePrice]
     """
-    instrument: str | None
+    instrument: str | None = None
     # The mark price of the instrument, expressed in `9` decimals
-    mark_price: str | None
+    mark_price: str | None = None
     # The index price of the instrument, expressed in `9` decimals
-    index_price: str | None
+    index_price: str | None = None
     # The last traded price of the instrument (also close price), expressed in `9` decimals
-    last_price: str | None
+    last_price: str | None = None
     # The number of assets traded in the last trade, expressed in underlying asset decimal units
-    last_size: str | None
+    last_size: str | None = None
     # The mid price of the instrument, expressed in `9` decimals
-    mid_price: str | None
+    mid_price: str | None = None
     # The best bid price of the instrument, expressed in `9` decimals
-    best_bid_price: str | None
+    best_bid_price: str | None = None
     # The number of assets offered on the best bid price of the instrument, expressed in underlying asset decimal units
-    best_bid_size: str | None
+    best_bid_size: str | None = None
     # The best ask price of the instrument, expressed in `9` decimals
-    best_ask_price: str | None
+    best_ask_price: str | None = None
     # The number of assets offered on the best ask price of the instrument, expressed in underlying asset decimal units
-    best_ask_size: str | None
+    best_ask_size: str | None = None
     # The current funding rate of the instrument, expressed in centibeeps (1/100th of a basis point)
-    funding_rate_8_h_curr: str | None
+    funding_rate_8_h_curr: str | None = None
     # The average funding rate of the instrument (over last 8h), expressed in centibeeps (1/100th of a basis point)
-    funding_rate_8_h_avg: str | None
+    funding_rate_8_h_avg: str | None = None
     # The interest rate of the underlying, expressed in centibeeps (1/100th of a basis point)
-    interest_rate: str | None
+    interest_rate: str | None = None
     # [Options] The forward price of the option, expressed in `9` decimals
-    forward_price: str | None
+    forward_price: str | None = None
     # The 24 hour taker buy volume of the instrument, expressed in underlying asset decimal units
-    buy_volume_24_h_u: str | None
+    buy_volume_24_h_u: str | None = None
     # The 24 hour taker sell volume of the instrument, expressed in underlying asset decimal units
-    sell_volume_24_h_u: str | None
+    sell_volume_24_h_u: str | None = None
     # The 24 hour taker buy volume of the instrument, expressed in quote asset decimal units
-    buy_volume_24_h_q: str | None
+    buy_volume_24_h_q: str | None = None
     # The 24 hour taker sell volume of the instrument, expressed in quote asset decimal units
-    sell_volume_24_h_q: str | None
+    sell_volume_24_h_q: str | None = None
     # The 24 hour highest traded price of the instrument, expressed in `9` decimals
-    high_price: str | None
+    high_price: str | None = None
     # The 24 hour lowest traded price of the instrument, expressed in `9` decimals
-    low_price: str | None
+    low_price: str | None = None
     # The 24 hour first traded price of the instrument, expressed in `9` decimals
-    open_price: str | None
+    open_price: str | None = None
     # The open interest in the instrument, expressed in underlying asset decimal units
-    open_interest: str | None
+    open_interest: str | None = None
     # The ratio of accounts that are net long vs net short on this instrument
-    long_short_ratio: str | None
+    long_short_ratio: str | None = None
 
 
 @dataclass
@@ -1184,7 +1190,7 @@ class WSResponseV1:
 @dataclass
 class ApiGetAllInstrumentsRequest:
     # Fetch only active instruments
-    is_active: bool | None
+    is_active: bool | None = None
 
 
 @dataclass
@@ -1204,12 +1210,6 @@ class OrderLeg:
     This is the total amount of base currency to pay/receive for all legs.
     """
     limit_price: str
-    """
-    If a OCO order is specified, this must contain the other limit price
-    User must sign both limit prices. Depending on which trigger condition is activated, a different limit price is used
-    The smart contract will always validate both limit prices, by arranging them in ascending order
-    """
-    oco_limit_price: str
     # Specifies if the order leg is a buy or sell
     is_buying_asset: bool
 
@@ -1255,7 +1255,7 @@ class OrderMetadata:
     """
     client_order_id: str
     # [Filled by GRVT Backend] Time at which the order was received by GRVT in unix nanoseconds
-    create_time: str
+    create_time: str | None = None
 
 
 @dataclass
@@ -1284,16 +1284,8 @@ class Order:
     This minimizes the amount of trust users have to offer to GRVT
     """
 
-    # [Filled by GRVT Backend] A unique 128-bit identifier for the order, deterministically generated within the GRVT backend
-    order_id: str
     # The subaccount initiating the order
     sub_account_id: str
-    """
-    If the order is a market order
-    Market Orders do not have a limit price, and are always executed according to the maker order price.
-    Market Orders must always be taker orders
-    """
-    is_market: bool
     """
     Four supported types of orders: GTT, IOC, AON, FOK:<ul>
     <li>PARTIAL EXECUTION = GTT / IOC - allows partial size execution on each leg</li>
@@ -1305,14 +1297,22 @@ class Order:
     """
     time_in_force: TimeInForce
     """
-    The taker fee percentage cap signed by the order.
-    This is the maximum taker fee percentage the order sender is willing to pay for the order.
-    Expressed in 1/100th of a basis point. Eg. 100 = 1bps, 10,000 = 1%
-
+    The legs present in this order
+    The legs must be sorted by Asset.Instrument/Underlying/Quote/Expiration/StrikePrice
     """
-    taker_fee_percentage_cap: int
-    # Same as TakerFeePercentageCap, but for the maker fee. Negative for maker rebates
-    maker_fee_percentage_cap: int
+    legs: list[OrderLeg]
+    # The signature approving this order
+    signature: Signature
+    # Order Metadata, ignored by the smart contract, and unsigned by the client
+    metadata: OrderMetadata
+    # [Filled by GRVT Backend] A unique 128-bit identifier for the order, deterministically generated within the GRVT backend
+    order_id: str | None = None
+    """
+    If the order is a market order
+    Market Orders do not have a limit price, and are always executed according to the maker order price.
+    Market Orders must always be taker orders
+    """
+    is_market: bool | None = None
     """
     If True, Order must be a maker order. It has to fill the orderbook instead of match it.
     If False, Order can be either a maker or taker order.
@@ -1324,20 +1324,11 @@ class Order:
     | Must Be Maker | AON + True    | GTC + True       |
 
     """
-    post_only: bool
+    post_only: bool | None = None
     # If True, Order must reduce the position size, or be cancelled
-    reduce_only: bool
-    """
-    The legs present in this order
-    The legs must be sorted by Asset.Instrument/Underlying/Quote/Expiration/StrikePrice
-    """
-    legs: list[OrderLeg]
-    # The signature approving this order
-    signature: Signature
-    # Order Metadata, ignored by the smart contract, and unsigned by the client
-    metadata: OrderMetadata
+    reduce_only: bool | None = None
     # [Filled by GRVT Backend] The current state of the order, ignored by the smart contract, and unsigned by the client
-    state: OrderState
+    state: OrderState | None = None
 
 
 @dataclass
@@ -1629,6 +1620,90 @@ class FlatReferral:
 class ApiGetListFlatReferralResponse:
     # The list of flat referrals
     flat_referrals: list[FlatReferral]
+
+
+@dataclass
+class ApiGetLatestLPSnapshotRequest:
+    # The kind filter to apply
+    kind: Kind
+    # The underlying filter to apply
+    underlying: Currency
+
+
+@dataclass
+class LPSnapshot:
+    # The main account id
+    main_account_id: str
+    # The LP Asset
+    lp_asset: str
+    # Underlying multiplier
+    underlying_multiplier: str
+    # Market share multiplier
+    market_share_multiplier: str
+    # Fast market multiplier
+    bid_fast_market_multiplier: int
+    # Fast market multiplier
+    ask_fast_market_multiplier: int
+    # Liquidty score
+    liquidity_score: str
+    # The time when the snapshot was calculated
+    calculate_at: str
+
+
+@dataclass
+class ApiGetLatestLPSnapshotResponse:
+    # The latest LP snapshot
+    snapshot: LPSnapshot
+
+
+@dataclass
+class ApiGetLPLeaderboardRequest:
+    # Start time of the epoch - phase
+    start_interval: str
+    # The number of accounts to return
+    limit: int
+    # The kind filter to apply
+    kind: Kind
+    # The underlying filter to apply
+    underlying: Currency
+
+
+@dataclass
+class LPPoint:
+    # The main account id
+    main_account_id: str
+    # The LP Asset
+    lp_asset: str
+    # Start time of the epoch - phase
+    start_interval: str
+    # Liquidty score
+    liquidity_score: str
+    # The rank of user in the LP leaderboard
+    rank: int
+
+
+@dataclass
+class ApiGetLPLeaderboardResponse:
+    # The list of LP points
+    points: list[LPPoint]
+
+
+@dataclass
+class ApiGetLPPointRequest:
+    # Start time of the epoch - phase
+    start_interval: str
+    # The kind filter to apply
+    kind: Kind
+    # The underlying filter to apply
+    underlying: Currency
+
+
+@dataclass
+class ApiGetLPPointResponse:
+    # LP points of user
+    point: LPPoint
+    # The number of maker
+    maker_count: int
 
 
 @dataclass

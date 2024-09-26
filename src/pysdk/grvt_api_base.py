@@ -10,6 +10,7 @@ from typing import Any
 
 import aiohttp
 import requests  # type: ignore
+from eth_account import Account
 
 from .grvt_env import GrvtEnv, GrvtEnvConfig, get_env_config
 
@@ -48,7 +49,8 @@ class GrvtApiBase:
         self.env: GrvtEnvConfig = get_env_config(config.env)
         self.logger: logging.Logger = config.logger or logging.getLogger(__name__)
         self._cookie: GrvtCookie | None = None
-        self.logger.info(f"GrvtApiBase: {self.config=}, {self.env=}")
+        if self.config.private_key is not None:
+            self.account: Account = Account.from_key(self.config.private_key)
 
     """
     Cookie handling
@@ -63,7 +65,7 @@ class GrvtApiBase:
         is_cookie_fresh = time_till_expiration is not None and time_till_expiration > 5
         if not is_cookie_fresh:
             self.logger.info(
-                f"cookie should be refreshed {self._cookie=} now={time.time()}"
+                f"cookie should be refreshed now={time.time()}"
                 f" {time_till_expiration=} secs"
             )
         return not is_cookie_fresh
@@ -86,24 +88,17 @@ class GrvtApiSyncBase(GrvtApiBase):
 
         # Get cookie
         self._cookie = self._get_cookie(
-            self.env.edge.rpc_endpoint, str(self.config.api_key)
+            self.env.edge.rpc_endpoint + "/auth/api_key/login", str(self.config.api_key)
         )
-
-        # Logging
-        if self._cookie:
-            self.logger.info(f"refresh_cookie cookie={self._cookie}")
-            self._session.cookie_jar.update_cookies({"gravity": self._cookie.gravity})
+        self.logger.info(f"refresh_cookie cookie={self._cookie}")
         return None
 
     def _get_cookie(self, path: str, api_key: str) -> GrvtCookie | None:
         FN = f"_get_cookie {path=}"
-        data: dict[str, Any] = {}
         try:
-            data = {"api_key": api_key}
-            self.logger.info(f"{FN} ask for cookie {path=} {data=}")
             return_value = self._session.post(
                 path,
-                json=data,
+                json={"api_key": api_key},
                 headers={"Content-Type": "application/json"},
             )
             self.logger.info(f"{FN} {return_value=}")
@@ -174,18 +169,17 @@ class GrvtApiAsyncBase(GrvtApiBase):
 
         # Get cookie
         self._cookie = await self._get_cookie(
-            self.env.edge.rpc_endpoint, str(self.config.api_key)
+            self.env.edge.rpc_endpoint + "/auth/api_key/login", str(self.config.api_key)
         )
+        self.logger.info(f"refresh_cookie cookie={self._cookie}")
 
-        # Logging
+        # Update cookie in session
         if self._cookie:
-            self.logger.info(f"refresh_cookie cookie={self._cookie}")
             self._session.cookie_jar.update_cookies({"gravity": self._cookie.gravity})
         return None
 
     async def _get_cookie(self, path: str, api_key: str) -> GrvtCookie | None:
         FN = f"_get_cookie {path=}"
-        data: dict[str, Any] = {}
         try:
             data = {"api_key": api_key}
             self.logger.info(f"{FN} ask for cookie {path=} {data=}")
