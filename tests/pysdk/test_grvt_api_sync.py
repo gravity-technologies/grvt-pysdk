@@ -20,8 +20,8 @@ def test_open_orders() -> None:
     api = GrvtApiSync(config=get_config())
 
     # Skip test if trading account id is not set
-    if api.config.trading_account_id is None:
-        return None
+    if api.config.trading_account_id is None or api.config.api_key is None:
+        return None  # Skip test if configs are not set
 
     resp = api.open_orders_v1(
         types.ApiOpenOrdersRequest(
@@ -45,6 +45,8 @@ def test_create_order_with_signing() -> None:
     api = GrvtApiSync(config=get_config())
 
     order = get_test_order(api)
+    if order is None:
+        return None  # Skip test if configs are not set
     resp = api.create_order_v1(types.ApiCreateOrderRequest(order=order))
 
     if isinstance(resp, GrvtError):
