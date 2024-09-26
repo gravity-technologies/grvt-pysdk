@@ -106,19 +106,19 @@ class GrvtApiSync(GrvtApiSyncBase):
 
     def cancel_order_v1(
         self, req: types.ApiCancelOrderRequest
-    ) -> types.ApiCancelOrderResponse | GrvtError:
+    ) -> types.AckResponse | GrvtError:
         resp = self._post(True, self.td_rpc + "/full/v1/cancel_order", req)
         if resp.get("code"):
             return GrvtError(**resp)
-        return types.ApiCancelOrderResponse(**resp)
+        return types.AckResponse(**resp)
 
     def cancel_all_orders_v1(
         self, req: types.ApiCancelAllOrdersRequest
-    ) -> types.ApiCancelAllOrdersResponse | GrvtError:
+    ) -> types.AckResponse | GrvtError:
         resp = self._post(True, self.td_rpc + "/full/v1/cancel_all_orders", req)
         if resp.get("code"):
             return GrvtError(**resp)
-        return types.ApiCancelAllOrdersResponse(**resp)
+        return types.AckResponse(**resp)
 
     def get_order_v1(
         self, req: types.ApiGetOrderRequest

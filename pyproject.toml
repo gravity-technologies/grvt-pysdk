@@ -11,6 +11,7 @@ readme = { file = "README.md", content-type = "text/markdown" }
 dependencies = [
     "aiohttp>=3.10.5",
     "dataclasses-json>=0.6.7",
+    "eth-account>=0.13.4",
     "inflection>=0.5.1",
     "requests>=2.32.3",
 ]
