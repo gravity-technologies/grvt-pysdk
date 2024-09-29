@@ -308,6 +308,14 @@ wheels = [
 ]
 
 [[package]]
+name = "dacite"
+version = "1.8.1"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/21/0f/cf0943f4f55f0fbc7c6bd60caf1343061dff818b02af5a0d444e473bb78d/dacite-1.8.1-py3-none-any.whl", hash = "sha256:cc31ad6fdea1f49962ea42db9421772afe01ac5442380d9a99fcf3d188c61afe", size = 14309 },
+]
+
+[[package]]
 name = "dataclasses-json"
 version = "0.6.7"
 source = { registry = "https://pypi.org/simple" }
@@ -485,6 +493,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
+    { name = "dacite" },
     { name = "dataclasses-json" },
     { name = "eth-account" },
     { name = "inflection" },
@@ -505,6 +514,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.10.5" },
+    { name = "dacite", specifier = ">=1.8.1" },
     { name = "dataclasses-json", specifier = ">=0.6.7" },
     { name = "eth-account", specifier = ">=0.13.4" },
     { name = "inflection", specifier = ">=0.5.1" },

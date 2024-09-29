@@ -1,55 +1,17 @@
-from dataclasses import dataclass
 from enum import Enum
 
 from eth_account import Account
 from eth_account.messages import encode_typed_data
 
 from .grvt_api_base import GrvtApiConfig, GrvtEnv
-from .types import Currency, Kind, Order, TimeInForce
+from .types import Instrument, Order, TimeInForce
 
 #########################
 # INSTRUMENT CONVERSION #
 #########################
 
 
-class SignKind(Enum):
-    PERPETUAL = 1
-    FUTURE = 2
-    CALL = 3
-    PUT = 4
-
-
-KIND_TO_SIGN_KIND = {
-    Kind.PERPETUAL: SignKind.PERPETUAL,
-    Kind.FUTURE: SignKind.FUTURE,
-    Kind.CALL: SignKind.CALL,
-    Kind.PUT: SignKind.PUT,
-}
-
-
-class SignCurrency(Enum):
-    USDC = 2
-    USDT = 3
-    ETH = 4
-    BTC = 5
-
-
-CURRENCY_TO_SIGN_CURRENCY = {
-    Currency.USDC: SignCurrency.USDC,
-    Currency.USDT: SignCurrency.USDT,
-    Currency.ETH: SignCurrency.ETH,
-    Currency.BTC: SignCurrency.BTC,
-}
-
 PRICE_MULTIPLIER = 1_000_000_000
-
-
-SIGN_CURRENCY_TO_MULTIPLIER = {
-    SignCurrency.USDC: 1_000_000,
-    SignCurrency.USDT: 1_000_000,
-    SignCurrency.ETH: 1_000_000_000,
-    SignCurrency.BTC: 1_000_000_000,
-}
 
 
 class SignTimeInForce(Enum):
@@ -65,36 +27,6 @@ TIME_IN_FORCE_TO_SIGN_TIME_IN_FORCE = {
     TimeInForce.IMMEDIATE_OR_CANCEL: SignTimeInForce.IMMEDIATE_OR_CANCEL,
     TimeInForce.FILL_OR_KILL: SignTimeInForce.FILL_OR_KILL,
 }
-
-
-@dataclass
-class SignInstrument:
-    kind: SignKind
-    underlying: SignCurrency
-    quote: SignCurrency
-
-
-def map_instrument_to_sign_instrument(instrument: str) -> SignInstrument:
-    parts = instrument.split("_")
-    if len(parts) == 3:
-        underlying, quote, kind = parts
-        if kind == "Perp":
-            return SignInstrument(
-                kind=KIND_TO_SIGN_KIND[Kind.PERPETUAL],
-                underlying=CURRENCY_TO_SIGN_CURRENCY[Currency[underlying]],
-                quote=CURRENCY_TO_SIGN_CURRENCY[Currency[quote]],
-            )
-    raise ValueError(f"Invalid {instrument=} {kind=}")
-
-
-def map_sign_instrument_to_bytes(instrument: SignInstrument) -> str:
-    if instrument.kind == SignKind.PERPETUAL:
-        msg = bytearray(3)
-        msg[2] = instrument.kind.value
-        msg[1] = instrument.underlying.value
-        msg[0] = instrument.quote.value
-        return f"0x{msg.hex()}"
-    raise ValueError(f"Invalid {instrument=}")
 
 
 #####################
@@ -134,17 +66,22 @@ EIP712_ORDER_MESSAGE_TYPE = {
 }
 
 
-def sign_order(order: Order, config: GrvtApiConfig, account: Account) -> Order:
+def sign_order(
+    order: Order,
+    config: GrvtApiConfig,
+    account: Account,
+    instruments: dict[str, Instrument],
+) -> Order:
     if config.private_key is None:
         raise ValueError("Private key is not set")
 
     legs = []
     for leg in order.legs:
-        sign_instrument = map_instrument_to_sign_instrument(leg.instrument)
-        size_multiplier = SIGN_CURRENCY_TO_MULTIPLIER[sign_instrument.underlying]
+        instrument = instruments[leg.instrument]
+        size_multiplier = 10**instrument.underlying_decimals
         legs.append(
             {
-                "assetID": map_sign_instrument_to_bytes(sign_instrument),
+                "assetID": instrument.asset_id,
                 "contractSize": int(float(leg.size) * size_multiplier),
                 "limitPrice": int(float(leg.limit_price) * PRICE_MULTIPLIER),
                 "isBuyingContract": leg.is_buying_asset,
