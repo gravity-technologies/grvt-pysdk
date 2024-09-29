@@ -25,7 +25,9 @@ def get_config() -> GrvtApiConfig:
     return conf
 
 
-def get_test_order(api: GrvtApiSync) -> types.Order | None:
+def get_test_order(
+    api: GrvtApiSync, instruments: dict[str, types.Instrument]
+) -> types.Order | None:
     # Skip test if configs are not set
     if (
         api.config.trading_account_id is None
@@ -57,4 +59,4 @@ def get_test_order(api: GrvtApiSync) -> types.Order | None:
             client_order_id=str(random.randint(0, 2**32 - 1)),
         ),
     )
-    return sign_order(order, api.config, api.account)
+    return sign_order(order, api.config, api.account, instruments)

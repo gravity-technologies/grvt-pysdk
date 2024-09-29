@@ -1,3 +1,7 @@
+from enum import Enum
+
+from dacite import Config, from_dict
+
 from . import types
 from .grvt_api_base import GrvtApiAsyncBase, GrvtApiConfig, GrvtError
 
@@ -22,7 +26,7 @@ class GrvtApiAsync(GrvtApiAsyncBase):
         resp = await self._post(False, self.md_rpc + "/full/v1/all_instruments", req)
         if resp.get("code"):
             return GrvtError(**resp)
-        return types.ApiGetAllInstrumentsResponse(**resp)
+        return from_dict(types.ApiGetAllInstrumentsResponse, resp, Config(cast=[Enum]))
 
     async def get_filtered_instruments_v1(
         self, req: types.ApiGetFilteredInstrumentsRequest

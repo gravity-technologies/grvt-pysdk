@@ -205,6 +205,8 @@ class TimeInForce(Enum):
 class Venue(Enum):
     # the trade is cleared on the orderbook venue
     ORDERBOOK = "ORDERBOOK"
+    # the trade is cleared on the RFQ venue
+    RFQ = "RFQ"
 
 
 @dataclass

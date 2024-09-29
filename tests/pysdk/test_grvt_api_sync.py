@@ -44,7 +44,13 @@ def test_open_orders() -> None:
 def test_create_order_with_signing() -> None:
     api = GrvtApiSync(config=get_config())
 
-    order = get_test_order(api)
+    inst_resp = api.get_all_instruments_v1(
+        types.ApiGetAllInstrumentsRequest(is_active=True)
+    )
+    if isinstance(inst_resp, GrvtError):
+        raise ValueError(f"Received error: {inst_resp}")
+
+    order = get_test_order(api, {inst.instrument: inst for inst in inst_resp.results})
     if order is None:
         return None  # Skip test if configs are not set
     resp = api.create_order_v1(types.ApiCreateOrderRequest(order=order))
