@@ -60,6 +60,8 @@ class CandlestickType(Enum):
 
 
 class Currency(Enum):
+    # the USD fiat currency
+    USD = "USD"
     # the USDC token
     USDC = "USDC"
     # the USDT token
@@ -102,6 +104,8 @@ class MarginType(Enum):
 
 
 class OrderRejectReason(Enum):
+    # order is not cancelled or rejected
+    UNSPECIFIED = "UNSPECIFIED"
     # client called a Cancel API
     CLIENT_CANCEL = "CLIENT_CANCEL"
     # client called a Bulk Cancel API
@@ -1047,11 +1051,11 @@ class WSOrderbookLevelsFeedSelectorV1:
     instrument: str
     """
     The minimal rate at which we publish feeds (in milliseconds)
-    Delta (100, 200, 500, 1000, 5000)
+    Delta (40, 100, 200, 500, 1000, 5000)
     Snapshot (500, 1000, 5000)
     """
     rate: int
-    # Depth of the order book to be retrieved (API/Snapshot max is 100, Delta max is 1000)
+    # Depth of the order book to be retrieved (10, 40, 200, 500)
     depth: int
     # The number of levels to aggregate into one level (1 = no aggregation, 10/100/1000 = aggregate 10/100/1000 levels into 1)
     aggregate: int
@@ -1089,7 +1093,7 @@ class WSMiniTickerFeedSelectorV1:
     instrument: str
     """
     The minimal rate at which we publish feeds (in milliseconds)
-    Delta (raw, 50, 100, 200, 500, 1000, 5000)
+    Delta (0, 40, 100, 200, 500, 1000, 5000)
     Snapshot (200, 500, 1000, 5000)
     """
     rate: int
