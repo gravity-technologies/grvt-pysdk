@@ -158,15 +158,6 @@ class OrderRejectReason(Enum):
     MULTI_LEGGED_ORDER = "MULTI_LEGGED_ORDER"
 
 
-class OrderStateFilter(Enum):
-    # create only filter
-    C = "C"
-    # update only filter
-    U = "U"
-    # create and update filter
-    A = "A"
-
-
 class OrderStatus(Enum):
     # Order is waiting for Trigger Condition to be hit
     PENDING = "PENDING"
@@ -218,11 +209,11 @@ class ApiPositionsRequest:
     # The sub account ID to request for
     sub_account_id: str
     # The kind filter to apply. If nil, this defaults to all kinds. Otherwise, only entries matching the filter will be returned
-    kind: list[Kind]
-    # The underlying filter to apply. If nil, this defaults to all underlyings. Otherwise, only entries matching the filter will be returned
-    underlying: list[Currency]
+    kind: list[Kind] | None = None
+    # The base filter to apply. If nil, this defaults to all bases. Otherwise, only entries matching the filter will be returned
+    base: list[Currency] | None = None
     # The quote filter to apply. If nil, this defaults to all quotes. Otherwise, only entries matching the filter will be returned
-    quote: list[Currency]
+    quote: list[Currency] | None = None
 
 
 @dataclass
@@ -233,7 +224,7 @@ class Positions:
     sub_account_id: str
     # The instrument being represented
     instrument: str
-    # The size of the position, expressed in underlying asset decimal units. Negative for short positions
+    # The size of the position, expressed in base asset decimal units. Negative for short positions
     size: str
     # The notional value of the position, negative for short assets, expressed in quote asset decimal units
     notional: str
@@ -282,9 +273,9 @@ class ApiPositionsResponse:
 
 
 @dataclass
-class ApiPrivateTradeHistoryRequest:
+class ApiFillHistoryRequest:
     """
-    Query for all historical trades made by a single account. A single order can be matched multiple times, hence there is no real way to uniquely identify a trade.
+    Query for all historical fills made by a single account. A single order can be matched multiple times, hence there is no real way to uniquely identify a trade.
 
     Pagination works as follows:<ul><li>We perform a reverse chronological lookup, starting from `end_time`. If `end_time` is not set, we start from the most recent data.</li><li>The lookup is limited to `limit` records. If more data is requested, the response will contain a `next` cursor for you to query the next page.</li><li>If a `cursor` is provided, it will be used to fetch results from that point onwards.</li><li>Pagination will continue until the `start_time` is reached. If `start_time` is not set, pagination will continue as far back as our data retention policy allows.</li></ul>
     """
@@ -292,11 +283,11 @@ class ApiPrivateTradeHistoryRequest:
     # The sub account ID to request for
     sub_account_id: str
     # The kind filter to apply. If nil, this defaults to all kinds. Otherwise, only entries matching the filter will be returned
-    kind: list[Kind]
-    # The underlying filter to apply. If nil, this defaults to all underlyings. Otherwise, only entries matching the filter will be returned
-    underlying: list[Currency]
+    kind: list[Kind] | None = None
+    # The base filter to apply. If nil, this defaults to all bases. Otherwise, only entries matching the filter will be returned
+    base: list[Currency] | None = None
     # The quote filter to apply. If nil, this defaults to all quotes. Otherwise, only entries matching the filter will be returned
-    quote: list[Currency]
+    quote: list[Currency] | None = None
     # The start time to apply in unix nanoseconds. If nil, this defaults to all start times. Otherwise, only entries matching the filter will be returned
     start_time: str | None = None
     # The end time to apply in unix nanoseconds. If nil, this defaults to all end times. Otherwise, only entries matching the filter will be returned
@@ -308,7 +299,7 @@ class ApiPrivateTradeHistoryRequest:
 
 
 @dataclass
-class PrivateTrade:
+class Fill:
     # Time at which the event was emitted in unix nanoseconds
     event_time: str
     # The sub account ID that participated in the trade
@@ -319,7 +310,7 @@ class PrivateTrade:
     is_buyer: bool
     # The role that the subaccount took on the trade
     is_taker: bool
-    # The number of assets being traded, expressed in underlying asset decimal units
+    # The number of assets being traded, expressed in base asset decimal units
     size: str
     # The traded price, expressed in `9` decimals
     price: str
@@ -358,9 +349,9 @@ class PrivateTrade:
 
 
 @dataclass
-class ApiPrivateTradeHistoryResponse:
+class ApiFillHistoryResponse:
     # The private trades matching the request asset
-    results: list[PrivateTrade]
+    results: list[Fill]
     # The cursor to indicate when to start the query from
     next: str
 
@@ -383,7 +374,7 @@ class SpotBalance:
 
 @dataclass
 class SubAccount:
-    # Time at which the event was emitted in unix nanoseconds
+    # Time at which the event was emitted in uix nanoseconds
     event_time: str
     # The sub account ID this entry refers to
     sub_account_id: str
@@ -506,15 +497,9 @@ class ApiFundingAccountSummaryResponse:
 
 @dataclass
 class ApiOrderbookLevelsRequest:
-    """
-    The readable name of the instrument. For Perpetual: ETH_USDT_Perp [Underlying Quote Perp]
-    For Future: BTC_USDT_Fut_20Oct23 [Underlying Quote Fut DateFormat]
-    For Call: ETH_USDT_Call_20Oct23_4123 [Underlying Quote Call DateFormat StrikePrice]
-    For Put: ETH_USDT_Put_20Oct23_4123 [Underlying Quote Put DateFormat StrikePrice]
-    """
-
+    # The readable instrument name:<ul><li>Perpetual: `ETH_USDT_Perp`</li><li>Future: `BTC_USDT_Fut_20Oct23`</li><li>Call: `ETH_USDT_Call_20Oct23_2800`</li><li>Put: `ETH_USDT_Put_20Oct23_2800`</li></ul>
     instrument: str
-    # Depth of the order book to be retrieved (API/Snapshot max is 100, Delta max is 1000)
+    # Depth of the order book to be retrieved (10, 40, 200, 500)
     depth: int
     # The number of levels to aggregate into one level (1 = no aggregation, 10/100/1000 = aggregate 10/100/1000 levels into 1)
     aggregate: int
@@ -524,7 +509,7 @@ class ApiOrderbookLevelsRequest:
 class OrderbookLevel:
     # The price of the level, expressed in `9` decimals
     price: str
-    # The number of assets offered, expressed in underlying asset decimal units
+    # The number of assets offered, expressed in base asset decimal units
     size: str
     # The number of open orders at this level
     num_orders: int
@@ -534,12 +519,7 @@ class OrderbookLevel:
 class OrderbookLevels:
     # Time at which the event was emitted in unix nanoseconds
     event_time: str
-    """
-    The readable name of the instrument. For Perpetual: ETH_USDT_Perp [Underlying Quote Perp]
-    For Future: BTC_USDT_Fut_20Oct23 [Underlying Quote Fut DateFormat]
-    For Call: ETH_USDT_Call_20Oct23_4123 [Underlying Quote Call DateFormat StrikePrice]
-    For Put: ETH_USDT_Put_20Oct23_4123 [Underlying Quote Put DateFormat StrikePrice]
-    """
+    # The readable instrument name:<ul><li>Perpetual: `ETH_USDT_Perp`</li><li>Future: `BTC_USDT_Fut_20Oct23`</li><li>Call: `ETH_USDT_Call_20Oct23_2800`</li><li>Put: `ETH_USDT_Put_20Oct23_2800`</li></ul>
     instrument: str
     # The list of best bids up till query depth
     bids: list[OrderbookLevel]
@@ -555,13 +535,7 @@ class ApiOrderbookLevelsResponse:
 
 @dataclass
 class ApiMiniTickerRequest:
-    """
-    The readable name of the instrument. For Perpetual: ETH_USDT_Perp [Underlying Quote Perp]
-    For Future: BTC_USDT_Fut_20Oct23 [Underlying Quote Fut DateFormat]
-    For Call: ETH_USDT_Call_20Oct23_4123 [Underlying Quote Call DateFormat StrikePrice]
-    For Put: ETH_USDT_Put_20Oct23_4123 [Underlying Quote Put DateFormat StrikePrice]
-    """
-
+    # The readable instrument name:<ul><li>Perpetual: `ETH_USDT_Perp`</li><li>Future: `BTC_USDT_Fut_20Oct23`</li><li>Call: `ETH_USDT_Call_20Oct23_2800`</li><li>Put: `ETH_USDT_Put_20Oct23_2800`</li></ul>
     instrument: str
 
 
@@ -569,12 +543,7 @@ class ApiMiniTickerRequest:
 class MiniTicker:
     # Time at which the event was emitted in unix nanoseconds
     event_time: str | None = None
-    """
-    The readable name of the instrument. For Perpetual: ETH_USDT_Perp [Underlying Quote Perp]
-    For Future: BTC_USDT_Fut_20Oct23 [Underlying Quote Fut DateFormat]
-    For Call: ETH_USDT_Call_20Oct23_4123 [Underlying Quote Call DateFormat StrikePrice]
-    For Put: ETH_USDT_Put_20Oct23_4123 [Underlying Quote Put DateFormat StrikePrice]
-    """
+    # The readable instrument name:<ul><li>Perpetual: `ETH_USDT_Perp`</li><li>Future: `BTC_USDT_Fut_20Oct23`</li><li>Call: `ETH_USDT_Call_20Oct23_2800`</li><li>Put: `ETH_USDT_Put_20Oct23_2800`</li></ul>
     instrument: str | None = None
     # The mark price of the instrument, expressed in `9` decimals
     mark_price: str | None = None
@@ -582,17 +551,17 @@ class MiniTicker:
     index_price: str | None = None
     # The last traded price of the instrument (also close price), expressed in `9` decimals
     last_price: str | None = None
-    # The number of assets traded in the last trade, expressed in underlying asset decimal units
+    # The number of assets traded in the last trade, expressed in base asset decimal units
     last_size: str | None = None
     # The mid price of the instrument, expressed in `9` decimals
     mid_price: str | None = None
     # The best bid price of the instrument, expressed in `9` decimals
     best_bid_price: str | None = None
-    # The number of assets offered on the best bid price of the instrument, expressed in underlying asset decimal units
+    # The number of assets offered on the best bid price of the instrument, expressed in base asset decimal units
     best_bid_size: str | None = None
     # The best ask price of the instrument, expressed in `9` decimals
     best_ask_price: str | None = None
-    # The number of assets offered on the best ask price of the instrument, expressed in underlying asset decimal units
+    # The number of assets offered on the best ask price of the instrument, expressed in base asset decimal units
     best_ask_size: str | None = None
 
 
@@ -604,13 +573,7 @@ class ApiMiniTickerResponse:
 
 @dataclass
 class ApiTickerRequest:
-    """
-    The readable name of the instrument. For Perpetual: ETH_USDT_Perp [Underlying Quote Perp]
-    For Future: BTC_USDT_Fut_20Oct23 [Underlying Quote Fut DateFormat]
-    For Call: ETH_USDT_Call_20Oct23_4123 [Underlying Quote Call DateFormat StrikePrice]
-    For Put: ETH_USDT_Put_20Oct23_4123 [Underlying Quote Put DateFormat StrikePrice]
-    """
-
+    # The readable instrument name:<ul><li>Perpetual: `ETH_USDT_Perp`</li><li>Future: `BTC_USDT_Fut_20Oct23`</li><li>Call: `ETH_USDT_Call_20Oct23_2800`</li><li>Put: `ETH_USDT_Put_20Oct23_2800`</li></ul>
     instrument: str
 
 
@@ -633,12 +596,7 @@ class Ticker:
 
     # Time at which the event was emitted in unix nanoseconds
     event_time: str | None = None
-    """
-    The readable name of the instrument. For Perpetual: ETH_USDT_Perp [Underlying Quote Perp]
-    For Future: BTC_USDT_Fut_20Oct23 [Underlying Quote Fut DateFormat]
-    For Call: ETH_USDT_Call_20Oct23_4123 [Underlying Quote Call DateFormat StrikePrice]
-    For Put: ETH_USDT_Put_20Oct23_4123 [Underlying Quote Put DateFormat StrikePrice]
-    """
+    # The readable instrument name:<ul><li>Perpetual: `ETH_USDT_Perp`</li><li>Future: `BTC_USDT_Fut_20Oct23`</li><li>Call: `ETH_USDT_Call_20Oct23_2800`</li><li>Put: `ETH_USDT_Put_20Oct23_2800`</li></ul>
     instrument: str | None = None
     # The mark price of the instrument, expressed in `9` decimals
     mark_price: str | None = None
@@ -646,17 +604,17 @@ class Ticker:
     index_price: str | None = None
     # The last traded price of the instrument (also close price), expressed in `9` decimals
     last_price: str | None = None
-    # The number of assets traded in the last trade, expressed in underlying asset decimal units
+    # The number of assets traded in the last trade, expressed in base asset decimal units
     last_size: str | None = None
     # The mid price of the instrument, expressed in `9` decimals
     mid_price: str | None = None
     # The best bid price of the instrument, expressed in `9` decimals
     best_bid_price: str | None = None
-    # The number of assets offered on the best bid price of the instrument, expressed in underlying asset decimal units
+    # The number of assets offered on the best bid price of the instrument, expressed in base asset decimal units
     best_bid_size: str | None = None
     # The best ask price of the instrument, expressed in `9` decimals
     best_ask_price: str | None = None
-    # The number of assets offered on the best ask price of the instrument, expressed in underlying asset decimal units
+    # The number of assets offered on the best ask price of the instrument, expressed in base asset decimal units
     best_ask_size: str | None = None
     # The current funding rate of the instrument, expressed in centibeeps (1/100th of a basis point)
     funding_rate_8_h_curr: str | None = None
@@ -666,9 +624,9 @@ class Ticker:
     interest_rate: str | None = None
     # [Options] The forward price of the option, expressed in `9` decimals
     forward_price: str | None = None
-    # The 24 hour taker buy volume of the instrument, expressed in underlying asset decimal units
+    # The 24 hour taker buy volume of the instrument, expressed in base asset decimal units
     buy_volume_24_h_u: str | None = None
-    # The 24 hour taker sell volume of the instrument, expressed in underlying asset decimal units
+    # The 24 hour taker sell volume of the instrument, expressed in base asset decimal units
     sell_volume_24_h_u: str | None = None
     # The 24 hour taker buy volume of the instrument, expressed in quote asset decimal units
     buy_volume_24_h_q: str | None = None
@@ -680,7 +638,7 @@ class Ticker:
     low_price: str | None = None
     # The 24 hour first traded price of the instrument, expressed in `9` decimals
     open_price: str | None = None
-    # The open interest in the instrument, expressed in underlying asset decimal units
+    # The open interest in the instrument, expressed in base asset decimal units
     open_interest: str | None = None
     # The ratio of accounts that are net long vs net short on this instrument
     long_short_ratio: str | None = None
@@ -693,37 +651,27 @@ class ApiTickerResponse:
 
 
 @dataclass
-class ApiPublicTradesRequest:
+class ApiTradeRequest:
     """
-    Retrieves up to 1000 of the most recent public trades in any given instrument. Do not use this to poll for data -- a websocket subscription is much more performant, and useful.
+    Retrieves up to 1000 of the most recent trades in any given instrument. Do not use this to poll for data -- a websocket subscription is much more performant, and useful.
     This endpoint offers public trading data, use the Trading APIs instead to query for your personalized trade tape.
     """
 
-    """
-    The readable name of the instrument. For Perpetual: ETH_USDT_Perp [Underlying Quote Perp]
-    For Future: BTC_USDT_Fut_20Oct23 [Underlying Quote Fut DateFormat]
-    For Call: ETH_USDT_Call_20Oct23_4123 [Underlying Quote Call DateFormat StrikePrice]
-    For Put: ETH_USDT_Put_20Oct23_4123 [Underlying Quote Put DateFormat StrikePrice]
-    """
+    # The readable instrument name:<ul><li>Perpetual: `ETH_USDT_Perp`</li><li>Future: `BTC_USDT_Fut_20Oct23`</li><li>Call: `ETH_USDT_Call_20Oct23_2800`</li><li>Put: `ETH_USDT_Put_20Oct23_2800`</li></ul>
     instrument: str
     # The limit to query for. Defaults to 500; Max 1000
     limit: int
 
 
 @dataclass
-class PublicTrade:
+class Trade:
     # Time at which the event was emitted in unix nanoseconds
     event_time: str
-    """
-    The readable name of the instrument. For Perpetual: ETH_USDT_Perp [Underlying Quote Perp]
-    For Future: BTC_USDT_Fut_20Oct23 [Underlying Quote Fut DateFormat]
-    For Call: ETH_USDT_Call_20Oct23_4123 [Underlying Quote Call DateFormat StrikePrice]
-    For Put: ETH_USDT_Put_20Oct23_4123 [Underlying Quote Put DateFormat StrikePrice]
-    """
+    # The readable instrument name:<ul><li>Perpetual: `ETH_USDT_Perp`</li><li>Future: `BTC_USDT_Fut_20Oct23`</li><li>Call: `ETH_USDT_Call_20Oct23_2800`</li><li>Put: `ETH_USDT_Put_20Oct23_2800`</li></ul>
     instrument: str
     # If taker was the buyer on the trade
     is_taker_buyer: bool
-    # The number of assets being traded, expressed in underlying asset decimal units
+    # The number of assets being traded, expressed in base asset decimal units
     size: str
     # The traded price, expressed in `9` decimals
     price: str
@@ -742,13 +690,13 @@ class PublicTrade:
 
 
 @dataclass
-class ApiPublicTradesResponse:
+class ApiTradeResponse:
     # The public trades matching the request asset
-    results: list[PublicTrade]
+    results: list[Trade]
 
 
 @dataclass
-class ApiPublicTradeHistoryRequest:
+class ApiTradeHistoryRequest:
     """
     Perform historical lookup of public trades in any given instrument.
     This endpoint offers public trading data, use the Trading APIs instead to query for your personalized trade tape.
@@ -757,12 +705,7 @@ class ApiPublicTradeHistoryRequest:
     Pagination works as follows:<ul><li>We perform a reverse chronological lookup, starting from `end_time`. If `end_time` is not set, we start from the most recent data.</li><li>The lookup is limited to `limit` records. If more data is requested, the response will contain a `next` cursor for you to query the next page.</li><li>If a `cursor` is provided, it will be used to fetch results from that point onwards.</li><li>Pagination will continue until the `start_time` is reached. If `start_time` is not set, pagination will continue as far back as our data retention policy allows.</li></ul>
     """
 
-    """
-    The readable name of the instrument. For Perpetual: ETH_USDT_Perp [Underlying Quote Perp]
-    For Future: BTC_USDT_Fut_20Oct23 [Underlying Quote Fut DateFormat]
-    For Call: ETH_USDT_Call_20Oct23_4123 [Underlying Quote Call DateFormat StrikePrice]
-    For Put: ETH_USDT_Put_20Oct23_4123 [Underlying Quote Put DateFormat StrikePrice]
-    """
+    # The readable instrument name:<ul><li>Perpetual: `ETH_USDT_Perp`</li><li>Future: `BTC_USDT_Fut_20Oct23`</li><li>Call: `ETH_USDT_Call_20Oct23_2800`</li><li>Put: `ETH_USDT_Put_20Oct23_2800`</li></ul>
     instrument: str
     # The start time to apply in nanoseconds. If nil, this defaults to all start times. Otherwise, only entries matching the filter will be returned
     start_time: str | None = None
@@ -775,39 +718,27 @@ class ApiPublicTradeHistoryRequest:
 
 
 @dataclass
-class ApiPublicTradeHistoryResponse:
+class ApiTradeHistoryResponse:
     # The public trades matching the request asset
-    results: list[PublicTrade]
+    results: list[Trade]
     # The cursor to indicate when to start the next query from
     next: str | None = None
 
 
 @dataclass
 class ApiGetInstrumentRequest:
-    """
-    The readable name of the instrument. For Perpetual: ETH_USDT_Perp [Underlying Quote Perp]
-    For Future: BTC_USDT_Fut_20Oct23 [Underlying Quote Fut DateFormat]
-    For Call: ETH_USDT_Call_20Oct23_4123 [Underlying Quote Call DateFormat StrikePrice]
-    For Put: ETH_USDT_Put_20Oct23_4123 [Underlying Quote Put DateFormat StrikePrice]
-    """
-
+    # The readable instrument name:<ul><li>Perpetual: `ETH_USDT_Perp`</li><li>Future: `BTC_USDT_Fut_20Oct23`</li><li>Call: `ETH_USDT_Call_20Oct23_2800`</li><li>Put: `ETH_USDT_Put_20Oct23_2800`</li></ul>
     instrument: str
 
 
 @dataclass
 class Instrument:
-    """
-    The readable name of the instrument. For Perpetual: ETH_USDT_Perp [Underlying Quote Perp]
-    For Future: BTC_USDT_Fut_20Oct23 [Underlying Quote Fut DateFormat]
-    For Call: ETH_USDT_Call_20Oct23_4123 [Underlying Quote Call DateFormat StrikePrice]
-    For Put: ETH_USDT_Put_20Oct23_4123 [Underlying Quote Put DateFormat StrikePrice]
-    """
-
+    # The readable instrument name:<ul><li>Perpetual: `ETH_USDT_Perp`</li><li>Future: `BTC_USDT_Fut_20Oct23`</li><li>Call: `ETH_USDT_Call_20Oct23_2800`</li><li>Put: `ETH_USDT_Put_20Oct23_2800`</li></ul>
     instrument: str
     # The asset ID used for instrument signing.
     asset_id: str
-    # The underlying currency
-    underlying: Currency
+    # The base currency
+    base: Currency
     # The quote currency
     quote: Currency
     # The kind of instrument
@@ -816,15 +747,15 @@ class Instrument:
     venues: list[Venue]
     # The settlement period of the instrument
     settlement_period: InstrumentSettlementPeriod
-    # The smallest denomination of the underlying asset supported by GRVT (+3 represents 0.001, -3 represents 1000, 0 represents 1)
+    # The smallest denomination of the base asset supported by GRVT (+3 represents 0.001, -3 represents 1000, 0 represents 1)
     underlying_decimals: int
     # The smallest denomination of the quote asset supported by GRVT (+3 represents 0.001, -3 represents 1000, 0 represents 1)
     quote_decimals: int
     # The size of a single tick, expressed in quote asset decimal units
     tick_size: str
-    # The minimum contract size, expressed in underlying asset decimal units
+    # The minimum contract size, expressed in base asset decimal units
     min_size: str
-    # The minimum block trade size, expressed in underlying asset decimal units
+    # The minimum block trade size, expressed in base asset decimal units
     min_block_trade_size: str
     # Creation time in unix nanoseconds
     create_time: str
@@ -844,8 +775,8 @@ class ApiGetInstrumentResponse:
 class ApiGetFilteredInstrumentsRequest:
     # The kind filter to apply. If nil, this defaults to all kinds. Otherwise, only entries matching the filter will be returned
     kind: list[Kind] | None = None
-    # The underlying filter to apply. If nil, this defaults to all underlyings. Otherwise, only entries matching the filter will be returned
-    underlying: list[Currency] | None = None
+    # The base filter to apply. If nil, this defaults to all bases. Otherwise, only entries matching the filter will be returned
+    base: list[Currency] | None = None
     # The quote filter to apply. If nil, this defaults to all quotes. Otherwise, only entries matching the filter will be returned
     quote: list[Currency] | None = None
     # Request for active instruments only
@@ -868,12 +799,7 @@ class ApiCandlestickRequest:
     Pagination works as follows:<ul><li>We perform a reverse chronological lookup, starting from `end_time`. If `end_time` is not set, we start from the most recent data.</li><li>The lookup is limited to `limit` records. If more data is requested, the response will contain a `next` cursor for you to query the next page.</li><li>If a `cursor` is provided, it will be used to fetch results from that point onwards.</li><li>Pagination will continue until the `start_time` is reached. If `start_time` is not set, pagination will continue as far back as our data retention policy allows.</li></ul>
     """
 
-    """
-    The readable name of the instrument. For Perpetual: ETH_USDT_Perp [Underlying Quote Perp]
-    For Future: BTC_USDT_Fut_20Oct23 [Underlying Quote Fut DateFormat]
-    For Call: ETH_USDT_Call_20Oct23_4123 [Underlying Quote Call DateFormat StrikePrice]
-    For Put: ETH_USDT_Put_20Oct23_4123 [Underlying Quote Put DateFormat StrikePrice]
-    """
+    # The readable instrument name:<ul><li>Perpetual: `ETH_USDT_Perp`</li><li>Future: `BTC_USDT_Fut_20Oct23`</li><li>Call: `ETH_USDT_Call_20Oct23_2800`</li><li>Put: `ETH_USDT_Put_20Oct23_2800`</li></ul>
     instrument: str
     # The interval of each candlestick
     interval: CandlestickInterval
@@ -903,18 +829,13 @@ class Candlestick:
     high: str
     # The low price, expressed in underlying currency resolution units
     low: str
-    # The underlying volume transacted, expressed in underlying asset decimal units
+    # The underlying volume transacted, expressed in base asset decimal units
     volume_u: str
     # The quote volume transacted, expressed in quote asset decimal units
     volume_q: str
     # The number of trades transacted
     trades: int
-    """
-    The readable name of the instrument. For Perpetual: ETH_USDT_Perp [Underlying Quote Perp]
-    For Future: BTC_USDT_Fut_20Oct23 [Underlying Quote Fut DateFormat]
-    For Call: ETH_USDT_Call_20Oct23_4123 [Underlying Quote Call DateFormat StrikePrice]
-    For Put: ETH_USDT_Put_20Oct23_4123 [Underlying Quote Put DateFormat StrikePrice]
-    """
+    # The readable instrument name:<ul><li>Perpetual: `ETH_USDT_Perp`</li><li>Future: `BTC_USDT_Fut_20Oct23`</li><li>Call: `ETH_USDT_Call_20Oct23_2800`</li><li>Put: `ETH_USDT_Put_20Oct23_2800`</li></ul>
     instrument: str
 
 
@@ -934,12 +855,7 @@ class ApiFundingRateRequest:
     Pagination works as follows:<ul><li>We perform a reverse chronological lookup, starting from `end_time`. If `end_time` is not set, we start from the most recent data.</li><li>The lookup is limited to `limit` records. If more data is requested, the response will contain a `next` cursor for you to query the next page.</li><li>If a `cursor` is provided, it will be used to fetch results from that point onwards.</li><li>Pagination will continue until the `start_time` is reached. If `start_time` is not set, pagination will continue as far back as our data retention policy allows.</li></ul>
     """
 
-    """
-    The readable name of the instrument. For Perpetual: ETH_USDT_Perp [Underlying Quote Perp]
-    For Future: BTC_USDT_Fut_20Oct23 [Underlying Quote Fut DateFormat]
-    For Call: ETH_USDT_Call_20Oct23_4123 [Underlying Quote Call DateFormat StrikePrice]
-    For Put: ETH_USDT_Put_20Oct23_4123 [Underlying Quote Put DateFormat StrikePrice]
-    """
+    # The readable instrument name:<ul><li>Perpetual: `ETH_USDT_Perp`</li><li>Future: `BTC_USDT_Fut_20Oct23`</li><li>Call: `ETH_USDT_Call_20Oct23_2800`</li><li>Put: `ETH_USDT_Put_20Oct23_2800`</li></ul>
     instrument: str
     # Start time of funding rate in unix nanoseconds
     start_time: str | None = None
@@ -953,13 +869,7 @@ class ApiFundingRateRequest:
 
 @dataclass
 class FundingRate:
-    """
-    The readable name of the instrument. For Perpetual: ETH_USDT_Perp [Underlying Quote Perp]
-    For Future: BTC_USDT_Fut_20Oct23 [Underlying Quote Fut DateFormat]
-    For Call: ETH_USDT_Call_20Oct23_4123 [Underlying Quote Call DateFormat StrikePrice]
-    For Put: ETH_USDT_Put_20Oct23_4123 [Underlying Quote Put DateFormat StrikePrice]
-    """
-
+    # The readable instrument name:<ul><li>Perpetual: `ETH_USDT_Perp`</li><li>Future: `BTC_USDT_Fut_20Oct23`</li><li>Call: `ETH_USDT_Call_20Oct23_2800`</li><li>Put: `ETH_USDT_Put_20Oct23_2800`</li></ul>
     instrument: str
     # The funding rate of the instrument, expressed in centibeeps
     funding_rate: int
@@ -985,8 +895,8 @@ class ApiSettlementPriceRequest:
     Pagination works as follows:<ul><li>We perform a reverse chronological lookup, starting from `end_time`. If `end_time` is not set, we start from the most recent data.</li><li>The lookup is limited to `limit` records. If more data is requested, the response will contain a `next` cursor for you to query the next page.</li><li>If a `cursor` is provided, it will be used to fetch results from that point onwards.</li><li>Pagination will continue until the `start_time` is reached. If `start_time` is not set, pagination will continue as far back as our data retention policy allows.</li></ul>
     """
 
-    # The underlying currency to select
-    underlying: Currency
+    # The base currency to select
+    base: Currency
     # The quote currency to select
     quote: Currency
     # Start time of settlement price in unix nanoseconds
@@ -1001,8 +911,8 @@ class ApiSettlementPriceRequest:
 
 @dataclass
 class APISettlementPrice:
-    # The underlying currency of the settlement price
-    underlying: Currency
+    # The base currency of the settlement price
+    base: Currency
     # The quote currency of the settlement price
     quote: Currency
     # The settlement timestamp of the settlement price, expressed in unix nanoseconds
@@ -1042,12 +952,7 @@ class WSOrderbookLevelsFeedSelectorV1:
     Field Semantics:<ul><li>[DeltaOnly] If a level is not updated, level not published</li><li>If a level is updated, {size: '123'}</li><li>If a level is set to zero, {size: '0'}</li><li>Incoming levels will be published as soon as price moves</li><li>Outgoing levels will be published with `size = 0`</li></ul>
     """
 
-    """
-    The readable name of the instrument. For Perpetual: ETH_USDT_Perp [Underlying Quote Perp]
-    For Future: BTC_USDT_Fut_20Oct23 [Underlying Quote Fut DateFormat]
-    For Call: ETH_USDT_Call_20Oct23_4123 [Underlying Quote Call DateFormat StrikePrice]
-    For Put: ETH_USDT_Put_20Oct23_4123 [Underlying Quote Put DateFormat StrikePrice]
-    """
+    # The readable instrument name:<ul><li>Perpetual: `ETH_USDT_Perp`</li><li>Future: `BTC_USDT_Fut_20Oct23`</li><li>Call: `ETH_USDT_Call_20Oct23_2800`</li><li>Put: `ETH_USDT_Put_20Oct23_2800`</li></ul>
     instrument: str
     """
     The minimal rate at which we publish feeds (in milliseconds)
@@ -1084,12 +989,7 @@ class WSMiniTickerFeedSelectorV1:
     Field Semantics:<ul><li>[DeltaOnly] If a field is not updated, {}</li><li>If a field is updated, {field: '123'}</li><li>If a field is set to zero, {field: '0'}</li><li>If a field is set to null, {field: ''}</li></ul>
     """
 
-    """
-    The readable name of the instrument. For Perpetual: ETH_USDT_Perp [Underlying Quote Perp]
-    For Future: BTC_USDT_Fut_20Oct23 [Underlying Quote Fut DateFormat]
-    For Call: ETH_USDT_Call_20Oct23_4123 [Underlying Quote Call DateFormat StrikePrice]
-    For Put: ETH_USDT_Put_20Oct23_4123 [Underlying Quote Put DateFormat StrikePrice]
-    """
+    # The readable instrument name:<ul><li>Perpetual: `ETH_USDT_Perp`</li><li>Future: `BTC_USDT_Fut_20Oct23`</li><li>Call: `ETH_USDT_Call_20Oct23_2800`</li><li>Put: `ETH_USDT_Put_20Oct23_2800`</li></ul>
     instrument: str
     """
     The minimal rate at which we publish feeds (in milliseconds)
@@ -1122,12 +1022,7 @@ class WSTickerFeedSelectorV1:
     Field Semantics:<ul><li>[DeltaOnly] If a field is not updated, {}</li><li>If a field is updated, {field: '123'}</li><li>If a field is set to zero, {field: '0'}</li><li>If a field is set to null, {field: ''}</li></ul>
     """
 
-    """
-    The readable name of the instrument. For Perpetual: ETH_USDT_Perp [Underlying Quote Perp]
-    For Future: BTC_USDT_Fut_20Oct23 [Underlying Quote Fut DateFormat]
-    For Call: ETH_USDT_Call_20Oct23_4123 [Underlying Quote Call DateFormat StrikePrice]
-    For Put: ETH_USDT_Put_20Oct23_4123 [Underlying Quote Put DateFormat StrikePrice]
-    """
+    # The readable instrument name:<ul><li>Perpetual: `ETH_USDT_Perp`</li><li>Future: `BTC_USDT_Fut_20Oct23`</li><li>Call: `ETH_USDT_Call_20Oct23_2800`</li><li>Put: `ETH_USDT_Put_20Oct23_2800`</li></ul>
     instrument: str
     """
     The minimal rate at which we publish feeds (in milliseconds)
@@ -1156,21 +1051,15 @@ class ApiTickerFeedDataV1:
 
 
 @dataclass
-class WSPublicTradesFeedSelectorV1:
-    """
-    The readable name of the instrument. For Perpetual: ETH_USDT_Perp [Underlying Quote Perp]
-    For Future: BTC_USDT_Fut_20Oct23 [Underlying Quote Fut DateFormat]
-    For Call: ETH_USDT_Call_20Oct23_4123 [Underlying Quote Call DateFormat StrikePrice]
-    For Put: ETH_USDT_Put_20Oct23_4123 [Underlying Quote Put DateFormat StrikePrice]
-    """
-
+class WSTradeFeedSelectorV1:
+    # The readable instrument name:<ul><li>Perpetual: `ETH_USDT_Perp`</li><li>Future: `BTC_USDT_Fut_20Oct23`</li><li>Call: `ETH_USDT_Call_20Oct23_2800`</li><li>Put: `ETH_USDT_Put_20Oct23_2800`</li></ul>
     instrument: str
     # The limit to query for. Defaults to 500; Max 1000
     limit: int
 
 
 @dataclass
-class WSPublicTradesFeedDataV1:
+class WSTradeFeedDataV1:
     # Stream name
     stream: str
     # Primary selector
@@ -1178,7 +1067,7 @@ class WSPublicTradesFeedDataV1:
     # A running sequence number that determines global message order within the specific stream
     sequence_number: str
     # A public trade matching the request filter
-    feed: PublicTrade
+    feed: Trade
 
 
 @dataclass
@@ -1188,12 +1077,7 @@ class WSCandlestickFeedSelectorV1:
     A new Kline is published every interval (if it exists). Upon subscription, the server will send the 5 most recent Kline for the requested interval.
     """
 
-    """
-    The readable name of the instrument. For Perpetual: ETH_USDT_Perp [Underlying Quote Perp]
-    For Future: BTC_USDT_Fut_20Oct23 [Underlying Quote Fut DateFormat]
-    For Call: ETH_USDT_Call_20Oct23_4123 [Underlying Quote Call DateFormat StrikePrice]
-    For Put: ETH_USDT_Put_20Oct23_4123 [Underlying Quote Put DateFormat StrikePrice]
-    """
+    # The readable instrument name:<ul><li>Perpetual: `ETH_USDT_Perp`</li><li>Future: `BTC_USDT_Fut_20Oct23`</li><li>Call: `ETH_USDT_Call_20Oct23_2800`</li><li>Put: `ETH_USDT_Put_20Oct23_2800`</li></ul>
     instrument: str
     # The interval of each candlestick
     interval: CandlestickInterval
@@ -1239,7 +1123,7 @@ class ApiGetAllInstrumentsResponse:
 class OrderLeg:
     # The instrument to trade in this leg
     instrument: str
-    # The total number of assets to trade in this leg, expressed in underlying asset decimal units.
+    # The total number of assets to trade in this leg, expressed in base asset decimal units.
     size: str
     # Specifies if the order leg is a buy or sell
     is_buying_asset: bool
@@ -1400,6 +1284,12 @@ class ApiCancelOrderResponse:
 class ApiCancelAllOrdersRequest:
     # The subaccount ID cancelling all orders
     sub_account_id: str
+    # The kind filter to apply. If nil, this defaults to all kinds. Otherwise, only entries matching the filter will be cancelled
+    kind: list[Kind] | None = None
+    # The base filter to apply. If nil, this defaults to all bases. Otherwise, only entries matching the filter will be cancelled
+    base: list[Currency] | None = None
+    # The quote filter to apply. If nil, this defaults to all quotes. Otherwise, only entries matching the filter will be cancelled
+    quote: list[Currency] | None = None
 
 
 @dataclass
@@ -1413,11 +1303,11 @@ class ApiOpenOrdersRequest:
     # The subaccount ID to filter by
     sub_account_id: str
     # The kind filter to apply. If nil, this defaults to all kinds. Otherwise, only entries matching the filter will be returned
-    kind: list[Kind]
-    # The underlying filter to apply. If nil, this defaults to all underlyings. Otherwise, only entries matching the filter will be returned
-    underlying: list[Currency]
+    kind: list[Kind] | None = None
+    # The base filter to apply. If nil, this defaults to all bases. Otherwise, only entries matching the filter will be returned
+    base: list[Currency] | None = None
     # The quote filter to apply. If nil, this defaults to all quotes. Otherwise, only entries matching the filter will be returned
-    quote: list[Currency]
+    quote: list[Currency] | None = None
 
 
 @dataclass
@@ -1437,11 +1327,11 @@ class ApiOrderHistoryRequest:
     # The subaccount ID to filter by
     sub_account_id: str
     # The kind filter to apply. If nil, this defaults to all kinds. Otherwise, only entries matching the filter will be returned
-    kind: list[Kind]
-    # The underlying filter to apply. If nil, this defaults to all underlyings. Otherwise, only entries matching the filter will be returned
-    underlying: list[Currency]
+    kind: list[Kind] | None = None
+    # The base filter to apply. If nil, this defaults to all bases. Otherwise, only entries matching the filter will be returned
+    base: list[Currency] | None = None
     # The quote filter to apply. If nil, this defaults to all quotes. Otherwise, only entries matching the filter will be returned
-    quote: list[Currency]
+    quote: list[Currency] | None = None
     # The start time to apply in nanoseconds. If nil, this defaults to all start times. Otherwise, only entries matching the filter will be returned
     start_time: str | None = None
     # The end time to apply in nanoseconds. If nil, this defaults to all end times. Otherwise, only entries matching the filter will be returned
@@ -1667,8 +1557,8 @@ class ApiGetListFlatReferralResponse:
 class ApiGetLatestLPSnapshotRequest:
     # The kind filter to apply
     kind: Kind
-    # The underlying filter to apply
-    underlying: Currency
+    # The base filter to apply
+    base: Currency
 
 
 @dataclass
@@ -1705,8 +1595,8 @@ class ApiGetLPLeaderboardRequest:
     limit: int
     # The kind filter to apply
     kind: Kind
-    # The underlying filter to apply
-    underlying: Currency
+    # The base filter to apply
+    base: Currency
 
 
 @dataclass
@@ -1735,8 +1625,8 @@ class ApiGetLPPointRequest:
     start_interval: str
     # The kind filter to apply
     kind: Kind
-    # The underlying filter to apply
-    underlying: Currency
+    # The base filter to apply
+    base: Currency
 
 
 @dataclass
@@ -1749,13 +1639,7 @@ class ApiGetLPPointResponse:
 
 @dataclass
 class ApiSubAccountTradeRequest:
-    """
-    The readable name of the instrument. For Perpetual: ETH_USDT_Perp [Underlying Quote Perp]
-    For Future: BTC_USDT_Fut_20Oct23 [Underlying Quote Fut DateFormat]
-    For Call: ETH_USDT_Call_20Oct23_4123 [Underlying Quote Call DateFormat StrikePrice]
-    For Put: ETH_USDT_Put_20Oct23_4123 [Underlying Quote Put DateFormat StrikePrice]
-    """
-
+    # The readable instrument name:<ul><li>Perpetual: `ETH_USDT_Perp`</li><li>Future: `BTC_USDT_Fut_20Oct23`</li><li>Call: `ETH_USDT_Call_20Oct23_2800`</li><li>Put: `ETH_USDT_Put_20Oct23_2800`</li></ul>
     instrument: str
     # The interval of each sub account trade
     interval: SubAccountTradeInterval
@@ -1875,20 +1759,15 @@ class ApiFindTraderLeaderboardResponse:
 class WSOrderFeedSelectorV1:
     """
     Subscribes to a feed of order updates pertaining to orders made by your account.
-    Each Order can be uniquely identified by its `order_id` or `client_order_id` (if client designs well).
-    Use `stateFilter = c` to only receive create events, `stateFilter = u` to only receive update events, and `stateFilter = a` to receive both.
+    Each Order can be uniquely identified by its `order_id` or `client_order_id`.
+    To subscribe to all orders, specify an empty `instrument` (eg. `2345123`).
+    Otherwise, specify the `instrument` to only receive orders for that instrument (eg. `2345123-BTC_USDT_Perp`).
     """
 
     # The subaccount ID to filter by
     sub_account_id: str
-    # The kind filter to apply.
-    kind: Kind
-    # The underlying filter to apply.
-    underlying: Currency
-    # The quote filter to apply.
-    quote: Currency
-    # create only, update only, all
-    state_filter: OrderStateFilter
+    # The instrument filter to apply.
+    instrument: str | None = None
 
 
 @dataclass
@@ -1908,26 +1787,23 @@ class WSOrderStateFeedSelectorV1:
     """
     Subscribes to a feed of order updates pertaining to orders made by your account.
     Unlike the Order Stream, this only streams state updates, drastically improving throughput, and latency.
-    Each Order can be uniquely identified by its `order_id` or `client_order_id` (if client designs well).
-    Use `stateFilter = c` to only receive create events, `stateFilter = u` to only receive update events, and `stateFilter = a` to receive both.
+    Each Order can be uniquely identified by its `order_id` or `client_order_id`.
+    To subscribe to all orders, specify an empty `instrument` (eg. `2345123`).
+    Otherwise, specify the `instrument` to only receive orders for that instrument (eg. `2345123-BTC_USDT_Perp`).
     """
 
     # The subaccount ID to filter by
     sub_account_id: str
-    # The kind filter to apply.
-    kind: Kind
-    # The underlying filter to apply.
-    underlying: Currency
-    # The quote filter to apply.
-    quote: Currency
-    # create only, update only, all
-    state_filter: OrderStateFilter
+    # The instrument filter to apply.
+    instrument: str | None = None
 
 
 @dataclass
 class OrderStateFeed:
     # A unique 128-bit identifier for the order, deterministically generated within the GRVT backend
     order_id: str
+    # A unique identifier for the active order within a subaccount, specified by the client
+    client_order_id: str
     # The order state object being created or updated
     order_state: OrderState
 
@@ -1946,14 +1822,16 @@ class WSOrderStateFeedDataV1:
 
 @dataclass
 class WSPositionsFeedSelectorV1:
+    """
+    Subscribes to a feed of position updates. This happens when a trade is executed.
+    To subscribe to all positions, specify an empty `instrument` (eg. `2345123`).
+    Otherwise, specify the `instrument` to only receive positions for that instrument (eg. `2345123-BTC_USDT_Perp`).
+    """
+
     # The subaccount ID to filter by
     sub_account_id: str
-    # The kind filter to apply.
-    kind: Kind
-    # The underlying filter to apply.
-    underlying: Currency
-    # The quote filter to apply.
-    quote: Currency
+    # The instrument filter to apply.
+    instrument: str | None = None
 
 
 @dataclass
@@ -1969,19 +1847,21 @@ class WSPositionsFeedDataV1:
 
 
 @dataclass
-class WSPrivateTradeFeedSelectorV1:
+class WSFillFeedSelectorV1:
+    """
+    Subscribes to a feed of private trade updates. This happens when a trade is executed.
+    To subscribe to all private trades, specify an empty `instrument` (eg. `2345123`).
+    Otherwise, specify the `instrument` to only receive private trades for that instrument (eg. `2345123-BTC_USDT_Perp`).
+    """
+
     # The sub account ID to request for
     sub_account_id: str
-    # The kind filter to apply.
-    kind: Kind
-    # The underlying filter to apply.
-    underlying: Currency
-    # The quote filter to apply.
-    quote: Currency
+    # The instrument filter to apply.
+    instrument: str | None = None
 
 
 @dataclass
-class WSPrivateTradeFeedDataV1:
+class WSFillFeedDataV1:
     # The websocket channel to which the response is sent
     stream: str
     # Primary selector
@@ -1989,7 +1869,7 @@ class WSPrivateTradeFeedDataV1:
     # A running sequence number that determines global message order within the specific stream
     sequence_number: str
     # A private trade matching the request filter
-    feed: PrivateTrade
+    feed: Fill
 
 
 @dataclass
