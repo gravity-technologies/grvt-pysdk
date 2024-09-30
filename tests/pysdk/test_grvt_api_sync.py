@@ -28,7 +28,7 @@ def test_open_orders() -> None:
             # sub_account_id=233, Uncomment to test error path with invalid sub account id
             sub_account_id=str(api.config.trading_account_id),
             kind=[types.Kind.PERPETUAL],
-            underlying=[types.Currency.BTC, types.Currency.ETH],
+            base=[types.Currency.BTC, types.Currency.ETH],
             quote=[types.Currency.USDT],
         )
     )

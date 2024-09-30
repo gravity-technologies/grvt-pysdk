@@ -64,21 +64,21 @@ class GrvtApiAsync(GrvtApiAsyncBase):
             return GrvtError(**resp)
         return from_dict(types.ApiOrderbookLevelsResponse, resp, Config(cast=[Enum]))
 
-    async def public_trades_v1(
-        self, req: types.ApiPublicTradesRequest
-    ) -> types.ApiPublicTradesResponse | GrvtError:
-        resp = await self._post(False, self.md_rpc + "/full/v1/trades", req)
+    async def trade_v1(
+        self, req: types.ApiTradeRequest
+    ) -> types.ApiTradeResponse | GrvtError:
+        resp = await self._post(False, self.md_rpc + "/full/v1/trade", req)
         if resp.get("code"):
             return GrvtError(**resp)
-        return from_dict(types.ApiPublicTradesResponse, resp, Config(cast=[Enum]))
+        return from_dict(types.ApiTradeResponse, resp, Config(cast=[Enum]))
 
-    async def public_trade_history_v1(
-        self, req: types.ApiPublicTradeHistoryRequest
-    ) -> types.ApiPublicTradeHistoryResponse | GrvtError:
+    async def trade_history_v1(
+        self, req: types.ApiTradeHistoryRequest
+    ) -> types.ApiTradeHistoryResponse | GrvtError:
         resp = await self._post(False, self.md_rpc + "/full/v1/trade_history", req)
         if resp.get("code"):
             return GrvtError(**resp)
-        return from_dict(types.ApiPublicTradeHistoryResponse, resp, Config(cast=[Enum]))
+        return from_dict(types.ApiTradeHistoryResponse, resp, Config(cast=[Enum]))
 
     async def candlestick_v1(
         self, req: types.ApiCandlestickRequest
@@ -152,13 +152,13 @@ class GrvtApiAsync(GrvtApiAsyncBase):
             return GrvtError(**resp)
         return from_dict(types.ApiOrderHistoryResponse, resp, Config(cast=[Enum]))
 
-    async def private_trade_history_v1(
-        self, req: types.ApiPrivateTradeHistoryRequest
-    ) -> types.ApiPrivateTradeHistoryResponse | GrvtError:
-        resp = await self._post(True, self.td_rpc + "/full/v1/trade_history", req)
+    async def fill_history_v1(
+        self, req: types.ApiFillHistoryRequest
+    ) -> types.ApiFillHistoryResponse | GrvtError:
+        resp = await self._post(True, self.td_rpc + "/full/v1/fill_history", req)
         if resp.get("code"):
             return GrvtError(**resp)
-        return from_dict(types.ApiPrivateTradeHistoryResponse, resp, Config(cast=[Enum]))
+        return from_dict(types.ApiFillHistoryResponse, resp, Config(cast=[Enum]))
 
     async def positions_v1(
         self, req: types.ApiPositionsRequest
