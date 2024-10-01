@@ -94,14 +94,6 @@ class GrvtApiSync(GrvtApiSyncBase):
             return GrvtError(**resp)
         return from_dict(types.ApiFundingRateResponse, resp, Config(cast=[Enum]))
 
-    def settlement_price_v1(
-        self, req: types.ApiSettlementPriceRequest
-    ) -> types.ApiSettlementPriceResponse | GrvtError:
-        resp = self._post(False, self.md_rpc + "/full/v1/settlement", req)
-        if resp.get("code"):
-            return GrvtError(**resp)
-        return from_dict(types.ApiSettlementPriceResponse, resp, Config(cast=[Enum]))
-
     def create_order_v1(
         self, req: types.ApiCreateOrderRequest
     ) -> types.ApiCreateOrderResponse | GrvtError:
