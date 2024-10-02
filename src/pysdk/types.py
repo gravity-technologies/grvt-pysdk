@@ -269,7 +269,7 @@ class Positions:
 @dataclass
 class ApiPositionsResponse:
     # The positions matching the request filter
-    results: list[Positions]
+    result: list[Positions]
 
 
 @dataclass
@@ -351,7 +351,7 @@ class Fill:
 @dataclass
 class ApiFillHistoryResponse:
     # The private trades matching the request asset
-    results: list[Fill]
+    result: list[Fill]
     # The cursor to indicate when to start the query from
     next: str
 
@@ -374,7 +374,7 @@ class SpotBalance:
 
 @dataclass
 class SubAccount:
-    # Time at which the event was emitted in uix nanoseconds
+    # Time at which the event was emitted in unix nanoseconds
     event_time: str
     # The sub account ID this entry refers to
     sub_account_id: str
@@ -424,7 +424,7 @@ class SubAccount:
 @dataclass
 class ApiSubAccountSummaryResponse:
     # The sub account matching the request sub account
-    results: SubAccount
+    result: SubAccount
 
 
 @dataclass
@@ -453,7 +453,7 @@ class ApiSubAccountHistoryRequest:
 @dataclass
 class ApiSubAccountHistoryResponse:
     # The sub account history matching the request sub account
-    results: list[SubAccount]
+    result: list[SubAccount]
     # The cursor to indicate when to start the next query from
     next: str
 
@@ -472,11 +472,11 @@ class ApiLatestSnapSubAccountsRequest:
 @dataclass
 class ApiLatestSnapSubAccountsResponse:
     # The sub account history matching the request sub account
-    results: list[SubAccount]
+    result: list[SubAccount]
 
 
 @dataclass
-class ApiAggregatedAccountSummaryResponse:
+class AggregatedAccountSummary:
     # The main account ID of the account to which the summary belongs
     main_account_id: str
     # Total equity of the main (+ sub) account, denominated in USD
@@ -486,7 +486,13 @@ class ApiAggregatedAccountSummaryResponse:
 
 
 @dataclass
-class ApiFundingAccountSummaryResponse:
+class ApiAggregatedAccountSummaryResponse:
+    # The aggregated account summary
+    result: AggregatedAccountSummary
+
+
+@dataclass
+class FundingAccountSummary:
     # The main account ID of the account to which the summary belongs
     main_account_id: str
     # Total equity of the main account, denominated in USD
@@ -496,13 +502,17 @@ class ApiFundingAccountSummaryResponse:
 
 
 @dataclass
+class ApiFundingAccountSummaryResponse:
+    # The funding account summary
+    result: FundingAccountSummary
+
+
+@dataclass
 class ApiOrderbookLevelsRequest:
     # The readable instrument name:<ul><li>Perpetual: `ETH_USDT_Perp`</li><li>Future: `BTC_USDT_Fut_20Oct23`</li><li>Call: `ETH_USDT_Call_20Oct23_2800`</li><li>Put: `ETH_USDT_Put_20Oct23_2800`</li></ul>
     instrument: str
-    # Depth of the order book to be retrieved (10, 40, 200, 500)
+    # Depth of the order book to be retrieved (10, 50, 100, 500)
     depth: int
-    # The number of levels to aggregate into one level (1 = no aggregation, 10/100/1000 = aggregate 10/100/1000 levels into 1)
-    aggregate: int
 
 
 @dataclass
@@ -530,7 +540,7 @@ class OrderbookLevels:
 @dataclass
 class ApiOrderbookLevelsResponse:
     # The orderbook levels objects matching the request asset
-    results: OrderbookLevels
+    result: OrderbookLevels
 
 
 @dataclass
@@ -568,7 +578,7 @@ class MiniTicker:
 @dataclass
 class ApiMiniTickerResponse:
     # The mini ticker matching the request asset
-    results: MiniTicker
+    result: MiniTicker
 
 
 @dataclass
@@ -647,7 +657,7 @@ class Ticker:
 @dataclass
 class ApiTickerResponse:
     # The mini ticker matching the request asset
-    results: Ticker
+    result: Ticker
 
 
 @dataclass
@@ -692,7 +702,7 @@ class Trade:
 @dataclass
 class ApiTradeResponse:
     # The public trades matching the request asset
-    results: list[Trade]
+    result: list[Trade]
 
 
 @dataclass
@@ -720,7 +730,7 @@ class ApiTradeHistoryRequest:
 @dataclass
 class ApiTradeHistoryResponse:
     # The public trades matching the request asset
-    results: list[Trade]
+    result: list[Trade]
     # The cursor to indicate when to start the next query from
     next: str | None = None
 
@@ -768,7 +778,7 @@ class Instrument:
 @dataclass
 class ApiGetInstrumentResponse:
     # The instrument matching the request asset
-    results: Instrument
+    result: Instrument
 
 
 @dataclass
@@ -788,7 +798,7 @@ class ApiGetFilteredInstrumentsRequest:
 @dataclass
 class ApiGetFilteredInstrumentsResponse:
     # The instruments matching the request filter
-    results: list[Instrument]
+    result: list[Instrument]
 
 
 @dataclass
@@ -842,7 +852,7 @@ class Candlestick:
 @dataclass
 class ApiCandlestickResponse:
     # The candlestick result set for given interval
-    results: list[Candlestick]
+    result: list[Candlestick]
     # The cursor to indicate when to start the next query from
     next: str | None = None
 
@@ -882,7 +892,7 @@ class FundingRate:
 @dataclass
 class ApiFundingRateResponse:
     # The funding rate result set for given interval
-    results: list[FundingRate]
+    result: list[FundingRate]
     # The cursor to indicate when to start the next query from
     next: str | None = None
 
@@ -924,21 +934,58 @@ class APISettlementPrice:
 @dataclass
 class ApiSettlementPriceResponse:
     # The funding rate result set for given interval
-    results: list[APISettlementPrice]
+    result: list[APISettlementPrice]
     # The cursor to indicate when to start the next query from
     next: str | None = None
 
 
 @dataclass
 class WSRequestV1:
-    # The channel to subscribe to (eg: ticker.s / ticker.d
+    """
+    All V1 Websocket Requests are housed in this wrapper. You may specify a stream, and a list of feeds to subscribe to.
+    If a `request_id` is supplied in this JSON RPC request, it will be propagated back to any relevant JSON RPC responses (including error).
+    When subscribing to the same primary selector again, the previous secondary selector will be replaced. See `Overview` page for more details.
+    """
+
+    # The channel to subscribe to (eg: ticker.s / ticker.d)
     stream: str
-    # The list of feeds to subscribe to (eg:
+    # The list of feeds to subscribe to
     feed: list[str]
     # The method to use for the request (eg: subscribe / unsubscribe)
     method: str
+    """
+    Optional Field which is used to match the response by the client.
+    If not passed, this field will not be returned
+    """
+    request_id: int | None = None
     # Whether the request is for full data or lite data
-    is_full: bool
+    is_full: bool | None = None
+
+
+@dataclass
+class WSResponseV1:
+    """
+    All V1 Websocket Responses are housed in this wrapper. It returns a confirmation of the JSON RPC subscribe request.
+    If a `request_id` is supplied in the JSON RPC request, it will be propagated back in this JSON RPC response.
+    To ensure you always know if you have missed any payloads, GRVT servers apply the following heuristics to sequence numbers:<ul><li>All snapshot payloads will have a sequence number of `0`. All delta payloads will have a sequence number of `1+`. So its easy to distinguish between snapshots, and deltas</li><li>Num snapshots returned in Response (per stream): You can ensure that you received the right number of snapshots</li><li>First sequence number returned in Response (per stream): You can ensure that you received the first stream, without gaps from snapshots</li><li>Sequence numbers should always monotonically increase by `1`. If it decreases, or increases by more than `1`. Please reconnect</li><li>Duplicate sequence numbers are possible due to network retries. If you receive a duplicate, please ignore it, or idempotently re-update it.</li></ul>
+    When subscribing to the same primary selector again, the previous secondary selector will be replaced. See `Overview` page for more details.
+    """
+
+    # The channel to subscribe to (eg: ticker.s / ticker.d)
+    stream: str
+    # The list of feeds subscribed to
+    subs: list[str]
+    # The list of feeds unsubscribed from
+    unsubs: list[str]
+    # The number of snapshot payloads to expect for each subscribed feed. Returned in same order as `subs`
+    num_snapshots: list[int]
+    # The first sequence number to expect for each subscribed feed. Returned in same order as `subs`
+    first_sequence_number: list[str]
+    """
+    Optional Field which is used to match the response by the client.
+    If not passed, this field will not be returned
+    """
+    request_id: int | None = None
 
 
 @dataclass
@@ -949,6 +996,8 @@ class WSOrderbookLevelsFeedSelectorV1:
 
     The Delta feed will work as follows:<ul><li>On subscription, the server will send a full snapshot of all levels of the Orderbook.</li><li>After the snapshot, the server will only send levels that have changed in value.</li></ul>
 
+    Subscription Pattern:<ul><li>Delta - `instrument@rate`</li><li>Snapshot - `instrument@rate-depth`</li></ul>
+
     Field Semantics:<ul><li>[DeltaOnly] If a level is not updated, level not published</li><li>If a level is updated, {size: '123'}</li><li>If a level is set to zero, {size: '0'}</li><li>Incoming levels will be published as soon as price moves</li><li>Outgoing levels will be published with `size = 0`</li></ul>
     """
 
@@ -956,14 +1005,16 @@ class WSOrderbookLevelsFeedSelectorV1:
     instrument: str
     """
     The minimal rate at which we publish feeds (in milliseconds)
-    Delta (40, 100, 200, 500, 1000, 5000)
-    Snapshot (500, 1000, 5000)
+    Delta (50, 100, 500, 1000)
+    Snapshot (500, 1000)
     """
     rate: int
-    # Depth of the order book to be retrieved (10, 40, 200, 500)
-    depth: int
-    # The number of levels to aggregate into one level (1 = no aggregation, 10/100/1000 = aggregate 10/100/1000 levels into 1)
-    aggregate: int
+    """
+    Depth of the order book to be retrieved
+    Delta(0 - `unlimited`)
+    Snapshot(10, 50, 100, 500)
+    """
+    depth: int | None = None
 
 
 @dataclass
@@ -993,7 +1044,7 @@ class WSMiniTickerFeedSelectorV1:
     instrument: str
     """
     The minimal rate at which we publish feeds (in milliseconds)
-    Delta (0, 40, 100, 200, 500, 1000, 5000)
+    Delta (0 - `raw`, 50, 100, 200, 500, 1000, 5000)
     Snapshot (200, 500, 1000, 5000)
     """
     rate: int
@@ -1047,7 +1098,7 @@ class WSTickerFeedDataV1:
 @dataclass
 class ApiTickerFeedDataV1:
     # The mini ticker matching the request asset
-    results: Ticker
+    result: Ticker
 
 
 @dataclass
@@ -1098,16 +1149,6 @@ class WSCandlestickFeedDataV1:
 
 
 @dataclass
-class WSResponseV1:
-    # The channel to subscribe to (eg: ticker.s / ticker.d
-    stream: str
-    # The list of feeds subscribed to
-    subs: list[str]
-    # The list of feeds unsubscribed to
-    unsubs: list[str]
-
-
-@dataclass
 class ApiGetAllInstrumentsRequest:
     # Fetch only active instruments
     is_active: bool | None = None
@@ -1116,7 +1157,7 @@ class ApiGetAllInstrumentsRequest:
 @dataclass
 class ApiGetAllInstrumentsResponse:
     # List of instruments
-    results: list[Instrument]
+    result: list[Instrument]
 
 
 @dataclass
@@ -1261,7 +1302,7 @@ class ApiCreateOrderRequest:
 @dataclass
 class ApiCreateOrderResponse:
     # The created order
-    order: Order
+    result: Order
 
 
 @dataclass
@@ -1277,7 +1318,7 @@ class ApiCancelOrderRequest:
 @dataclass
 class ApiCancelOrderResponse:
     # The cancelled order
-    order: Order
+    result: Order
 
 
 @dataclass
@@ -1295,7 +1336,7 @@ class ApiCancelAllOrdersRequest:
 @dataclass
 class ApiCancelAllOrdersResponse:
     # The number of orders cancelled
-    num_cancelled: int
+    result: int
 
 
 @dataclass
@@ -1313,7 +1354,7 @@ class ApiOpenOrdersRequest:
 @dataclass
 class ApiOpenOrdersResponse:
     # The Open Orders matching the request filter
-    orders: list[Order]
+    result: list[Order]
 
 
 @dataclass
@@ -1345,7 +1386,7 @@ class ApiOrderHistoryRequest:
 @dataclass
 class ApiOrderHistoryResponse:
     # The Open Orders matching the request filter
-    orders: list[Order]
+    result: list[Order]
     # The cursor to indicate when to start the query from
     next: str
 
@@ -1356,9 +1397,15 @@ class EmptyRequest:
 
 
 @dataclass
-class AckResponse:
+class Ack:
     # Gravity has acknowledged that the request has been successfully received and it will process it in the backend
-    acknowledgement: bool
+    ack: bool
+
+
+@dataclass
+class AckResponse:
+    # The Ack Object
+    result: Ack
 
 
 @dataclass
@@ -1390,7 +1437,7 @@ class ApiGetOrderRequest:
 @dataclass
 class ApiGetOrderResponse:
     # The order object for the requested filter
-    order: Order
+    result: Order
 
 
 @dataclass
@@ -1554,19 +1601,29 @@ class ApiGetListFlatReferralResponse:
 
 
 @dataclass
-class ApiGetLatestLPSnapshotRequest:
-    # The kind filter to apply
-    kind: Kind
-    # The base filter to apply
-    base: Currency
-
-
-@dataclass
 class LPSnapshot:
     # The main account id
     main_account_id: str
     # The LP Asset
     lp_asset: str
+    # Underlying multiplier
+    underlying_multiplier: str
+    # Maker trading volume
+    maker_trading_volume: str
+    # Fast market multiplier
+    bid_fast_market_multiplier: int
+    # Fast market multiplier
+    ask_fast_market_multiplier: int
+    # Liquidity score
+    liquidity_score: str
+    # The time when the snapshot was calculated
+    calculate_at: str
+
+
+@dataclass
+class ApproximateLPSnapshot:
+    # The main account id
+    main_account_id: str
     # Underlying multiplier
     underlying_multiplier: str
     # Market share multiplier
@@ -1575,16 +1632,54 @@ class LPSnapshot:
     bid_fast_market_multiplier: int
     # Fast market multiplier
     ask_fast_market_multiplier: int
-    # Liquidty score
+    # Liquidity score
     liquidity_score: str
     # The time when the snapshot was calculated
     calculate_at: str
 
 
 @dataclass
-class ApiGetLatestLPSnapshotResponse:
+class LPPoint:
+    # The main account id
+    main_account_id: str
+    # The LP Asset
+    lp_asset: str
+    # Start time of the epoch - phase
+    start_interval: str
+    # Liquidity score
+    liquidity_score: str
+    # The rank of user in the LP leaderboard
+    rank: int
+
+
+@dataclass
+class ApproximateLPPoint:
+    # The main account id
+    main_account_id: str
+    # Liquidity score
+    liquidity_score: str
+    # The rank of user in the LP leaderboard
+    rank: int
+
+
+@dataclass
+class QueryGetLatestLPSnapshotResponse:
     # The latest LP snapshot
     snapshot: LPSnapshot
+
+
+@dataclass
+class ApiGetLatestLPSnapshotRequest:
+    # The kind filter to apply
+    kind: Kind
+    # The base filter to apply
+    base: Currency
+
+
+@dataclass
+class ApiGetLatestLPSnapshotResponse:
+    # The latest LP snapshot
+    snapshot: ApproximateLPSnapshot
 
 
 @dataclass
@@ -1597,20 +1692,6 @@ class ApiGetLPLeaderboardRequest:
     kind: Kind
     # The base filter to apply
     base: Currency
-
-
-@dataclass
-class LPPoint:
-    # The main account id
-    main_account_id: str
-    # The LP Asset
-    lp_asset: str
-    # Start time of the epoch - phase
-    start_interval: str
-    # Liquidty score
-    liquidity_score: str
-    # The rank of user in the LP leaderboard
-    rank: int
 
 
 @dataclass
@@ -1632,7 +1713,7 @@ class ApiGetLPPointRequest:
 @dataclass
 class ApiGetLPPointResponse:
     # LP points of user
-    point: LPPoint
+    point: ApproximateLPPoint
     # The number of maker
     maker_count: int
 
@@ -1670,7 +1751,7 @@ class SubAccountTrade:
 @dataclass
 class ApiSubAccountTradeResponse:
     # The sub account trade result set for given interval
-    results: list[SubAccountTrade]
+    result: list[SubAccountTrade]
 
 
 @dataclass
@@ -1706,7 +1787,7 @@ class SubAccountTradeAggregation:
 @dataclass
 class ApiSubAccountTradeAggregationResponse:
     # The sub account trade aggregation result set for given interval
-    results: list[SubAccountTradeAggregation]
+    result: list[SubAccountTradeAggregation]
     # The cursor to indicate when to start the next query from
     next: str | None = None
 
@@ -1873,6 +1954,20 @@ class WSFillFeedDataV1:
 
 
 @dataclass
+class WSTransferFeedSelectorV1:
+    """
+    Subscribes to a feed of transfers. This will execute when there is any transfer to or from the selected account.
+    To subscribe to a main account, specify the account ID (eg. `0x9fe3758b67ce7a2875ee4b452f01a5282d84ed8a`).
+    To subscribe to a sub account, specify the main account and the sub account dash separated (eg. `0x9fe3758b67ce7a2875ee4b452f01a5282d84ed8a-1920109784202388`).
+    """
+
+    # The main account ID to request for
+    main_account_id: str
+    # The sub account ID to request for
+    sub_account_id: str | None = None
+
+
+@dataclass
 class Transfer:
     # The account to transfer from
     from_account_id: str
@@ -1903,6 +1998,17 @@ class WSTransferFeedDataV1:
 
 
 @dataclass
+class WSDepositFeedSelectorV1:
+    """
+    Subscribes to a feed of deposits. This will execute when there is any deposit to selected account.
+    To subscribe to a main account, specify the account ID (eg. `0x9fe3758b67ce7a2875ee4b452f01a5282d84ed8a`).
+    """
+
+    # The main account ID to request for
+    main_account_id: str
+
+
+@dataclass
 class Deposit:
     # The hash of the bridgemint event producing the deposit
     tx_hash: str
@@ -1924,6 +2030,17 @@ class WSDepositFeedDataV1:
     sequence_number: str
     # The Deposit object
     feed: Deposit
+
+
+@dataclass
+class WSWithdrawalFeedSelectorV1:
+    """
+    Subscribes to a feed of withdrawals. This will execute when there is any withdrawal from the selected account.
+    To subscribe to a main account, specify the account ID (eg. `0x9fe3758b67ce7a2875ee4b452f01a5282d84ed8a`).
+    """
+
+    # The main account ID to request for
+    main_account_id: str
 
 
 @dataclass
@@ -2059,7 +2176,7 @@ class DepositHistory:
 @dataclass
 class ApiDepositHistoryResponse:
     # The deposit history matching the request account
-    results: list[DepositHistory]
+    result: list[DepositHistory]
     # The cursor to indicate when to start the next query from
     next: str | None = None
 
@@ -2110,7 +2227,7 @@ class TransferHistory:
 @dataclass
 class ApiTransferHistoryResponse:
     # The transfer history matching the request account
-    results: list[TransferHistory]
+    result: list[TransferHistory]
     # The cursor to indicate when to start the next query from
     next: str | None = None
 
@@ -2157,6 +2274,6 @@ class WithdrawalHistory:
 @dataclass
 class ApiWithdrawalHistoryResponse:
     # The withdrawals history matching the request account
-    results: list[WithdrawalHistory]
+    result: list[WithdrawalHistory]
     # The cursor to indicate when to start the next query from
     next: str | None = None
