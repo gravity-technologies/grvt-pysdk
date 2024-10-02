@@ -14,9 +14,9 @@ async def get_all_instruments() -> None:
     )
     if isinstance(resp, GrvtError):
         raise ValueError(f"Received error: {resp}")
-    if resp.results is None:
+    if resp.result is None:
         raise ValueError("Expected results to be non-null")
-    if len(resp.results) == 0:
+    if len(resp.result) == 0:
         raise ValueError("Expected results to be non-empty")
 
 
@@ -38,9 +38,9 @@ async def open_orders() -> None:
     if isinstance(resp, GrvtError):
         api.logger.error(f"Received error: {resp}")
         return None
-    if resp.orders is None:
+    if resp.result is None:
         raise ValueError("Expected orders to be non-null")
-    if len(resp.orders) == 0:
+    if len(resp.result) == 0:
         api.logger.info("Expected orders to be non-empty")
 
 
@@ -53,14 +53,14 @@ async def create_order_with_signing() -> None:
     if isinstance(inst_resp, GrvtError):
         raise ValueError(f"Received error: {inst_resp}")
 
-    order = get_test_order(api, {inst.instrument: inst for inst in inst_resp.results})
+    order = get_test_order(api, {inst.instrument: inst for inst in inst_resp.result})
     if order is None:
         return None  # Skip test if configs are not set
     resp = await api.create_order_v1(types.ApiCreateOrderRequest(order=order))
 
     if isinstance(resp, GrvtError):
         raise ValueError(f"Received error: {resp}")
-    if resp.order is None:
+    if resp.result is None:
         raise ValueError("Expected order to be non-null")
 
 
