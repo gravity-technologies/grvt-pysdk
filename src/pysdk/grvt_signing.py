@@ -78,10 +78,10 @@ def sign_order(
     legs = []
     for leg in order.legs:
         instrument = instruments[leg.instrument]
-        size_multiplier = 10**instrument.underlying_decimals
+        size_multiplier = 10**instrument.base_decimals
         legs.append(
             {
-                "assetID": instrument.asset_id,
+                "assetID": instrument.instrument_hash,
                 "contractSize": int(float(leg.size) * size_multiplier),
                 "limitPrice": int(float(leg.limit_price) * PRICE_MULTIPLIER),
                 "isBuyingContract": leg.is_buying_asset,
