@@ -328,7 +328,11 @@ class Fill:
     fee: str
     # The fee rate paid on the trade
     fee_rate: str
-    # A trade identifier
+    """
+    A trade identifier, globally unique, and monotonically increasing (not by `1`).
+    All trades sharing a single taker execution share the same first component (before `:`), and `event_time`.
+    `trade_id` is guaranteed to be consistent across MarketData `Trade` and Trading `Fill`.
+    """
     trade_id: str
     # An order identifier
     order_id: str
@@ -693,7 +697,11 @@ class Trade:
     interest_rate: str
     # [Options] The forward price of the option at point of trade, expressed in `9` decimals
     forward_price: str
-    # A trade identifier
+    """
+    A trade identifier, globally unique, and monotonically increasing (not by `1`).
+    All trades sharing a single taker execution share the same first component (before `:`), and `event_time`.
+    `trade_id` is guaranteed to be consistent across MarketData `Trade` and Trading `Fill`.
+    """
     trade_id: str
     # The venue where the trade occurred
     venue: Venue
