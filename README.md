@@ -47,7 +47,7 @@ There are various ways to use the GRVT Python SDK
 
 ### Prerequisites
 
-- [Python](https://www.python.org/downloads/) **>=3.12.3 <3.13** (_tested with 3.12.5_)
+- [Python](https://www.python.org/downloads/) **>=3.10.0 <3.13** (_tested with 3.10.15_)
 - [pre-commit](https://pre-commit.com/#install)
 - [uv](https://docs.astral.sh/uv/getting-started/installation/) **>=0.3.3** (_tested with 0.4.0_)
 - [docker](https://docs.docker.com/get-docker/) (_optional_)
@@ -165,7 +165,7 @@ tests/pysdk/test_grvt_api_async.py::test_open_orders PASSED                     
 tests/pysdk/test_grvt_api_sync.py::test_get_all_instruments PASSED                                                                                                                                                 [ 75%]
 tests/pysdk/test_grvt_api_sync.py::test_open_orders PASSED                                                                                                                                                         [100%]
 
----------- coverage: platform darwin, python 3.12.5-final-0 ----------
+---------- coverage: platform darwin, python 3.10.15-final-0 ----------
 Name                          Stmts   Miss  Cover
 -------------------------------------------------
 src/pysdk/__init__.py             1      0   100%
