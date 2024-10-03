@@ -631,21 +631,21 @@ class Ticker:
     # The number of assets offered on the best ask price of the instrument, expressed in base asset decimal units
     best_ask_size: str | None = None
     # The current funding rate of the instrument, expressed in centibeeps (1/100th of a basis point)
-    funding_rate_8_h_curr: str | None = None
+    funding_rate_8h_curr: str | None = None
     # The average funding rate of the instrument (over last 8h), expressed in centibeeps (1/100th of a basis point)
-    funding_rate_8_h_avg: str | None = None
+    funding_rate_8h_avg: str | None = None
     # The interest rate of the underlying, expressed in centibeeps (1/100th of a basis point)
     interest_rate: str | None = None
     # [Options] The forward price of the option, expressed in `9` decimals
     forward_price: str | None = None
     # The 24 hour taker buy volume of the instrument, expressed in base asset decimal units
-    buy_volume_24_h_u: str | None = None
+    buy_volume_24h_b: str | None = None
     # The 24 hour taker sell volume of the instrument, expressed in base asset decimal units
-    sell_volume_24_h_u: str | None = None
+    sell_volume_24h_b: str | None = None
     # The 24 hour taker buy volume of the instrument, expressed in quote asset decimal units
-    buy_volume_24_h_q: str | None = None
+    buy_volume_24h_q: str | None = None
     # The 24 hour taker sell volume of the instrument, expressed in quote asset decimal units
-    sell_volume_24_h_q: str | None = None
+    sell_volume_24h_q: str | None = None
     # The 24 hour highest traded price of the instrument, expressed in `9` decimals
     high_price: str | None = None
     # The 24 hour lowest traded price of the instrument, expressed in `9` decimals
@@ -754,7 +754,7 @@ class Instrument:
     # The readable instrument name:<ul><li>Perpetual: `ETH_USDT_Perp`</li><li>Future: `BTC_USDT_Fut_20Oct23`</li><li>Call: `ETH_USDT_Call_20Oct23_2800`</li><li>Put: `ETH_USDT_Put_20Oct23_2800`</li></ul>
     instrument: str
     # The asset ID used for instrument signing.
-    asset_id: str
+    instrument_hash: str
     # The base currency
     base: Currency
     # The quote currency
@@ -766,21 +766,15 @@ class Instrument:
     # The settlement period of the instrument
     settlement_period: InstrumentSettlementPeriod
     # The smallest denomination of the base asset supported by GRVT (+3 represents 0.001, -3 represents 1000, 0 represents 1)
-    underlying_decimals: int
+    base_decimals: int
     # The smallest denomination of the quote asset supported by GRVT (+3 represents 0.001, -3 represents 1000, 0 represents 1)
     quote_decimals: int
     # The size of a single tick, expressed in quote asset decimal units
     tick_size: str
     # The minimum contract size, expressed in base asset decimal units
     min_size: str
-    # The minimum block trade size, expressed in base asset decimal units
-    min_block_trade_size: str
     # Creation time in unix nanoseconds
     create_time: str
-    # The expiry time of the instrument in unix nanoseconds
-    expiry: str | None = None
-    # The strike price of the instrument, expressed in `9` decimals
-    strike_price: str | None = None
 
 
 @dataclass
@@ -848,7 +842,7 @@ class Candlestick:
     # The low price, expressed in underlying currency resolution units
     low: str
     # The underlying volume transacted, expressed in base asset decimal units
-    volume_u: str
+    volume_b: str
     # The quote volume transacted, expressed in quote asset decimal units
     volume_q: str
     # The number of trades transacted
@@ -1986,7 +1980,7 @@ class Transfer:
     # The subaccount to transfer to (0 if transferring to main account)
     to_sub_account_id: str
     # The token currency to transfer
-    token_currency: Currency
+    currency: Currency
     # The number of tokens to transfer
     num_tokens: str
     # The signature of the transfer
@@ -2023,7 +2017,7 @@ class Deposit:
     # The account to deposit into
     to_account_id: str
     # The token currency to deposit
-    token_currency: Currency
+    currency: Currency
     # The number of tokens to deposit
     num_tokens: str
 
@@ -2058,7 +2052,7 @@ class Withdrawal:
     # The ethereum address to withdraw to
     to_eth_address: str
     # The token currency to withdraw
-    token_currency: Currency
+    currency: Currency
     # The number of tokens to withdraw
     num_tokens: str
     # The signature of the withdrawal
@@ -2090,7 +2084,7 @@ class ApiDepositRequest:
     # The main account to deposit into
     to_account_id: str
     # The token currency to deposit
-    token_currency: Currency
+    currency: Currency
     # The number of tokens to deposit, quoted in token_currency decimals
     num_tokens: str
 
@@ -2111,7 +2105,7 @@ class ApiWithdrawalRequest:
     # The Ethereum wallet to withdraw into
     to_eth_address: str
     # The token currency to withdraw
-    token_currency: Currency
+    currency: Currency
     # The number of tokens to withdraw, quoted in tokenCurrency decimal units
     num_tokens: str
     # The signature of the withdrawal
@@ -2137,7 +2131,7 @@ class ApiTransferRequest:
     # The subaccount to transfer to (0 if transferring to main account)
     to_sub_account_id: str
     # The token currency to transfer
-    token_currency: Currency
+    currency: Currency
     # The number of tokens to transfer, quoted in tokenCurrency decimal units
     num_tokens: str
     # The signature of the transfer
@@ -2154,7 +2148,7 @@ class ApiDepositHistoryRequest:
     """
 
     # The token currency to query for, if nil or empty, return all deposits. Otherwise, only entries matching the filter will be returned
-    token_currency: list[Currency]
+    currency: list[Currency]
     # The start time to query for in unix nanoseconds
     start_time: str | None = None
     # The end time to query for in unix nanoseconds
@@ -2174,7 +2168,7 @@ class DepositHistory:
     # The account to deposit into
     to_account_id: str
     # The token currency to deposit
-    token_currency: Currency
+    currency: Currency
     # The number of tokens to deposit
     num_tokens: str
     # The timestamp of the deposit in unix nanoseconds
@@ -2199,7 +2193,7 @@ class ApiTransferHistoryRequest:
     """
 
     # The token currency to query for, if nil or empty, return all transfers. Otherwise, only entries matching the filter will be returned
-    token_currency: list[Currency]
+    currency: list[Currency]
     # The start time to query for in unix nanoseconds
     start_time: str | None = None
     # The end time to query for in unix nanoseconds
@@ -2223,7 +2217,7 @@ class TransferHistory:
     # The subaccount to transfer to (0 if transferring to main account)
     to_sub_account_id: str
     # The token currency to transfer
-    token_currency: Currency
+    currency: Currency
     # The number of tokens to transfer
     num_tokens: str
     # The signature of the transfer
@@ -2250,7 +2244,7 @@ class ApiWithdrawalHistoryRequest:
     """
 
     # The token currency to query for, if nil or empty, return all withdrawals. Otherwise, only entries matching the filter will be returned
-    token_currency: list[Currency]
+    currency: list[Currency]
     # The start time to query for in unix nanoseconds
     start_time: str | None = None
     # The end time to query for in unix nanoseconds
@@ -2270,7 +2264,7 @@ class WithdrawalHistory:
     # The ethereum address to withdraw to
     to_eth_address: str
     # The token currency to withdraw
-    token_currency: Currency
+    currency: Currency
     # The number of tokens to withdraw
     num_tokens: str
     # The signature of the withdrawal
