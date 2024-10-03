@@ -46,7 +46,8 @@ build: ## Build the project
 
 .PHONY: publish
 publish: ## Publish the project
-	uv run twine upload dist/*
+	make build
+	uv run twine upload --skip-existing dist/*
 
 # ==============================================================================
 # always make sure the following is the last line on this file
