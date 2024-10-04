@@ -1023,7 +1023,7 @@ class WSOrderbookLevelsFeedSelectorV1:
 class WSOrderbookLevelsFeedDataV1:
     # Stream name
     stream: str
-    # Primary selector
+    # the feed specified in the JSON RPC Subscribe request
     selector: str
     # A running sequence number that determines global message order within the specific stream
     sequence_number: str
@@ -1056,7 +1056,7 @@ class WSMiniTickerFeedSelectorV1:
 class WSMiniTickerFeedDataV1:
     # Stream name
     stream: str
-    # Primary selector
+    # the feed specified in the JSON RPC Subscribe request
     selector: str
     # A running sequence number that determines global message order within the specific stream
     sequence_number: str
@@ -1089,7 +1089,7 @@ class WSTickerFeedSelectorV1:
 class WSTickerFeedDataV1:
     # Stream name
     stream: str
-    # Primary selector
+    # the feed specified in the JSON RPC Subscribe request
     selector: str
     # A running sequence number that determines global message order within the specific stream
     sequence_number: str
@@ -1115,7 +1115,7 @@ class WSTradeFeedSelectorV1:
 class WSTradeFeedDataV1:
     # Stream name
     stream: str
-    # Primary selector
+    # the feed specified in the JSON RPC Subscribe request
     selector: str
     # A running sequence number that determines global message order within the specific stream
     sequence_number: str
@@ -1142,7 +1142,7 @@ class WSCandlestickFeedSelectorV1:
 class WSCandlestickFeedDataV1:
     # Stream name
     stream: str
-    # Primary selector
+    # the feed specified in the JSON RPC Subscribe request
     selector: str
     # A running sequence number that determines global message order within the specific stream
     sequence_number: str
