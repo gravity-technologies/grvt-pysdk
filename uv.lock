@@ -753,7 +753,7 @@ wheels = [
 
 [[package]]
 name = "grvt-pysdk"
-version = "0.1.1"
+version = "0.1.2"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp", marker = "python_full_version < '3.11' or python_full_version >= '3.13'" },
