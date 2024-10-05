@@ -1,3 +1,11 @@
+# ruff: noqa: D200
+# ruff: noqa: D204
+# ruff: noqa: D205
+# ruff: noqa: D404
+# ruff: noqa: W291
+# ruff: noqa: D400
+# ruff: noqa: E501
+
 import json
 import logging
 import random
@@ -7,14 +15,20 @@ from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 from http.cookies import SimpleCookie
-from typing import Dict, Optional, Tuple, Union
 
 import aiohttp
 import requests
 from eth_account import Account
 from eth_account.messages import encode_typed_data
-from grvt_env import GrvtEnv, CHAIN_IDS
-from grvt_types import DURATION_SECOND_IN_NSEC, EMultipliers, GrvtOrderSide, GrvtOrderType, Num
+
+from .grvt_env import CHAIN_IDS, GrvtEnv
+from .grvt_types import (
+    BTC_ETH_SIZE_MULTIPLIER,
+    DURATION_SECOND_IN_NSEC,
+    GrvtOrderSide,
+    GrvtOrderType,
+    Num,
+)
 
 
 def rand_uint32():
@@ -26,7 +40,7 @@ class TimeInForce(Enum):
     |                       | Must Fill All | Can Fill Partial |
     | -                     | -             | -                |
     | Must Fill Immediately | FOK           | IOC              |
-    | Can Fill Till Time    | AON           | GTC              |
+    | Can Fill Till Time    | AON           | GTC              |.
 
     """
 
@@ -55,7 +69,7 @@ TIME_IN_FORCE_TO_SIGN_TIME_IN_FORCE = {
 }
 
 
-def get_EIP712_domain_data(env: GrvtEnv) -> Dict[str, Union[str, int]]:
+def get_EIP712_domain_data(env: GrvtEnv) -> dict[str, str | int]:
     # DO NOT MODIFY THESE VALUES ##############
     return {
         "name": "GRVT Exchange",
@@ -64,7 +78,7 @@ def get_EIP712_domain_data(env: GrvtEnv) -> Dict[str, Union[str, int]]:
     }
 
 
-def get_cookie(path: str, api_key: Optional[str]) -> Optional[Dict[str, str]]:
+def get_cookie(path: str, api_key: str | None) -> dict[str, str] | None:
     """
     Authenticates and retrieves the session cookie.
 
@@ -82,17 +96,15 @@ def get_cookie(path: str, api_key: Optional[str]) -> Optional[Dict[str, str]]:
             )
             grvt_cookie = response.cookies.get("gravity")
             if not grvt_cookie:
-                print(f"No GRVT cookie found for {data=} {path=} {response.cookies=}")
                 return None
             return {"gravity": grvt_cookie}
-        except Exception as e:
-            print(f"Error getting cookie: {e}")
+        except Exception:
             return None
     else:
         return None
 
 
-def get_cookie_with_expiration(path: str, api_key: Optional[str]) -> Optional[Dict[str, str]]:
+def get_cookie_with_expiration(path: str, api_key: str | None) -> dict[str, str] | None:
     """
     Authenticates and retrieves the session cookie.
 
@@ -119,9 +131,10 @@ def get_cookie_with_expiration(path: str, api_key: Optional[str]) -> Optional[Di
                 )
                 logging.info(f"{FN} OK response {cookie_value=} {cookie_expiry=}")
                 return {"gravity": cookie_value, "expires": cookie_expiry.timestamp()}
-            else:
-                logging.warning(f"{FN} Invalid return_value {data=} {path=} {return_value=}")
-                return None
+            logging.warning(
+                f"{FN} Invalid return_value {data=} {path=} {return_value=}"
+            )
+            return None
         except Exception as e:
             logging.error(f"{FN} Error getting cookie: {e}")
             return None
@@ -129,7 +142,7 @@ def get_cookie_with_expiration(path: str, api_key: Optional[str]) -> Optional[Di
         return None
 
 
-async def get_cookie_async(path: str, api_key: Optional[str]) -> Optional[Dict[str, str]]:
+async def get_cookie_async(path: str, api_key: str | None) -> dict[str, str] | None:
     """
     Authenticates and retrieves the session cookie.
 
@@ -152,22 +165,21 @@ async def get_cookie_async(path: str, api_key: Optional[str]) -> Optional[Dict[s
                                 f"{FN} No `gravity` cookie found for {return_value.cookies=}"
                             )
                             return None
-                        else:
-                            logging.info(f"{FN} Found GRVT cookie {grvt_cookie.value=}")
-                            return {"gravity": grvt_cookie.value}
-                    else:
-                        logging.warning(f"{FN} {return_value.status=} Response:{response}")
-                        return None
-        except Exception as e:
-            print(f"Error getting cookie: {e}")
+                        logging.info(f"{FN} Found GRVT cookie {grvt_cookie.value=}")
+                        return {"gravity": grvt_cookie.value}
+                    logging.warning(
+                        f"{FN} {return_value.status=} Response:{response}"
+                    )
+                    return None
+        except Exception:
             return None
     else:
         return None
 
 
 async def get_cookie_with_expiration_async(
-    path: str, api_key: Optional[str]
-) -> Optional[Dict[str, str]]:
+    path: str, api_key: str | None
+) -> dict[str, str] | None:
     """
     Authenticates and retrieves the session cookie.
     :return: The session cookie.
@@ -192,7 +204,10 @@ async def get_cookie_with_expiration_async(
                             cookie["gravity"]["expires"],
                             "%a, %d %b %Y %H:%M:%S %Z",
                         )
-                        return {"gravity": cookie_value, "expires": cookie_expiry.timestamp()}
+                        return {
+                            "gravity": cookie_value,
+                            "expires": cookie_expiry.timestamp(),
+                        }
         except Exception as e:
             logging.error(f"{FN} Error getting cookie: {e}")
             return None
@@ -240,7 +255,7 @@ class EnumEncoder(json.JSONEncoder):
         return super().default(obj)
 
 
-def get_kuq_from_symbol(symbol: str) -> Tuple[str, str, str]:
+def get_kuq_from_symbol(symbol: str) -> tuple[str, str, str]:
     parts = symbol.split("_")
     if len(parts) == 3:
         underlying, quote, kind = parts
@@ -325,7 +340,7 @@ class OrderMetadata:
     """
     client_order_id: str
     # [Filled by GRVT Backend] Time at which the order was received by GRVT in unix nanoseconds
-    create_time: Optional[str] = None
+    create_time: str | None = None
 
 
 @dataclass
@@ -351,7 +366,7 @@ class GrvtOrder:
     GRVT orders are capable of expressing both single-legged, and multi-legged orders by default.
     All fields in the Order payload (except `id`, `metadata`, and `state`) are trustlessly enforced
     on our Hyperchain.
-    This minimizes the amount of trust users have to offer to GRVT
+    This minimizes the amount of trust users have to offer to GRVT.
     """
 
     # The subaccount initiating the order
@@ -372,9 +387,9 @@ class GrvtOrder:
 
 def get_signable_message(
     order: GrvtOrder, env: GrvtEnv, instruments: list[dict]
-) -> Optional[bytes]:
+) -> bytes | None:
     FN = f"get_signable_message {order=}"
-    size_multiplier = EMultipliers.BTC_ETH_SIZE_MULTIPLIER.value
+    size_multiplier = BTC_ETH_SIZE_MULTIPLIER
     PRICE_MULTIPLIER = 1_000_000_000
     legs = []
     for leg in order.legs:
@@ -422,7 +437,7 @@ def get_order_payload(
     order.signature.v = signed_message.v
     order.signature.signer = Account.from_key(private_key).address
 
-    payload = {
+    return {
         "order": {
             "sub_account_id": str(order.sub_account_id),
             "is_market": order.is_market,
@@ -451,7 +466,6 @@ def get_order_payload(
             },
         }
     }
-    return payload  # json.dumps(payload, indent=2)
 
 
 def get_grvt_order(
@@ -462,7 +476,7 @@ def get_grvt_order(
     amount: Num,
     limit_price: Num,
     order_duration_secs: float = 5 * 60,
-    params: Dict = {},
+    params: dict = {},
 ) -> GrvtOrder:
     """
     Creates an order for a specified symbol with the given limit price and size.
@@ -512,7 +526,7 @@ def get_grvt_order(
         nonce=rand_uint32(),
     )
     metadata = OrderMetadata(client_order_id=str(client_order_id))
-    order = GrvtOrder(
+    return GrvtOrder(
         sub_account_id=sub_account_id,
         time_in_force=time_in_force,
         legs=[leg],
@@ -522,4 +536,3 @@ def get_grvt_order(
         post_only=post_only,
         reduce_only=reduce_only,
     )
-    return order

@@ -1,21 +1,32 @@
+# ruff: noqa: D200
+# ruff: noqa: D204
+# ruff: noqa: D205
+# ruff: noqa: D404
+# ruff: noqa: W291
+# ruff: noqa: D400
+# ruff: noqa: E501
+
 import asyncio
 import json
 import logging
 import traceback
-from typing import Callable, Dict, Optional, Tuple
-import websockets
 from asyncio.events import AbstractEventLoop
-# import requests
+from collections.abc import Callable
 
+import websockets
+
+from .grvt_api_pro import GrvtApiPro
+
+# import requests
 # from env import ENDPOINTS
-from grvt_env import GrvtEnv, GrvtEndpointType, get_grvt_ws_endpoint, GRVT_WS_STREAMS
-from grvt_api_pro import GrvtApiPro
+from .grvt_env import GRVT_WS_STREAMS, GrvtEndpointType, GrvtEnv, get_grvt_ws_endpoint
 
 WS_READ_TIMEOUT = 5
 
 
 class GrvtApiWS(GrvtApiPro):
-    """GrvtApiPro class to interact with Grvt Rest API and WebSockets in asynchronous mode.
+    """
+    GrvtApiPro class to interact with Grvt Rest API and WebSockets in asynchronous mode.
 
     Args:
         env: GrvtApiPro (DEV, TESTNET, PROD)
@@ -32,25 +43,26 @@ class GrvtApiWS(GrvtApiPro):
         self,
         env: GrvtEnv,
         loop: AbstractEventLoop,
-        logger: Optional[logging.Logger] = None,
+        logger: logging.Logger | None = None,
         parameters: dict = {},
     ):
-        """
-        Initialize the GrvtApi instance.
-        """
+        """Initialize the GrvtApi instance."""
         super().__init__(env, logger, parameters)
         self._loop = loop
         self._clsname: str = type(self).__name__
         self.api_ws_version = parameters.get("api_ws_version", "v0")
-        self.ws: Dict[GrvtEndpointType, Optional[websockets.WebSocketClientProtocol]] = {}
-        self.callbacks: Dict[GrvtEndpointType, Dict[Tuple[str, str], Callable]] = {}
-        self.subscribed_streams: Dict[GrvtEndpointType, dict] = {}
-        self.api_url: Dict[GrvtEndpointType, str] = {}
-        self.is_connecting: Dict[GrvtEndpointType, bool] = {}
-        self._last_message: Dict[str, dict] = {}
+        self.ws: dict[GrvtEndpointType, websockets.WebSocketClientProtocol | None] = {}
+        self.callbacks: dict[GrvtEndpointType, dict[tuple[str, str], Callable]] = {}
+        self.subscribed_streams: dict[GrvtEndpointType, dict] = {}
+        self.api_url: dict[GrvtEndpointType, str] = {}
+        self.is_connecting: dict[GrvtEndpointType, bool] = {}
+        self._last_message: dict[str, dict] = {}
         self._request_id = 0
         # Initialize dictionaries for each endpoint type
-        for grvt_endpoint_type in [GrvtEndpointType.MARKET_DATA, GrvtEndpointType.TRADE_DATA]:
+        for grvt_endpoint_type in [
+            GrvtEndpointType.MARKET_DATA,
+            GrvtEndpointType.TRADE_DATA,
+        ]:
             self.api_url[grvt_endpoint_type] = get_grvt_ws_endpoint(
                 self.env.value, grvt_endpoint_type
             )
@@ -62,9 +74,11 @@ class GrvtApiWS(GrvtApiPro):
         self.logger.info(f"{self._clsname} initialized {self.api_url=}")
         self.logger.info(f"{self._clsname} initialized {self.ws=}")
 
-
     async def __aexit__(self):
-        for grvt_endpoint_type in [GrvtEndpointType.MARKET_DATA, GrvtEndpointType.TRADE_DATA]:
+        for grvt_endpoint_type in [
+            GrvtEndpointType.MARKET_DATA,
+            GrvtEndpointType.TRADE_DATA,
+        ]:
             await self._close_connection(grvt_endpoint_type)
 
     async def connect(self, grvt_endpoint_type: GrvtEndpointType) -> bool:
@@ -103,7 +117,9 @@ class GrvtApiWS(GrvtApiPro):
             self.ws[grvt_endpoint_type] = None
         finally:
             self.is_connecting[grvt_endpoint_type] = False
-        return bool(self.ws[grvt_endpoint_type] is not None and self.ws[grvt_endpoint_type].open)
+        return bool(
+            self.ws[grvt_endpoint_type] is not None and self.ws[grvt_endpoint_type].open
+        )
 
     async def _close_connection(self, grvt_endpoint_type: GrvtEndpointType):
         try:
@@ -121,7 +137,9 @@ class GrvtApiWS(GrvtApiPro):
 
     async def _reconnect(self, grvt_endpoint_type: GrvtEndpointType):
         try:
-            self.logger.info(f"{self._clsname} {grvt_endpoint_type=} reconnect websocket starts")
+            self.logger.info(
+                f"{self._clsname} {grvt_endpoint_type=} reconnect websocket starts"
+            )
             if not self.is_connecting[grvt_endpoint_type]:
                 await self._close_connection(grvt_endpoint_type)
                 await self.connect(grvt_endpoint_type)
@@ -144,11 +162,15 @@ class GrvtApiWS(GrvtApiPro):
             self.logger.warning(f"{self._clsname} _resubscribe - No connection.")
 
     # **************** PUBLIC API CALLS
-    def _check_susbcribed_stream(self, grvt_endpoint_type: GrvtEndpointType, message: dict) -> None:
+    def _check_susbcribed_stream(
+        self, grvt_endpoint_type: GrvtEndpointType, message: dict
+    ) -> None:
         stream_subscribed: str = message.get("stream")
         if stream_subscribed:
             if not self.subscribed_streams[grvt_endpoint_type].get(stream_subscribed):
-                self.logger.info(f"{self._clsname} subscribed to stream:{stream_subscribed}")
+                self.logger.info(
+                    f"{self._clsname} subscribed to stream:{stream_subscribed}"
+                )
                 self.subscribed_streams[grvt_endpoint_type][stream_subscribed] = True
 
     async def _read_messages(self, grvt_endpoint_type: GrvtEndpointType):
@@ -166,7 +188,7 @@ class GrvtApiWS(GrvtApiPro):
                     if "feed" not in message:
                         self.logger.debug(f"{FN} Non-actionable message:{message}")
                     else:
-                        stream_subscribed: Optional[str] = message.get("stream")
+                        stream_subscribed: str | None = message.get("stream")
                         if stream_subscribed is None:
                             self.logger.warning(f"{FN} missing stream in {message=}")
                         # feed_subscribed: Optional[str] = message.get("feed")
@@ -197,13 +219,17 @@ class GrvtApiWS(GrvtApiPro):
                     websockets.exceptions.ConnectionClosedError,
                     websockets.exceptions.ConnectionClosedOK,
                 ):
-                    self.logger.exception(f"{FN} connection closed {traceback.format_exc()}")
+                    self.logger.exception(
+                        f"{FN} connection closed {traceback.format_exc()}"
+                    )
                     await self._reconnect(grvt_endpoint_type)
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     self.logger.info(f"{FN} Timeout {WS_READ_TIMEOUT} secs")
                     pass
                 except Exception:
-                    self.logger.exception(f"{FN} connection failed {traceback.format_exc()}")
+                    self.logger.exception(
+                        f"{FN} connection failed {traceback.format_exc()}"
+                    )
                     await asyncio.sleep(1)
             else:
                 await self._reconnect(grvt_endpoint_type)
@@ -223,14 +249,11 @@ class GrvtApiWS(GrvtApiPro):
             self.logger.exception(f"{self._clsname} send failed {traceback.format_exc()}")
             await self._reconnect(end_point_type)
 
-    def _construct_feed(self, stream: str, params: Optional[dict]) -> str:
+    def _construct_feed(self, stream: str, params: dict | None) -> str:
         feed: str = ""
         # ******** Market Data ********
         if (
-            stream.endswith("mini.s")
-            or stream.endswith("mini.d")
-            or stream.endswith("ticker.s")
-            or stream.endswith("ticker.d")
+            stream.endswith(("mini.s", "mini.d", "ticker.s", "ticker.d"))
         ):
             feed = f"{params.get('instrument', '')}@{params.get('rate', '500')}"
         if stream.endswith("book.s"):
@@ -239,9 +262,7 @@ class GrvtApiWS(GrvtApiPro):
                 f"{params.get('depth', '10')}"
             )
         if stream.endswith("book.d"):
-            feed = (
-                f"{params.get('instrument', '')}@{params.get('rate', '500')}"
-            )
+            feed = f"{params.get('instrument', '')}@{params.get('rate', '500')}"
         if stream.endswith("trade"):
             feed = f"{params.get('instrument', '')}@{params.get('limit', '100')}"
         if stream.endswith("candle"):
@@ -251,10 +272,7 @@ class GrvtApiWS(GrvtApiPro):
             )
         # ******** Trade Data ********
         if (
-            stream.endswith("order")
-            or stream.endswith("state")
-            or stream.endswith("position")
-            or stream.endswith("fill")
+            stream.endswith(("order", "state", "position", "fill"))
         ):
             if not params:
                 feed = f"{params.get('sub_account_id', '')}"
@@ -267,9 +285,7 @@ class GrvtApiWS(GrvtApiPro):
                 )
         # Deposit, Transfer, Withdrawal
         if (
-            stream.endswith("deposit")
-            or stream.endswith("transfer")
-            or stream.endswith("withdrawal")
+            stream.endswith(("deposit", "transfer", "withdrawal"))
         ):
             feed = ""
             # f"{params.get('sub_account_id', '')}-{params.get('main_account_id', '')}"
@@ -280,12 +296,13 @@ class GrvtApiWS(GrvtApiPro):
         self,
         stream: str,
         callback: Callable,
-        params: Optional[dict] = None,
+        params: dict | None = None,
     ) -> None:
-        """Subscribe to a stream with optional parameters.
+        """
+        Subscribe to a stream with optional parameters.
         Call the callback function when a message is received.
         callback function should have the following signature:
-        (dict) -> None
+        (dict) -> None.
         """
         FN = f"{self._clsname} subscribe {stream=}"
         end_point_type = GRVT_WS_STREAMS.get(stream)
@@ -294,7 +311,9 @@ class GrvtApiWS(GrvtApiPro):
             return
         feed = self._construct_feed(stream, params)
         self.callbacks[end_point_type][(stream, feed)] = callback
-        self.logger.info(f"{FN} {end_point_type=} {stream=}/{params=}/{feed=} callback:{callback}")
+        self.logger.info(
+            f"{FN} {end_point_type=} {stream=}/{params=}/{feed=} callback:{callback}"
+        )
         await self._subscribe_to_stream(end_point_type, stream, feed)
 
     async def _subscribe_to_stream(
