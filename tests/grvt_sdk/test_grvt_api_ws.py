@@ -23,7 +23,9 @@ async def grvt_ws_subscribe(api: GrvtApiWS, args_list: dict) -> None:
     For market specific channels subscribe to ETH-USD-PERP market"""
     is_connected = False
     while not is_connected:
+        logger.info(f"Connecting to {GrvtEndpointType.MARKET_DATA}")
         is_md_connected = await api.connect(GrvtEndpointType.MARKET_DATA)
+        logger.info(f"Connecting to {GrvtEndpointType.TRADE_DATA}")
         is_td_connected = await api.connect(GrvtEndpointType.TRADE_DATA)
         if not is_md_connected or not is_td_connected:
             logger.info(f"{is_md_connected=} {is_td_connected=} failed, try in 5 second")

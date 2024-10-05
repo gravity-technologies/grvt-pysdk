@@ -3,14 +3,14 @@ from enum import Enum
 from typing import Dict, Optional, Union
 
 
-class GrvtEnv(Enum):
+class GrvtEnv(str, Enum):
     TESTNET = "testnet"
     DEV = "dev"
     PROD = "prod"
 
 
 # GrvtEndpointType defines the root path for a family of endpoints
-class GrvtEndpointType(Enum):
+class GrvtEndpointType(str, Enum):
     EDGE = "edge"
     TRADE_DATA = "tdg"
     MARKET_DATA = "mdg"

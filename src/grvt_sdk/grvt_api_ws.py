@@ -46,6 +46,7 @@ class GrvtApiWS(GrvtApiPro):
         self.callbacks: Dict[GrvtEndpointType, Dict[Tuple[str, str], Callable]] = {}
         self.subscribed_streams: Dict[GrvtEndpointType, dict] = {}
         self.api_url: Dict[GrvtEndpointType, str] = {}
+        self.is_connecting: Dict[GrvtEndpointType, bool] = {}
         self._last_message: Dict[str, dict] = {}
         self._request_id = 0
         # Initialize dictionaries for each endpoint type
@@ -56,6 +57,7 @@ class GrvtApiWS(GrvtApiPro):
             self.callbacks[grvt_endpoint_type] = {}
             self.subscribed_streams[grvt_endpoint_type] = {}
             self.ws[grvt_endpoint_type] = None
+            self.is_connecting[grvt_endpoint_type] = False
             self._loop.create_task(self._read_messages(grvt_endpoint_type))
         self.logger.info(f"{self._clsname} initialized {self.api_url=}")
         self.logger.info(f"{self._clsname} initialized {self.ws=}")
@@ -68,6 +70,7 @@ class GrvtApiWS(GrvtApiPro):
     async def connect(self, grvt_endpoint_type: GrvtEndpointType) -> bool:
         FN = f"{self._clsname} connect {grvt_endpoint_type.value}"
         try:
+            self.is_connecting[grvt_endpoint_type] = True
             self.subscribed_streams[grvt_endpoint_type] = {}
             extra_headers = {}
             if grvt_endpoint_type == GrvtEndpointType.TRADE_DATA:
@@ -98,6 +101,8 @@ class GrvtApiWS(GrvtApiPro):
         except Exception as e:
             self.logger.warning(f"{FN} error:{e} traceback:{traceback.format_exc()}")
             self.ws[grvt_endpoint_type] = None
+        finally:
+            self.is_connecting[grvt_endpoint_type] = False
         return bool(self.ws[grvt_endpoint_type] is not None and self.ws[grvt_endpoint_type].open)
 
     async def _close_connection(self, grvt_endpoint_type: GrvtEndpointType):
@@ -117,9 +122,14 @@ class GrvtApiWS(GrvtApiPro):
     async def _reconnect(self, grvt_endpoint_type: GrvtEndpointType):
         try:
             self.logger.info(f"{self._clsname} {grvt_endpoint_type=} reconnect websocket starts")
-            await self._close_connection(grvt_endpoint_type)
-            await self.connect(grvt_endpoint_type)
-            await self._resubscribe(grvt_endpoint_type)
+            if not self.is_connecting[grvt_endpoint_type]:
+                await self._close_connection(grvt_endpoint_type)
+                await self.connect(grvt_endpoint_type)
+                await self._resubscribe(grvt_endpoint_type)
+            else:
+                self.logger.info(
+                    f"{self._clsname} {grvt_endpoint_type=} self.is_connecting = True. Do nothing."
+                )
         except Exception:
             self.logger.exception(
                 f"{self._clsname} {grvt_endpoint_type=} _reconnect "
