@@ -2,12 +2,11 @@ import os
 import time
 import traceback
 
-print(f"{os.getenv('PYTHONPATH')}")
-from grvt_sdk.grvt_api import GrvtApi
-from grvt_sdk.grvt_api_test_utils import validate_return_values
-from grvt_sdk.grvt_env import GrvtEnv
-from grvt_sdk.grvt_utils import rand_uint32
-from grvt_sdk.logging_selector import logger
+from pysdk.ccxt.grvt_api import GrvtApi
+from pysdk.ccxt.grvt_api_test_utils import validate_return_values
+from pysdk.ccxt.grvt_env import GrvtEnv
+from pysdk.ccxt.grvt_utils import rand_uint32
+from pysdk.ccxt.logging_selector import logger
 
 
 def get_open_orders(api: GrvtApi) -> int:
@@ -151,7 +150,7 @@ def print_markets(api: GrvtApi):
     logger.info("print_markets: START")
     if api.markets:
         logger.info(f"MARKETS:{len(api.markets)}")
-        for name, market in api.markets.items():
+        for market in api.markets.values():
             logger.info(f"MARKET:{market}")
 
 
@@ -198,7 +197,6 @@ def run_test():
         "private_key": os.getenv("GRVT_PRIVATE_KEY"),
     }
     env = GrvtEnv(os.getenv("GRVT_ENV", "dev"))
-    print(f"{env=}")
     test_api = GrvtApi(env, logger, parameters=params)
     function_list = [
         fetch_all_markets,

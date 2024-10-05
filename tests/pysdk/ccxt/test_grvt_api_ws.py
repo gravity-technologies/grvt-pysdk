@@ -4,10 +4,9 @@ import signal
 import sys
 import traceback
 
-from grvt_sdk.grvt_env import GrvtEnv, GrvtEndpointType
-from grvt_sdk.logging_selector import logger
-from grvt_sdk.grvt_api_ws import GrvtApiWS
-
+from pysdk.ccxt.grvt_api_ws import GrvtApiWS
+from pysdk.ccxt.grvt_env import GrvtEndpointType, GrvtEnv
+from pysdk.ccxt.logging_selector import logger
 
 # Utility functions , not called directly by the __main__ test routine
 
@@ -17,10 +16,12 @@ async def callback_general(message: dict) -> None:
     market = message.get("feed", {}).get("instrument")
     logger.info(f"callback_general(): market:{market} message:{message}")
 
-
 async def grvt_ws_subscribe(api: GrvtApiWS, args_list: dict) -> None:
-    """This function subscribes to all Websocket channels
-    For market specific channels subscribe to ETH-USD-PERP market"""
+    """
+    Subscribes to all Websocket channels.
+
+    For market specific channels subscribe to ETH-USD-PERP market.
+    """
     is_connected = False
     while not is_connected:
         logger.info(f"Connecting to {GrvtEndpointType.MARKET_DATA}")
@@ -78,28 +79,28 @@ async def run_test(loop):
             callback_general,
             {
                 "sub_account_id": os.getenv("GRVT_TRADING_ACCOUNT_ID"),
-                "instrument": "BTC_USDT_Perp"
+                "instrument": "BTC_USDT_Perp",
             },
         ),
         "order": (
             callback_general,
             {
                 "sub_account_id": os.getenv("GRVT_TRADING_ACCOUNT_ID"),
-                "instrument": "BTC_USDT_Perp"
+                "instrument": "BTC_USDT_Perp",
             },
         ),
         "state": (
             callback_general,
             {
                 "sub_account_id": os.getenv("GRVT_TRADING_ACCOUNT_ID"),
-                "instrument": "BTC_USDT_Perp"
+                "instrument": "BTC_USDT_Perp",
             },
         ),
         "fill": (
             callback_general,
             {
                 "sub_account_id": os.getenv("GRVT_TRADING_ACCOUNT_ID"),
-                "instrument": "BTC_USDT_Perp"
+                "instrument": "BTC_USDT_Perp",
             },
         ),
         "deposit": (callback_general, {}),
@@ -113,9 +114,7 @@ async def run_test(loop):
 
 
 async def shutdown(loop):
-    """
-    Clean up resources and stop the bot gracefully.
-    """
+    """Clean up resources and stop the bot gracefully."""
     global test_api
     logger.info("Shutting down gracefully...")
     if test_api:

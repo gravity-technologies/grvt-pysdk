@@ -1,9 +1,17 @@
+# ruff: noqa: D200
+# ruff: noqa: D204
+# ruff: noqa: D205
+# ruff: noqa: D404
+# ruff: noqa: W291
+# ruff: noqa: D400
+# ruff: noqa: E501
+
 import logging
 import time
-from typing import Optional, get_args
+from typing import get_args
 
-from grvt_env import GrvtEnv
-from grvt_types import (
+from .grvt_env import GrvtEnv
+from .grvt_types import (
     CandlestickInterval,
     CandlestickType,
     GrvtInvalidOrder,
@@ -12,13 +20,14 @@ from grvt_types import (
     Num,
     ccxt_interval_to_grvt_candlestick_interval,
 )
-from grvt_utils import get_kuq_from_symbol
+from .grvt_utils import get_kuq_from_symbol
 
 # COOKIE_REFRESH_INTERVAL_SECS = 60 * 60  # 30 minutes
 
 
 class GrvtApiBase:
-    """GrvtApiBase is an abstract class for other Grvt Rest
+    """
+    GrvtApiBase is an abstract class for other Grvt Rest
         and WebSocket connectivity classes.
 
     Args:
@@ -31,20 +40,18 @@ class GrvtApiBase:
     def __init__(
         self,
         env: GrvtEnv,
-        logger: Optional[logging.Logger] = None,
+        logger: logging.Logger | None = None,
         parameters: dict = {},
     ):
-        """
-        Initialize the GrvtApiBase part.
-        """
+        """Initialize the GrvtApiBase part."""
         self.logger = logger or logging.getLogger(__name__)
         self.env: GrvtEnv = env
         self._trading_account_id = parameters.get("trading_account_id")
         self._private_key = parameters.get("private_key")
         self._api_key = parameters.get("api_key")
         self._path_return_value_map: dict = {}
-        self._cookie: Optional[dict] = None
-        self.markets: Optional[dict] = None
+        self._cookie: dict | None = None
+        self.markets: dict | None = None
         self._clsname: str = type(self).__name__
         self.logger.info(f"GrvtApiBase: {self.env=}, {self._trading_account_id=}")
 
@@ -68,21 +75,15 @@ class GrvtApiBase:
         return not is_cookie_fresh
 
     def get_path_return_value_map(self) -> dict:
-        """
-        Returns the path return value map.
-        """
+        """Returns the path return value map."""
         return self._path_return_value_map
 
     def get_endpoint_return_value(self, endpoint: str) -> dict:
-        """
-        Returns the return value for the endpoint.
-        """
+        """Returns the return value for the endpoint."""
         return self._path_return_value_map.get(endpoint)
 
     def was_path_called(self, path: str) -> bool:
-        """
-        Returns True if the path was called.
-        """
+        """Returns True if the path was called."""
         return path in self._path_return_value_map
 
     # PRIVATE API CALLS
@@ -111,7 +112,9 @@ class GrvtApiBase:
                     " for a market order"
                 )
         if not amount or amount < 0:
-            raise GrvtInvalidOrder(f"{self._clsname} create_order() amount should be above 0")
+            raise GrvtInvalidOrder(
+                f"{self._clsname} create_order() amount should be above 0"
+            )
 
     def _check_account_auth(self) -> bool:
         if not self._trading_account_id:
@@ -142,13 +145,13 @@ class GrvtApiBase:
 
     def _get_payload_fetch_my_trades(
         self,
-        symbol: Optional[str] = None,
-        since: Optional[int] = None,
-        limit: Optional[int] = None,
+        symbol: str | None = None,
+        since: int | None = None,
+        limit: int | None = None,
         params: dict = {},
     ) -> dict:
         """
-        prepares payload for fetch_my_trades() method.<br>
+        prepares payload for fetch_my_trades() method.<br>.
 
         Args:
             symbol: get trades for this symbol only.<br>
@@ -190,12 +193,12 @@ class GrvtApiBase:
     def _get_payload_fetch_trades(
         self,
         symbol: str,
-        since: Optional[int] = None,
+        since: int | None = None,
         limit: int = 20,
         params: dict = {},
     ) -> dict:
         """
-        prepares payload for fetch_trades() method.<br>
+        prepares payload for fetch_trades() method.<br>.
 
         Args:
             symbol: get trades for this symbol only.<br>
@@ -228,7 +231,7 @@ class GrvtApiBase:
 
     def _get_payload_fetch_account_history(self, params: dict = {}) -> dict:
         """
-        prepares payload for fetch_my_trades() method.<br>
+        prepares payload for fetch_my_trades() method.<br>.
 
         Args:
             params: dictionary with parameters. Valid keys:<br>
@@ -253,7 +256,7 @@ class GrvtApiBase:
 
     def _get_payload_fetch_positions(self, symbols: list[str] = [], params={}) -> dict:
         """
-        prepares payload for fetch_positions() method.<br>
+        prepares payload for fetch_positions() method.<br>.
 
         Args:
             symbols: list(str) get positions for these symbols only.<br>
@@ -270,7 +273,9 @@ class GrvtApiBase:
                     us.append(u)
                     qs.append(q)
                 except Exception as e:
-                    raise GrvtInvalidOrder(f"Invalid symbol {symbol} in fetch_positions {e}")
+                    raise GrvtInvalidOrder(
+                        f"Invalid symbol {symbol} in fetch_positions {e}"
+                    )
             payload["kind"] = list(set(ks))
             payload["base"] = list(set(us))
             payload["quote"] = list(set(qs))
@@ -288,7 +293,7 @@ class GrvtApiBase:
         params: dict,
     ) -> dict:
         """
-        prepares payload for fetch_order_history() method.<br>
+        prepares payload for fetch_order_history() method.<br>.
 
         Args:
             params: (dict) with possible keys as:.<br>
@@ -321,13 +326,13 @@ class GrvtApiBase:
 
     def _get_payload_fetch_open_orders(
         self,
-        symbol: Optional[str] = None,
-        since: Optional[int] = None,
-        limit: Optional[int] = None,
+        symbol: str | None = None,
+        since: int | None = None,
+        limit: int | None = None,
         params: dict = {},
     ) -> dict:
         """
-        prepares payload for fetch_order_history() method.<br>
+        prepares payload for fetch_order_history() method.<br>.
 
         Args:
             params: (dict) with possible keys as:.<br>
@@ -346,7 +351,9 @@ class GrvtApiBase:
                 payload["base"] = [u]
                 payload["quote"] = [q]
             except Exception as e:
-                raise GrvtInvalidOrder(f"Invalid symbol {symbol} in fetch_open_orders {e}")
+                raise GrvtInvalidOrder(
+                    f"Invalid symbol {symbol} in fetch_open_orders {e}"
+                )
         else:
             if "kind" in params:
                 payload["kind"] = [params["kind"]]
@@ -369,7 +376,7 @@ class GrvtApiBase:
         params={},
     ) -> dict:
         """
-        prepares payload for fetch_ohlcv() method.<br>
+        prepares payload for fetch_ohlcv() method.<br>.
 
         Args:
             symbol: The instrument name.<br>
@@ -389,7 +396,9 @@ class GrvtApiBase:
         """
         if timeframe not in ccxt_interval_to_grvt_candlestick_interval:
             raise ValueError(f"Invalid timeframe {timeframe}")
-        interval: CandlestickInterval = ccxt_interval_to_grvt_candlestick_interval[timeframe]
+        interval: CandlestickInterval = ccxt_interval_to_grvt_candlestick_interval[
+            timeframe
+        ]
         payload = {"instrument": symbol}
         if params.get("cursor"):
             payload["cursor"] = params["cursor"]

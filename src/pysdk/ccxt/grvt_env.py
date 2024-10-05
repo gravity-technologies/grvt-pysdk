@@ -1,6 +1,13 @@
+# ruff: noqa: D200
+# ruff: noqa: D204
+# ruff: noqa: D205
+# ruff: noqa: D404
+# ruff: noqa: W291
+# ruff: noqa: D400
+# ruff: noqa: E501
+
 import os
 from enum import Enum
-from typing import Dict, Optional, Union
 
 
 class GrvtEnv(str, Enum):
@@ -19,35 +26,33 @@ class GrvtEndpointType(str, Enum):
 END_POINT_VERSION = os.getenv("GRVT_END_POINT_VERSION", "v0")
 
 
-def get_grvt_endpoint_domains(env_name: str) -> Dict[GrvtEndpointType, str]:
+def get_grvt_endpoint_domains(env_name: str) -> dict[GrvtEndpointType, str]:
     if env_name == GrvtEnv.PROD.value:
         return {
             GrvtEndpointType.EDGE: "https://edge.grvt.io",
             GrvtEndpointType.TRADE_DATA: "https://trades.grvt.io",
             GrvtEndpointType.MARKET_DATA: "https://market-data.grvt.io",
         }
-    elif env_name == GrvtEnv.TESTNET.value:
+    if env_name == GrvtEnv.TESTNET.value:
         return {
             GrvtEndpointType.EDGE: f"https://edge.{env_name}.grvt.io",
             GrvtEndpointType.TRADE_DATA: f"https://trades.{env_name}.grvt.io",
             GrvtEndpointType.MARKET_DATA: f"https://market-data.{env_name}.grvt.io",
         }
-    elif env_name == GrvtEnv.DEV.value:
+    if env_name == GrvtEnv.DEV.value:
         return {
             GrvtEndpointType.EDGE: f"https://edge.{env_name}.gravitymarkets.io",
             GrvtEndpointType.TRADE_DATA: f"https://trades.{env_name}.gravitymarkets.io",
             GrvtEndpointType.MARKET_DATA: f"https://market-data.{env_name}.gravitymarkets.io",
         }
-    else:
-        print(f"get_grvt_endpoint_domains: unknown {env_name=}")
-        return {}
+    return {}
 
 
 def get_grvt_ws_endpoint(
     env: str,
     endpoint_type: GrvtEndpointType,
-) -> Optional[str]:
-    """Returns string pointing to WS endpoint for given environment and endpoint type"""
+) -> str | None:
+    """Returns string pointing to WS endpoint for given environment and endpoint type."""
     if env == GrvtEnv.PROD.value:
         return {
             GrvtEndpointType.TRADE_DATA: "wss://trades.grvt.io/ws",
@@ -63,7 +68,6 @@ def get_grvt_ws_endpoint(
             GrvtEndpointType.TRADE_DATA: f"wss://trades.{env}.gravitymarkets.io/ws",
             GrvtEndpointType.MARKET_DATA: f"wss://market-data.{env}.gravitymarkets.io/ws",
         }.get(endpoint_type)
-    print(f"get_grvt_ws_endpoint: unknown environment={env}")
     return None
 
 
@@ -125,7 +129,7 @@ GRVT_ENDPOINTS = {
 }
 
 
-def get_grvt_endpoint(environment: GrvtEnv, end_point: str) -> Optional[str]:
+def get_grvt_endpoint(environment: GrvtEnv, end_point: str) -> str | None:
     # if end_point == "GET_ALL_INSTRUMENTS":
     #     return "https://market-data.testnet.grvt.io/full/v1/instruments"
     endpoint_domains = get_grvt_endpoint_domains(environment.value)
@@ -135,7 +139,7 @@ def get_grvt_endpoint(environment: GrvtEnv, end_point: str) -> Optional[str]:
     return None
 
 
-def get_all_grvt_endpoints(environment: GrvtEnv) -> Dict[str, str]:
+def get_all_grvt_endpoints(environment: GrvtEnv) -> dict[str, str]:
     endpoint_domains = get_grvt_endpoint_domains(environment.value)
     endpoints = {}
     for endpoints_type, endpoints_map in GRVT_ENDPOINTS.items():

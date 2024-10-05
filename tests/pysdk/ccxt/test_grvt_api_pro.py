@@ -3,11 +3,11 @@ import os
 import time
 import traceback
 
-from grvt_sdk.grvt_env import GrvtEnv
-from grvt_sdk.grvt_utils import rand_uint32
-from grvt_sdk.logging_selector import logger
-from grvt_sdk.grvt_api_pro import GrvtApiPro
-from grvt_sdk.grvt_api_test_utils import validate_return_values
+from pysdk.ccxt.grvt_api_pro import GrvtApiPro
+from pysdk.ccxt.grvt_api_test_utils import validate_return_values
+from pysdk.ccxt.grvt_env import GrvtEnv
+from pysdk.ccxt.grvt_utils import rand_uint32
+from pysdk.ccxt.logging_selector import logger
 
 
 # Utility functions , not called directly by the __main__ test routine
@@ -62,7 +62,9 @@ async def print_instruments(api: GrvtApiPro):
         logger.info(
             f"fetch_mini_ticker: {instrument=}, {await api.fetch_mini_ticker(instrument)}"
         )
-        logger.info(f"fetch_ticker: {instrument=}, " f"{await api.fetch_ticker(instrument)}")
+        logger.info(
+            f"fetch_ticker: {instrument=}, " f"{await api.fetch_ticker(instrument)}"
+        )
         logger.info(
             f"fetch_order_book {instrument=}, "
             f"{await api.fetch_order_book(instrument, limit=10)}"
@@ -150,7 +152,7 @@ async def print_markets(api: GrvtApiPro):
     logger.info("print_markets: START")
     if api.markets:
         logger.info(f"MARKETS:{len(api.markets)}")
-        for name, market in api.markets.items():
+        for market in api.markets.values():
             logger.info(f"MARKET:{market}")
 
 
@@ -162,9 +164,15 @@ async def fetch_all_markets(api: GrvtApiPro):
 
 async def print_account_summary(api: GrvtApiPro):
     logger.info("print_account_summary: START")
-    logger.info(f"sub-account summary:\n{await api.get_account_summary(type='sub-account')}")
-    logger.info(f"funding-account summary:\n{await api.get_account_summary(type='funding')}")
-    logger.info(f"aggregated-account summary:\n{await api.get_account_summary(type='aggregated')}")
+    logger.info(
+        f"sub-account summary:\n{await api.get_account_summary(type='sub-account')}"
+    )
+    logger.info(
+        f"funding-account summary:\n{await api.get_account_summary(type='funding')}"
+    )
+    logger.info(
+        f"aggregated-account summary:\n{await api.get_account_summary(type='aggregated')}"
+    )
 
 
 async def print_account_history(api: GrvtApiPro):

@@ -1,12 +1,13 @@
 import logging
-from grvt_env import get_all_grvt_endpoints
-from grvt_api import GrvtApi
+
+from .grvt_api import GrvtApi
+from .grvt_env import get_all_grvt_endpoints
 
 
 def default_check(return_value: dict) -> str:
-    if not isinstance(return_value, (list, dict)):
+    if not isinstance(return_value, list | dict):
         return "return_value is not a list or dict"
-    elif not return_value:
+    if not return_value:
         return "return_value is empty"
     return "OK"
 
@@ -43,13 +44,17 @@ def validate_return_values(api: GrvtApi, result_filename: str) -> None:
     end_point_status = {}
     for short_name, endpoint in all_endpoints.items():
         if not api.was_path_called(endpoint):
-            logging.info(f"validate_return_values: {short_name=}, {endpoint=}, not called")
+            logging.info(
+                f"validate_return_values: {short_name=}, {endpoint=}, not called"
+            )
             end_point_status[short_name] = [endpoint, "not called"]
         else:
             return_value = api.get_endpoint_return_value(endpoint)
             if short_name in endpoint_check_map:
                 check_result = endpoint_check_map.get(short_name)(return_value)
-                logging.info(f"validate_return_values: {short_name=}, {endpoint=}, {check_result=}")
+                logging.info(
+                    f"validate_return_values: {short_name=}, {endpoint=}, {check_result=}"
+                )
                 end_point_status[short_name] = [endpoint, check_result]
             else:
                 logging.error(

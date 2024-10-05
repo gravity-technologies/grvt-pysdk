@@ -20,6 +20,10 @@ precommit: ## Run the pre-commit hooks
 lint: ## Run the linter
 	uv run ruff check .
 
+.PHONY: lint-fix
+lint-fix: ## Run the linter and fix the issues
+	uv run ruff check --fix --unsafe-fixes .
+
 .PHONY: format
 format: ## Run the formatter
 	uv run ruff format .

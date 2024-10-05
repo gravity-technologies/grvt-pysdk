@@ -1,12 +1,22 @@
+# ruff: noqa: D200
+# ruff: noqa: D204
+# ruff: noqa: D205
+# ruff: noqa: D404
+# ruff: noqa: W291
+# ruff: noqa: D400
+# ruff: noqa: E501
+
 from decimal import Decimal
 from enum import Enum
-from typing import Literal, Union
+from typing import Literal
 
-Num = Union[None, str, float, int, Decimal]
+Num = None | str | float | int | Decimal
 GrvtOrderSide = Literal["buy", "sell"]
 GrvtOrderType = Literal["limit", "market"]
 
 DURATION_SECOND_IN_NSEC = 1_000_000_000
+PRICE_MULTIPLIER = 1_000_000_000
+BTC_ETH_SIZE_MULTIPLIER = 1_000_000_000
 
 
 class GrvtInvalidOrder(Exception):
@@ -61,11 +71,6 @@ class CandlestickType(Enum):
     MARK = "MARK"
     INDEX = "INDEX"
     MID = "MID"
-
-
-class EMultipliers(Enum):
-    PRICE_MULTIPLIER = 1_000_000_000
-    BTC_ETH_SIZE_MULTIPLIER = 1_000_000_000
 
 
 class GrvtInstrumentKind(Enum):
