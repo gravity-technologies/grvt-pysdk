@@ -10,8 +10,8 @@ import logging
 import time
 from typing import get_args
 
-from .grvt_env import GrvtEnv
-from .grvt_types import (
+from .grvt_ccxt_env import GrvtEnv
+from .grvt_ccxt_types import (
     CandlestickInterval,
     CandlestickType,
     GrvtInvalidOrder,
@@ -20,18 +20,18 @@ from .grvt_types import (
     Num,
     ccxt_interval_to_grvt_candlestick_interval,
 )
-from .grvt_utils import get_kuq_from_symbol
+from .grvt_ccxt_utils import get_kuq_from_symbol
 
 # COOKIE_REFRESH_INTERVAL_SECS = 60 * 60  # 30 minutes
 
 
-class GrvtApiBase:
+class GrvtCcxtBase:
     """
-    GrvtApiBase is an abstract class for other Grvt Rest
+    GrvtCcxtBase is an abstract class for other Grvt Rest
         and WebSocket connectivity classes.
 
     Args:
-        env: GrvtApiBase (DEV, TESTNET, PROD)
+        env: GrvtCcxtBase (DEV, TESTNET, PROD)
         logger (logging.Logger, optional). Defaults to None.
         parameters: (dict, optional). Dict with trading_account_id, private_key, api_key etc
                 defaults to empty.
@@ -43,7 +43,7 @@ class GrvtApiBase:
         logger: logging.Logger | None = None,
         parameters: dict = {},
     ):
-        """Initialize the GrvtApiBase part."""
+        """Initialize the GrvtCcxtBase part."""
         self.logger = logger or logging.getLogger(__name__)
         self.env: GrvtEnv = env
         self._trading_account_id = parameters.get("trading_account_id")
@@ -53,7 +53,7 @@ class GrvtApiBase:
         self._cookie: dict | None = None
         self.markets: dict | None = None
         self._clsname: str = type(self).__name__
-        self.logger.info(f"GrvtApiBase: {self.env=}, {self._trading_account_id=}")
+        self.logger.info(f"GrvtCcxtBase: {self.env=}, {self._trading_account_id=}")
 
     def should_refresh_cookie(self) -> bool:
         """

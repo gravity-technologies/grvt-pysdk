@@ -2,14 +2,14 @@ import os
 import time
 import traceback
 
-from pysdk.ccxt.grvt_api import GrvtApi
-from pysdk.ccxt.grvt_api_test_utils import validate_return_values
-from pysdk.ccxt.grvt_env import GrvtEnv
-from pysdk.ccxt.grvt_utils import rand_uint32
-from pysdk.ccxt.logging_selector import logger
+from pysdk.grvt_ccxt import GrvtCcxt
+from pysdk.grvt_ccxt_env import GrvtEnv
+from pysdk.grvt_ccxt_logging_selector import logger
+from pysdk.grvt_ccxt_test_utils import validate_return_values
+from pysdk.grvt_ccxt_utils import rand_uint32
 
 
-def get_open_orders(api: GrvtApi) -> int:
+def get_open_orders(api: GrvtCcxt) -> int:
     open_orders = api.fetch_open_orders(
         symbol="BTC_USDT_Perp",
         params={"kind": "PERPETUAL"},
@@ -18,7 +18,7 @@ def get_open_orders(api: GrvtApi) -> int:
     return open_orders
 
 
-def fetch_order_history(api: GrvtApi) -> int:
+def fetch_order_history(api: GrvtCcxt) -> int:
     order_history = api.fetch_order_history(
         params={"kind": "PERPETUAL", "limit": 3},
     )
@@ -26,7 +26,7 @@ def fetch_order_history(api: GrvtApi) -> int:
     return order_history
 
 
-def cancel_orders(api: GrvtApi, open_orders: list) -> int:
+def cancel_orders(api: GrvtCcxt, open_orders: list) -> int:
     FN = "cancel_orders"
     order_count = 0
     for order_dict in open_orders:
@@ -41,7 +41,7 @@ def cancel_orders(api: GrvtApi, open_orders: list) -> int:
     return order_count
 
 
-def cancel_all_orders(api: GrvtApi) -> bool:
+def cancel_all_orders(api: GrvtCcxt) -> bool:
     FN = "cancel_all_orders"
     logger.info(f"{FN} START")
     cancel_response = api.cancel_all_orders(symbol="BTC_USDT_Perp")
@@ -49,7 +49,7 @@ def cancel_all_orders(api: GrvtApi) -> bool:
     return cancel_response
 
 
-def print_instruments(api: GrvtApi):
+def print_instruments(api: GrvtCcxt):
     logger.info("print_instruments: START")
     if not api.markets:
         return
@@ -83,7 +83,7 @@ def print_instruments(api: GrvtApi):
             logger.info(f"fetch_ohlcv {type} {instrument=}, {ohlc}")
 
 
-def send_order(api: GrvtApi, side: str, client_order_id: int) -> dict:
+def send_order(api: GrvtCcxt, side: str, client_order_id: int) -> dict:
     price = 64_000 if side == "buy" else 65_000
     send_order_response = api.create_order(
         symbol="BTC_USDT_Perp",
@@ -98,7 +98,7 @@ def send_order(api: GrvtApi, side: str, client_order_id: int) -> dict:
 
 
 # Test scenarios, called by the __main__ test routine
-def send_fetch_order(api: GrvtApi):
+def send_fetch_order(api: GrvtCcxt):
     client_order_id = rand_uint32()
     _ = send_order(api, side="buy", client_order_id=client_order_id)
     order_status = api.fetch_order(
@@ -109,7 +109,7 @@ def send_fetch_order(api: GrvtApi):
     logger.info(f"result of fetch_order: {order_status=}")
 
 
-def check_cancel_check_orders(api: GrvtApi):
+def check_cancel_check_orders(api: GrvtCcxt):
     logger.info("check_cancel_check_orders: START")
     open_orders = get_open_orders(api)
     if open_orders:
@@ -117,7 +117,7 @@ def check_cancel_check_orders(api: GrvtApi):
         get_open_orders(api)
 
 
-def fetch_my_trades(api: GrvtApi):
+def fetch_my_trades(api: GrvtCcxt):
     logger.info("fetch_my_trades: START")
     my_trades = api.fetch_my_trades(
         symbol="BTC_USDT_Perp",
@@ -128,7 +128,7 @@ def fetch_my_trades(api: GrvtApi):
     logger.info(f"my_trades: {my_trades=}")
 
 
-def send_cancel_order(api: GrvtApi):
+def send_cancel_order(api: GrvtCcxt):
     logger.info("send_cancel_order: START")
     order_response = send_order(api, side="sell", client_order_id=rand_uint32())
     if order_response:
@@ -146,7 +146,7 @@ def send_cancel_order(api: GrvtApi):
         logger.warning("send_cancel_order: order_response is None")
 
 
-def print_markets(api: GrvtApi):
+def print_markets(api: GrvtCcxt):
     logger.info("print_markets: START")
     if api.markets:
         logger.info(f"MARKETS:{len(api.markets)}")
@@ -154,13 +154,13 @@ def print_markets(api: GrvtApi):
             logger.info(f"MARKET:{market}")
 
 
-def fetch_all_markets(api: GrvtApi):
+def fetch_all_markets(api: GrvtCcxt):
     logger.info("fetch_all_markets: START")
     instruments = api.fetch_all_markets()
     logger.info(f"fetch_all_markets: num instruments={len(instruments)}")
 
 
-def print_account_summary(api: GrvtApi):
+def print_account_summary(api: GrvtCcxt):
     try:
         logger.info(
             f"sub-account summary:\n{api.get_account_summary(type='sub-account')}"
@@ -175,7 +175,7 @@ def print_account_summary(api: GrvtApi):
         logger.error(f"account summary failed: {e}")
 
 
-def print_account_history(api: GrvtApi):
+def print_account_history(api: GrvtCcxt):
     try:
         hist = api.fetch_account_history(params={})
         logger.info(f"account history:\n{hist}")
@@ -183,21 +183,21 @@ def print_account_history(api: GrvtApi):
         logger.error(f"account history failed: {e}")
 
 
-def print_positions(api: GrvtApi):
+def print_positions(api: GrvtCcxt):
     try:
         logger.info(f"positions:\n{api.fetch_positions(symbols=['BTC_USDT_Perp'])}")
     except Exception as e:
         logger.error(f"positions failed: {e}")
 
 
-def run_test():
+def test_grvt_ccxt():
     params = {
         "api_key": os.getenv("GRVT_API_KEY"),
         "trading_account_id": os.getenv("GRVT_TRADING_ACCOUNT_ID"),
         "private_key": os.getenv("GRVT_PRIVATE_KEY"),
     }
     env = GrvtEnv(os.getenv("GRVT_ENV", "dev"))
-    test_api = GrvtApi(env, logger, parameters=params)
+    test_api = GrvtCcxt(env, logger, parameters=params)
     function_list = [
         fetch_all_markets,
         print_markets,
@@ -229,4 +229,4 @@ def run_test():
 
 
 if __name__ == "__main__":
-    run_test()
+    test_grvt_ccxt()

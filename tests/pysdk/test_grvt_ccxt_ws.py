@@ -4,9 +4,9 @@ import signal
 import sys
 import traceback
 
-from pysdk.ccxt.grvt_api_ws import GrvtApiWS
-from pysdk.ccxt.grvt_env import GrvtEndpointType, GrvtEnv
-from pysdk.ccxt.logging_selector import logger
+from pysdk.grvt_ccxt_env import GrvtEndpointType, GrvtEnv
+from pysdk.grvt_ccxt_logging_selector import logger
+from pysdk.grvt_ccxt_ws import GrvtCcxtWS
 
 # Utility functions , not called directly by the __main__ test routine
 
@@ -16,7 +16,7 @@ async def callback_general(message: dict) -> None:
     market = message.get("feed", {}).get("instrument")
     logger.info(f"callback_general(): market:{market} message:{message}")
 
-async def grvt_ws_subscribe(api: GrvtApiWS, args_list: dict) -> None:
+async def grvt_ws_subscribe(api: GrvtCcxtWS, args_list: dict) -> None:
     """
     Subscribes to all Websocket channels.
 
@@ -52,7 +52,7 @@ async def run_test(loop):
     }
     env = GrvtEnv(os.getenv("GRVT_ENV", "dev"))
 
-    test_api = GrvtApiWS(env, loop, logger, parameters=params)
+    test_api = GrvtCcxtWS(env, loop, logger, parameters=params)
     await test_api.load_markets()
     await asyncio.sleep(2)
     pub_args_dict = {
@@ -133,7 +133,7 @@ async def shutdown(loop):
     sys.exit(0)
 
 
-if __name__ == "__main__":
+async def grvt_ccxt_ws():
     # asyncio.get_event_loop().run_until_complete(paradex_ws_subscribe(paradex))
     # asyncio.get_event_loop().run_forever()
     loop = asyncio.get_event_loop()
@@ -141,3 +141,12 @@ if __name__ == "__main__":
         loop.add_signal_handler(sig, lambda: asyncio.create_task(shutdown(loop)))
     loop.run_until_complete(run_test(loop))
     loop.run_forever()
+
+
+
+def test_grvt_ccxt_ws() -> None:
+    asyncio.run(grvt_ccxt_ws())
+
+
+if __name__ == "__main__":
+    test_grvt_ccxt_ws()

@@ -15,27 +15,31 @@ from collections.abc import Callable
 
 import websockets
 
-from .grvt_api_pro import GrvtApiPro
-
 # import requests
 # from env import ENDPOINTS
-from .grvt_env import GRVT_WS_STREAMS, GrvtEndpointType, GrvtEnv, get_grvt_ws_endpoint
+from .grvt_ccxt_env import (
+    GRVT_WS_STREAMS,
+    GrvtEndpointType,
+    GrvtEnv,
+    get_grvt_ws_endpoint,
+)
+from .grvt_ccxt_pro import GrvtCcxtPro
 
 WS_READ_TIMEOUT = 5
 
 
-class GrvtApiWS(GrvtApiPro):
+class GrvtCcxtWS(GrvtCcxtPro):
     """
-    GrvtApiPro class to interact with Grvt Rest API and WebSockets in asynchronous mode.
+    GrvtCcxtPro class to interact with Grvt Rest API and WebSockets in asynchronous mode.
 
     Args:
-        env: GrvtApiPro (DEV, TESTNET, PROD)
+        env: GrvtCcxtPro (DEV, TESTNET, PROD)
         parameters: dict with trading_account_id, private_key, api_key etc
 
     Examples:
-        >>> from grvt_api_pro import GrvtApiPro
+        >>> from grvt_api_pro import GrvtCcxtPro
         >>> from grvt_env import GrvtEnv
-        >>> grvt = GrvtApiPro(env=GrvtEnv.TESTNET)
+        >>> grvt = GrvtCcxtPro(env=GrvtEnv.TESTNET)
         >>> await grvt.fetch_markets()
     """
 
@@ -46,7 +50,7 @@ class GrvtApiWS(GrvtApiPro):
         logger: logging.Logger | None = None,
         parameters: dict = {},
     ):
-        """Initialize the GrvtApi instance."""
+        """Initialize the GrvtCcxt instance."""
         super().__init__(env, logger, parameters)
         self._loop = loop
         self._clsname: str = type(self).__name__

@@ -3,11 +3,11 @@ import os
 import random
 import time
 
-from pysdk import types
-from pysdk.grvt_api_base import GrvtApiConfig
-from pysdk.grvt_api_sync import GrvtApiSync
-from pysdk.grvt_env import GrvtEnv
-from pysdk.grvt_signing import sign_order
+from pysdk import grvt_raw_types
+from pysdk.grvt_raw_base import GrvtApiConfig
+from pysdk.grvt_raw_env import GrvtEnv
+from pysdk.grvt_raw_signing import sign_order
+from pysdk.grvt_raw_sync import GrvtRawSync
 
 
 def get_config() -> GrvtApiConfig:
@@ -26,8 +26,8 @@ def get_config() -> GrvtApiConfig:
 
 
 def get_test_order(
-    api: GrvtApiSync, instruments: dict[str, types.Instrument]
-) -> types.Order | None:
+    api: GrvtRawSync, instruments: dict[str, grvt_raw_types.Instrument]
+) -> grvt_raw_types.Order | None:
     # Skip test if configs are not set
     if (
         api.config.trading_account_id is None
@@ -36,18 +36,18 @@ def get_test_order(
     ):
         return None
 
-    order = types.Order(
+    order = grvt_raw_types.Order(
         sub_account_id=str(api.config.trading_account_id),
-        time_in_force=types.TimeInForce.GOOD_TILL_TIME,
+        time_in_force=grvt_raw_types.TimeInForce.GOOD_TILL_TIME,
         legs=[
-            types.OrderLeg(
+            grvt_raw_types.OrderLeg(
                 instrument="BTC_USDT_Perp",
                 size="1.2",  # 1.2 BTC
                 limit_price="64170.7",  # 80,000 USDT
                 is_buying_asset=True,
             )
         ],
-        signature=types.Signature(
+        signature=grvt_raw_types.Signature(
             signer="",  # Populated by sign_order
             r="",  # Populated by sign_order
             s="",  # Populated by sign_order
@@ -55,7 +55,7 @@ def get_test_order(
             expiration=str(time.time_ns() + 20 * 24 * 60 * 60 * 1_000_000_000),  # 20 days
             nonce=random.randint(0, 2**32 - 1),
         ),
-        metadata=types.OrderMetadata(
+        metadata=grvt_raw_types.OrderMetadata(
             client_order_id=str(random.randint(0, 2**32 - 1)),
         ),
     )

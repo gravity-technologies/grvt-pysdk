@@ -12,7 +12,7 @@ import aiohttp
 import requests  # type: ignore
 from eth_account import Account
 
-from .grvt_env import GrvtEnv, GrvtEnvConfig, get_env_config
+from .grvt_raw_env import GrvtEnv, GrvtEnvConfig, get_env_config
 
 
 @dataclass
@@ -37,9 +37,9 @@ class GrvtCookie:
     expires: datetime
 
 
-class GrvtApiBase:
+class GrvtRawBase:
     """
-    GrvtApiBase is base class for Grvt Rest API classes.
+    GrvtRawBase is base class for Grvt Rest API classes.
 
     This should not be used directly, but rather through a derivative API class.
     """
@@ -71,7 +71,7 @@ class GrvtApiBase:
         return not is_cookie_fresh
 
 
-class GrvtApiSyncBase(GrvtApiBase):
+class GrvtRawSyncBase(GrvtRawBase):
     def __init__(self, config: GrvtApiConfig):
         super().__init__(config)
         # Sync API session
@@ -151,7 +151,7 @@ class GrvtApiSyncBase(GrvtApiBase):
         return resp_json
 
 
-class GrvtApiAsyncBase(GrvtApiBase):
+class GrvtRawAsyncBase(GrvtRawBase):
     def __init__(self, config: GrvtApiConfig):
         super().__init__(config)
         # Async API session

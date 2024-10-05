@@ -1,7 +1,7 @@
 import logging
 
-from .grvt_api import GrvtApi
-from .grvt_env import get_all_grvt_endpoints
+from .grvt_ccxt import GrvtCcxt
+from .grvt_ccxt_env import get_all_grvt_endpoints
 
 
 def default_check(return_value: dict) -> str:
@@ -12,7 +12,7 @@ def default_check(return_value: dict) -> str:
     return "OK"
 
 
-def validate_return_values(api: GrvtApi, result_filename: str) -> None:
+def validate_return_values(api: GrvtCcxt, result_filename: str) -> None:
     logging.info("validate_return_values: START")
     endpoint_check_map = {
         "GRAPHQL": default_check,
@@ -58,7 +58,8 @@ def validate_return_values(api: GrvtApi, result_filename: str) -> None:
                 end_point_status[short_name] = [endpoint, check_result]
             else:
                 logging.error(
-                    f"validate_return_values: NO {short_name=} in {endpoint_check_map.keys()=}"
+                    f"validate_return_values: NO {short_name=} "
+                    f"in {endpoint_check_map.keys()=}"
                 )
                 end_point_status[short_name] = [endpoint, "no check"]
     with open(result_filename, "w") as file_handle:
