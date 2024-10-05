@@ -19,7 +19,7 @@
 
 ---
 
-## Installation
+## Installation Instructions
 
 ```bash
 pip install grvt-pysdk
