@@ -21,8 +21,8 @@ import requests
 from eth_account import Account
 from eth_account.messages import encode_typed_data
 
-from .grvt_env import CHAIN_IDS, GrvtEnv
-from .grvt_types import (
+from .grvt_ccxt_env import CHAIN_IDS, GrvtEnv
+from .grvt_ccxt_types import (
     BTC_ETH_SIZE_MULTIPLIER,
     DURATION_SECOND_IN_NSEC,
     GrvtOrderSide,

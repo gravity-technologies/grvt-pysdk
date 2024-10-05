@@ -3,8 +3,8 @@ from enum import Enum
 from eth_account import Account
 from eth_account.messages import encode_typed_data
 
-from .grvt_api_base import GrvtApiConfig, GrvtEnv
-from .types import Instrument, Order, TimeInForce
+from .grvt_raw_base import GrvtApiConfig, GrvtEnv
+from .grvt_raw_types import Instrument, Order, TimeInForce
 
 #########################
 # INSTRUMENT CONVERSION #

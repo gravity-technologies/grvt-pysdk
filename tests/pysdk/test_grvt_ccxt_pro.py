@@ -3,15 +3,15 @@ import os
 import time
 import traceback
 
-from pysdk.ccxt.grvt_api_pro import GrvtApiPro
-from pysdk.ccxt.grvt_api_test_utils import validate_return_values
-from pysdk.ccxt.grvt_env import GrvtEnv
-from pysdk.ccxt.grvt_utils import rand_uint32
-from pysdk.ccxt.logging_selector import logger
+from pysdk.grvt_ccxt_env import GrvtEnv
+from pysdk.grvt_ccxt_logging_selector import logger
+from pysdk.grvt_ccxt_pro import GrvtCcxtPro
+from pysdk.grvt_ccxt_test_utils import validate_return_values
+from pysdk.grvt_ccxt_utils import rand_uint32
 
 
 # Utility functions , not called directly by the __main__ test routine
-async def get_open_orders(api: GrvtApiPro) -> int:
+async def get_open_orders(api: GrvtCcxtPro) -> int:
     open_orders = await api.fetch_open_orders(
         symbol="BTC_USDT_Perp",
         params={"kind": "PERPETUAL"},
@@ -20,7 +20,7 @@ async def get_open_orders(api: GrvtApiPro) -> int:
     return open_orders
 
 
-async def fetch_order_history(api: GrvtApiPro) -> int:
+async def fetch_order_history(api: GrvtCcxtPro) -> int:
     order_history = await api.fetch_order_history(
         params={"kind": "PERPETUAL", "limit": 3},
     )
@@ -28,7 +28,7 @@ async def fetch_order_history(api: GrvtApiPro) -> int:
     return order_history
 
 
-async def cancel_orders(api: GrvtApiPro, open_orders: list) -> int:
+async def cancel_orders(api: GrvtCcxtPro, open_orders: list) -> int:
     FN = "cancel_orders"
     logger.info(f"{FN} START")
     order_count = 0
@@ -44,7 +44,7 @@ async def cancel_orders(api: GrvtApiPro, open_orders: list) -> int:
     return order_count
 
 
-async def cancel_all_orders(api: GrvtApiPro) -> bool:
+async def cancel_all_orders(api: GrvtCcxtPro) -> bool:
     FN = "cancel_all_orders"
     logger.info(f"{FN} START")
     cancel_response = await api.cancel_all_orders(symbol="BTC_USDT_Perp")
@@ -52,7 +52,7 @@ async def cancel_all_orders(api: GrvtApiPro) -> bool:
     return cancel_response
 
 
-async def print_instruments(api: GrvtApiPro):
+async def print_instruments(api: GrvtCcxtPro):
     logger.info("print_instruments: START")
     if not api.markets:
         return
@@ -88,7 +88,7 @@ async def print_instruments(api: GrvtApiPro):
             logger.info(f"fetch_ohlcv {type} {instrument=}, {ohlc}")
 
 
-async def send_order(api: GrvtApiPro, side: str, client_order_id: int) -> dict:
+async def send_order(api: GrvtCcxtPro, side: str, client_order_id: int) -> dict:
     price = 64_000 if side == "buy" else 65_000
     send_order_response = await api.create_order(
         symbol="BTC_USDT_Perp",
@@ -103,7 +103,7 @@ async def send_order(api: GrvtApiPro, side: str, client_order_id: int) -> dict:
 
 
 # Test scenarios, called by the __main__ test routine
-async def send_fetch_order(api: GrvtApiPro):
+async def send_fetch_order(api: GrvtCcxtPro):
     client_order_id = rand_uint32()
     _ = await send_order(api, side="buy", client_order_id=client_order_id)
     order_status = await api.fetch_order(
@@ -114,7 +114,7 @@ async def send_fetch_order(api: GrvtApiPro):
     logger.info(f"result of fetch_order: {order_status=}")
 
 
-async def check_cancel_check_orders(api: GrvtApiPro):
+async def check_cancel_check_orders(api: GrvtCcxtPro):
     logger.info("check_cancel_check_orders: START")
     open_orders = await get_open_orders(api)
     if open_orders:
@@ -122,7 +122,7 @@ async def check_cancel_check_orders(api: GrvtApiPro):
         await get_open_orders(api)
 
 
-async def fetch_my_trades(api: GrvtApiPro):
+async def fetch_my_trades(api: GrvtCcxtPro):
     logger.info("fetch_my_trades: START")
     my_trades = await api.fetch_my_trades(
         symbol="BTC_USDT_Perp",
@@ -133,7 +133,7 @@ async def fetch_my_trades(api: GrvtApiPro):
     logger.info(f"my_trades: {my_trades=}")
 
 
-async def send_cancel_order(api: GrvtApiPro):
+async def send_cancel_order(api: GrvtCcxtPro):
     logger.info("send_cancel_order: START")
     order_response = await send_order(api, side="sell", client_order_id=rand_uint32())
     if order_response:
@@ -148,7 +148,7 @@ async def send_cancel_order(api: GrvtApiPro):
         await api.cancel_order(params={"client_order_id": client_order_id})
 
 
-async def print_markets(api: GrvtApiPro):
+async def print_markets(api: GrvtCcxtPro):
     logger.info("print_markets: START")
     if api.markets:
         logger.info(f"MARKETS:{len(api.markets)}")
@@ -156,13 +156,13 @@ async def print_markets(api: GrvtApiPro):
             logger.info(f"MARKET:{market}")
 
 
-async def fetch_all_markets(api: GrvtApiPro):
+async def fetch_all_markets(api: GrvtCcxtPro):
     logger.info("fetch_all_markets: START")
     instruments = await api.fetch_all_markets()
     logger.info(f"fetch_all_markets: num instruments={len(instruments)}")
 
 
-async def print_account_summary(api: GrvtApiPro):
+async def print_account_summary(api: GrvtCcxtPro):
     logger.info("print_account_summary: START")
     logger.info(
         f"sub-account summary:\n{await api.get_account_summary(type='sub-account')}"
@@ -175,7 +175,7 @@ async def print_account_summary(api: GrvtApiPro):
     )
 
 
-async def print_account_history(api: GrvtApiPro):
+async def print_account_history(api: GrvtCcxtPro):
     try:
         hist = await api.fetch_account_history(params={})
         logger.info(f"account history:\n{hist}")
@@ -183,21 +183,21 @@ async def print_account_history(api: GrvtApiPro):
         logger.error(f"account history failed: {e}")
 
 
-async def print_positions(api: GrvtApiPro):
+async def print_positions(api: GrvtCcxtPro):
     try:
         logger.info(f"positions:\n{await api.fetch_positions(symbols=['BTC_USDT_Perp'])}")
     except Exception as e:
         logger.error(f"positions failed: {e}")
 
 
-async def run_test():
+async def grvt_ccxt_pro():
     params = {
         "api_key": os.getenv("GRVT_API_KEY"),
         "trading_account_id": os.getenv("GRVT_TRADING_ACCOUNT_ID"),
         "private_key": os.getenv("GRVT_PRIVATE_KEY"),
     }
     env = GrvtEnv(os.getenv("GRVT_ENV", "dev"))
-    test_api = GrvtApiPro(env, logger, parameters=params)
+    test_api = GrvtCcxtPro(env, logger, parameters=params)
     await test_api.load_markets()
     await asyncio.sleep(2)
     function_list = [
@@ -231,5 +231,9 @@ async def run_test():
     validate_return_values(test_api, "test_results.csv")
 
 
+def test_grvt_ccxt_pro() -> None:
+    asyncio.run(grvt_ccxt_pro())
+
+
 if __name__ == "__main__":
-    asyncio.run(run_test())
+    test_grvt_ccxt_pro()

@@ -37,7 +37,7 @@ GRVT SDK is in Beta version and will undergo significant changes until stable pr
 1. **Test sync calls to Rest APIs**:
 
     ```bash
-    % python3 test_grvt_api.py
+    % python3 test_grvt_cctx.py
     ```
 
     A. See if there are wany `WARNING` or `ERROR` messages in the output.
@@ -55,7 +55,7 @@ GRVT SDK is in Beta version and will undergo significant changes until stable pr
 2. **Test async calls to Rest APIs**:
 
     ```bash
-    % python3 test_grvt_api_pro.py
+    % python3 test_grvt_cctx_pro.py
     ```
 
     A. See if there are wany `WARNING` or `ERROR` messages in the output.
@@ -73,7 +73,7 @@ GRVT SDK is in Beta version and will undergo significant changes until stable pr
 3. **Test Web Sockets**:
 
     ```bash
-    % python3 test_grvt_api_ws.py
+    % python3 test_grvt_cctx_ws.py
     ```
 
     A. See if there are wany `WARNING` or `ERROR` messages in the output.
