@@ -7,6 +7,7 @@
 # ruff: noqa: E501
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any
 
 
 class CandlestickInterval(Enum):
@@ -942,7 +943,104 @@ class ApiSettlementPriceResponse:
 
 
 @dataclass
-class WSRequestV1:
+class JSONRPCRequest:
+    """
+    All Websocket JSON RPC Requests are housed in this wrapper. You may specify a stream, and a list of feeds to subscribe to.
+    If a `request_id` is supplied in this JSON RPC request, it will be propagated back to any relevant JSON RPC responses (including error).
+    When subscribing to the same primary selector again, the previous secondary selector will be replaced. See `Overview` page for more details.
+    """
+
+    # The JSON RPC version to use for the request
+    jsonrpc: str
+    # The method to use for the request (eg: `subscribe` / `unsubscribe` / `v1/instrument` )
+    method: str
+    # The parameters for the request
+    params: Any
+    """
+    Optional Field which is used to match the response by the client.
+    If not passed, this field will not be returned
+    """
+    id: int | None = None
+
+
+@dataclass
+class Error:
+    # The error code for the request
+    code: int
+    # The error message for the request
+    message: str
+
+
+@dataclass
+class JSONRPCResponse:
+    """
+    All Websocket JSON RPC Responses are housed in this wrapper. It returns a confirmation of the JSON RPC subscribe request.
+    If a `request_id` is supplied in the JSON RPC request, it will be propagated back in this JSON RPC response.
+    """
+
+    # The JSON RPC version to use for the request
+    jsonrpc: str
+    # The result for the request
+    result: Any | None = None
+    # The error for the request
+    error: Error | None = None
+    """
+    Optional Field which is used to match the response by the client.
+    If not passed, this field will not be returned
+    """
+    id: int | None = None
+
+
+@dataclass
+class WSSubscribeParams:
+    """
+    All V1 Websocket Subscription Requests are housed in this wrapper. You may specify a stream, and a list of feeds to subscribe to.
+    When subscribing to the same primary selector again, the previous secondary selector will be replaced. See `Overview` page for more details.
+    """
+
+    # The channel to subscribe to (eg: ticker.s / ticker.d)
+    stream: str
+    # The list of feeds to subscribe to
+    selectors: list[str]
+
+
+@dataclass
+class WSSubscribeResult:
+    """
+    To ensure you always know if you have missed any payloads, GRVT servers apply the following heuristics to sequence numbers:<ul><li>All snapshot payloads will have a sequence number of `0`. All delta payloads will have a sequence number of `1+`. So its easy to distinguish between snapshots, and deltas</li><li>Num snapshots returned in Response (per stream): You can ensure that you received the right number of snapshots</li><li>First sequence number returned in Response (per stream): You can ensure that you received the first stream, without gaps from snapshots</li><li>Sequence numbers should always monotonically increase by `1`. If it decreases, or increases by more than `1`. Please reconnect</li><li>Duplicate sequence numbers are possible due to network retries. If you receive a duplicate, please ignore it, or idempotently re-update it.</li></ul>
+    When subscribing to the same primary selector again, the previous secondary selector will be replaced. See `Overview` page for more details.
+    """
+
+    # The channel to subscribe to (eg: ticker.s / ticker.d)
+    stream: str
+    # The list of feeds subscribed to
+    subs: list[str]
+    # The list of feeds unsubscribed from
+    unsubs: list[str]
+    # The number of snapshot payloads to expect for each subscribed feed. Returned in same order as `subs`
+    num_snapshots: list[int]
+    # The first sequence number to expect for each subscribed feed. Returned in same order as `subs`
+    first_sequence_number: list[str]
+
+
+@dataclass
+class WSUnsubscribeParams:
+    # The channel to unsubscribe from (eg: ticker.s / ticker.d)
+    stream: str
+    # The list of feeds to unsubscribe from
+    selectors: list[str]
+
+
+@dataclass
+class WSUnsubscribeResult:
+    # The channel to subscribe to (eg: ticker.s / ticker.d)
+    stream: str
+    # The list of feeds unsubscribed from
+    unsubs: list[str]
+
+
+@dataclass
+class WSSubscribeRequestV1Legacy:
     """
     All V1 Websocket Requests are housed in this wrapper. You may specify a stream, and a list of feeds to subscribe to.
     If a `request_id` is supplied in this JSON RPC request, it will be propagated back to any relevant JSON RPC responses (including error).
@@ -965,7 +1063,7 @@ class WSRequestV1:
 
 
 @dataclass
-class WSResponseV1:
+class WSSubscribeResponseV1Legacy:
     """
     All V1 Websocket Responses are housed in this wrapper. It returns a confirmation of the JSON RPC subscribe request.
     If a `request_id` is supplied in the JSON RPC request, it will be propagated back in this JSON RPC response.
@@ -1107,7 +1205,7 @@ class ApiTickerFeedDataV1:
 class WSTradeFeedSelectorV1:
     # The readable instrument name:<ul><li>Perpetual: `ETH_USDT_Perp`</li><li>Future: `BTC_USDT_Fut_20Oct23`</li><li>Call: `ETH_USDT_Call_20Oct23_2800`</li><li>Put: `ETH_USDT_Put_20Oct23_2800`</li></ul>
     instrument: str
-    # The limit to query for. Defaults to 500; Max 1000
+    # The limit to query for. Valid values are (50, 200, 500, 1000). Default is 50
     limit: int
 
 

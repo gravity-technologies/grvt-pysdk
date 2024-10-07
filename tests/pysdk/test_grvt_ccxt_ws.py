@@ -16,6 +16,7 @@ async def callback_general(message: dict) -> None:
     market = message.get("feed", {}).get("instrument")
     logger.info(f"callback_general(): market:{market} message:{message}")
 
+
 async def grvt_ws_subscribe(api: GrvtCcxtWS, args_list: dict) -> None:
     """
     Subscribes to all Websocket channels.
@@ -141,7 +142,6 @@ async def grvt_ccxt_ws():
         loop.add_signal_handler(sig, lambda: asyncio.create_task(shutdown(loop)))
     loop.run_until_complete(run_test(loop))
     loop.run_forever()
-
 
 
 def test_grvt_ccxt_ws() -> None:
