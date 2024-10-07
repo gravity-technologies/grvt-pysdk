@@ -131,9 +131,7 @@ def get_cookie_with_expiration(path: str, api_key: str | None) -> dict[str, str]
                 )
                 logging.info(f"{FN} OK response {cookie_value=} {cookie_expiry=}")
                 return {"gravity": cookie_value, "expires": cookie_expiry.timestamp()}
-            logging.warning(
-                f"{FN} Invalid return_value {data=} {path=} {return_value=}"
-            )
+            logging.warning(f"{FN} Invalid return_value {data=} {path=} {return_value=}")
             return None
         except Exception as e:
             logging.error(f"{FN} Error getting cookie: {e}")
@@ -167,9 +165,7 @@ async def get_cookie_async(path: str, api_key: str | None) -> dict[str, str] | N
                             return None
                         logging.info(f"{FN} Found GRVT cookie {grvt_cookie.value=}")
                         return {"gravity": grvt_cookie.value}
-                    logging.warning(
-                        f"{FN} {return_value.status=} Response:{response}"
-                    )
+                    logging.warning(f"{FN} {return_value.status=} Response:{response}")
                     return None
         except Exception:
             return None

@@ -256,9 +256,7 @@ class GrvtCcxtWS(GrvtCcxtPro):
     def _construct_feed(self, stream: str, params: dict | None) -> str:
         feed: str = ""
         # ******** Market Data ********
-        if (
-            stream.endswith(("mini.s", "mini.d", "ticker.s", "ticker.d"))
-        ):
+        if stream.endswith(("mini.s", "mini.d", "ticker.s", "ticker.d")):
             feed = f"{params.get('instrument', '')}@{params.get('rate', '500')}"
         if stream.endswith("book.s"):
             feed = (
@@ -275,9 +273,7 @@ class GrvtCcxtWS(GrvtCcxtPro):
                 f"{params.get('type', 'TRADE')}"
             )
         # ******** Trade Data ********
-        if (
-            stream.endswith(("order", "state", "position", "fill"))
-        ):
+        if stream.endswith(("order", "state", "position", "fill")):
             if not params:
                 feed = f"{params.get('sub_account_id', '')}"
             elif params.get("instrument"):
@@ -288,9 +284,7 @@ class GrvtCcxtWS(GrvtCcxtPro):
                     f"{params.get('base', '')}-{params.get('quote', '')}"
                 )
         # Deposit, Transfer, Withdrawal
-        if (
-            stream.endswith(("deposit", "transfer", "withdrawal"))
-        ):
+        if stream.endswith(("deposit", "transfer", "withdrawal")):
             feed = ""
             # f"{params.get('sub_account_id', '')}-{params.get('main_account_id', '')}"
 
