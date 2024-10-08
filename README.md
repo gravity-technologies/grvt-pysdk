@@ -28,7 +28,7 @@ pip install grvt-pysdk
 ## Usage
 
 There are various ways to use the GRVT Python SDK
-- [GRVT CCXT](./tests/pysdk/test_grvt_ccxt.py) - CCXT compatible client for GRVT
+- [GRVT CCXT](./tests/pysdk/test_grvt_ccxt.py) - CCXT compatible client for  GRVT
 - [GRVT CCXT Pro](./tests/pysdk/test_grvt_ccxt_pro.py) - CCXT Pro compatible client for GRVT
 - [GRVT API Sync](./tests/pysdk/test_grvt_api_sync.py) - Synchronous API client for GRVT
 - [GRVT API Async](./tests/pysdk/test_grvt_api_async.py) - Asynchronous API client for GRVT
