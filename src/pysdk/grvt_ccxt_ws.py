@@ -62,11 +62,12 @@ class GrvtCcxtWS(GrvtCcxtPro):
         self.is_connecting: dict[GrvtEndpointType, bool] = {}
         self._last_message: dict[str, dict] = {}
         self._request_id = 0
-        # Initialize dictionaries for each endpoint type
-        for grvt_endpoint_type in [
+        self.endpoint_types = [
             GrvtEndpointType.MARKET_DATA,
             GrvtEndpointType.TRADE_DATA,
-        ]:
+        ]
+        # Initialize dictionaries for each endpoint type
+        for grvt_endpoint_type in self.endpoint_types:
             self.api_url[grvt_endpoint_type] = get_grvt_ws_endpoint(
                 self.env.value, grvt_endpoint_type
             )
@@ -85,9 +86,56 @@ class GrvtCcxtWS(GrvtCcxtPro):
         ]:
             await self._close_connection(grvt_endpoint_type)
 
-    async def connect(self, grvt_endpoint_type: GrvtEndpointType) -> bool:
-        FN = f"{self._clsname} connect {grvt_endpoint_type.value}"
+    async def initialize(self):
+        """
+        Prepares the GrvtCcxtPro instance and connects to WS server.
+        """
+        await self.load_markets()
+        await self.refresh_cookie()
+        await self.connect_all_channels()
+
+    def is_endpoint_connected(self, grvt_endpoint_type: GrvtEndpointType) -> bool:
+        """
+        For  MARKET_DATA returns True if connection is open.
+        for TRADE_DATA returns True if one of the following is true:
+            1. No cookie - this means this is public connection and we can't connect to TRADE_DATA
+            2. Connection to TRADE_DATA is open
+        """
+        connection_is_open = self.ws[grvt_endpoint_type] is not None and self.ws[grvt_endpoint_type].open
+        if grvt_endpoint_type == GrvtEndpointType.MARKET_DATA:
+            return connection_is_open
+        if grvt_endpoint_type == GrvtEndpointType.TRADE_DATA:
+            return bool(not self._cookie or connection_is_open)
+        raise ValueError(f"Unknown endpoint type {grvt_endpoint_type}")
+
+    def are_endpoints_connected(self, grvt_endpoint_types: list[GrvtEndpointType]) -> bool:
+        return all(self.is_endpoint_connected(endpoint) for endpoint in grvt_endpoint_types)
+
+    async def connect_all_channels(self) -> None:
+        """
+        connects to all channels that are possible to connect.
+        If cookie is NOT available, it will NOT connect to GrvtEndpointType.TRADE_DATA
+        For trading connection: run this method after cookie is available.
+        """
+        FN = "connect_all_channels"
+        is_connected = self.are_endpoints_connected(self.endpoint_types)
+        while not is_connected:
+            connection_status = {
+                end_point:self.is_endpoint_connected(end_point) for end_point in self.endpoint_types
+            }
+            self.logger.info(f"{FN} {connection_status=}")
+            for end_point_type in self.endpoint_types:
+                await self.connect_channel(end_point_type)
+            await asyncio.sleep(5)
+            is_connected = self.are_endpoints_connected(self.endpoint_types)
+        self.logger.info(f"{FN} Connection status: {is_connected=}")
+
+    async def connect_channel(self, grvt_endpoint_type: GrvtEndpointType) -> bool:
+        FN = f"{self._clsname} connect_channel {grvt_endpoint_type.value}"
         try:
+            if self.is_endpoint_connected(grvt_endpoint_type):
+                self.logger.info(f"{FN} Already connected")
+                return True
             self.is_connecting[grvt_endpoint_type] = True
             self.subscribed_streams[grvt_endpoint_type] = {}
             extra_headers = {}
@@ -121,9 +169,8 @@ class GrvtCcxtWS(GrvtCcxtPro):
             self.ws[grvt_endpoint_type] = None
         finally:
             self.is_connecting[grvt_endpoint_type] = False
-        return bool(
-            self.ws[grvt_endpoint_type] is not None and self.ws[grvt_endpoint_type].open
-        )
+        # return True  if connection successful
+        return self.is_endpoint_connected(grvt_endpoint_type)
 
     async def _close_connection(self, grvt_endpoint_type: GrvtEndpointType):
         try:
@@ -146,7 +193,7 @@ class GrvtCcxtWS(GrvtCcxtPro):
             )
             if not self.is_connecting[grvt_endpoint_type]:
                 await self._close_connection(grvt_endpoint_type)
-                await self.connect(grvt_endpoint_type)
+                await self.connect_channel(grvt_endpoint_type)
                 await self._resubscribe(grvt_endpoint_type)
             else:
                 self.logger.info(
@@ -182,7 +229,7 @@ class GrvtCcxtWS(GrvtCcxtPro):
         while True:
             if self.ws.get(grvt_endpoint_type) and self.ws[grvt_endpoint_type].open:
                 try:
-                    self.logger.info(f"{FN} waiting for message")
+                    self.logger.debug(f"{FN} waiting for message")
                     response = await asyncio.wait_for(
                         self.ws[grvt_endpoint_type].recv(), timeout=WS_READ_TIMEOUT
                     )
@@ -195,16 +242,13 @@ class GrvtCcxtWS(GrvtCcxtPro):
                         stream_subscribed: str | None = message.get("stream")
                         if stream_subscribed is None:
                             self.logger.warning(f"{FN} missing stream in {message=}")
-                        # feed_subscribed: Optional[str] = message.get("feed")
-                        # if feed_subscribed is None:
-                        #     self.logger.warning(f"{FN} missing feed in {message=}")
                         if stream_subscribed:
                             call_count = 0
                             for (stream, feed), callback in self.callbacks[
                                 grvt_endpoint_type
                             ].items():
                                 if stream_subscribed.endswith(stream):
-                                    self.logger.info(
+                                    self.logger.debug(
                                         f"{FN} Stream:{stream_subscribed} {feed=}"
                                         f" callback:{callback.__name__} "
                                         f" message:{message}"
@@ -213,12 +257,11 @@ class GrvtCcxtWS(GrvtCcxtPro):
                                     self._last_message[stream_subscribed] = message
                                     call_count += 1
                             if call_count == 0:
-                                self.logger.info(
+                                self.logger.debug(
                                     f"{FN} No callback found for {stream_subscribed=} {message=}"
                                 )
                             else:
-                                self.logger.info(f"{FN} callback count:{call_count}")
-                    # yield message
+                                self.logger.debug(f"{FN} callback count:{call_count}")
                 except (
                     websockets.exceptions.ConnectionClosedError,
                     websockets.exceptions.ConnectionClosedOK,
@@ -227,8 +270,8 @@ class GrvtCcxtWS(GrvtCcxtPro):
                         f"{FN} connection closed {traceback.format_exc()}"
                     )
                     await self._reconnect(grvt_endpoint_type)
-                except TimeoutError:
-                    self.logger.info(f"{FN} Timeout {WS_READ_TIMEOUT} secs")
+                except asyncio.TimeoutError:  # noqa: UP041
+                    self.logger.debug(f"{FN} Timeout {WS_READ_TIMEOUT} secs")
                     pass
                 except Exception:
                     self.logger.exception(
@@ -236,8 +279,8 @@ class GrvtCcxtWS(GrvtCcxtPro):
                     )
                     await asyncio.sleep(1)
             else:
-                await self._reconnect(grvt_endpoint_type)
-                await asyncio.sleep(1)
+                self.logger.info(f"{FN} not ready")
+                await asyncio.sleep(2)
 
     async def _send(self, end_point_type: GrvtEndpointType, message: str):
         try:
@@ -266,7 +309,7 @@ class GrvtCcxtWS(GrvtCcxtPro):
         if stream.endswith("book.d"):
             feed = f"{params.get('instrument', '')}@{params.get('rate', '500')}"
         if stream.endswith("trade"):
-            feed = f"{params.get('instrument', '')}@{params.get('limit', '100')}"
+            feed = f"{params.get('instrument', '')}@{params.get('limit', '50')}"
         if stream.endswith("candle"):
             feed = (
                 f"{params.get('instrument', '')}@{params.get('interval', 'CI_1_M')}-"
