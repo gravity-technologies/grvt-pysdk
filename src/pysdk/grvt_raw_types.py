@@ -1819,6 +1819,26 @@ class ApiGetLPPointResponse:
 
 
 @dataclass
+class ApiGetLPConfigRequest:
+    # The kind filter to apply
+    kind: Kind
+    # The base filter to apply
+    base: Currency
+
+
+@dataclass
+class ApiGetLPConfigResponse:
+    # The spread score multiplier
+    spread_score_multiplier: str
+    # The depth score multiplier
+    depth_score_multiplier: str
+    # The market share multiplier
+    market_share_multiplier: str
+    # Is LP maker
+    is_lp_maker: bool
+
+
+@dataclass
 class ApiSubAccountTradeRequest:
     # The readable instrument name:<ul><li>Perpetual: `ETH_USDT_Perp`</li><li>Future: `BTC_USDT_Fut_20Oct23`</li><li>Call: `ETH_USDT_Call_20Oct23_2800`</li><li>Put: `ETH_USDT_Put_20Oct23_2800`</li></ul>
     instrument: str
