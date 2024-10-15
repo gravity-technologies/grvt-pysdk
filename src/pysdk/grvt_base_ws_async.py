@@ -13,6 +13,7 @@ import traceback
 from asyncio.events import AbstractEventLoop
 from collections.abc import Callable
 from enum import Enum
+from dacite import Config, from_dict
 
 import websockets
 
@@ -26,6 +27,7 @@ from .grvt_ccxt_env import (
     grvt_exceptions
 )
 from .grvt_ccxt_pro import GrvtCcxtPro
+import grvt_raw_types as grvt_types
 
 WS_READ_TIMEOUT = 5
 
@@ -53,6 +55,33 @@ class GrvtMiniTickerParams(GrvtParams):
 
     def get_feed(self) ->str:
         return f"{self.instrument}@{self.interval}" 
+
+class GrvtDecoder:
+    def get_stream(self) -> str:
+        pass
+    def handle_message(self, json_data: any):
+        pass
+
+class MiniTickerSnapDecoder(GrvtDecoder):
+    def __init__(
+            self,
+            callback: Callable[[grvt_types.WSMiniTickerFeedDataV1, int], None],
+            on_error: Callable[[grvt_types.GrvtError], None]
+            ):
+        self.callback = callback
+        self.on_error
+
+    def get_stream(self) -> str:
+        return "mini.s"
+
+    def handle_message(self, raw_data: any, subscription_id: int):
+        if raw_data.get("code"):
+            self.on_error(grvt_types.GrvtError(**raw_data))
+            return
+        data_type = from_dict(grvt_types.WSMiniTickerFeedDataV1, raw_data, Config(cast=[Enum]))
+        self.callback(grvt_types.WSMiniTickerFeedDataV1(data_type), subscription_id)
+
+
 #### END --------------------------------------- ####
 
 # 
@@ -111,7 +140,7 @@ class GrvtBaseWSAsync(GrvtCcxtPro):
 
     async def subscribe(self, 
                   subscription: GrvtStreamType,
-                  callback: Callable[[any, int], None],
+                  callback: GrvtDecoder,
                   subscription_id: int,
                   params: GrvtParams | None = None):
         """
@@ -201,6 +230,13 @@ class GrvtBaseWSAsync(GrvtCcxtPro):
             self.logger.info(f"{self._clsname} _send() {end_point_type=} {message=}")
             await self.ws[end_point_type].send(message)
 
+    def _get_callback(self, grvt_endpoint_type: GrvtEndpointType, message: dict) -> GrvtDecoder:
+        stream_subscribed: str = message.get("stream")
+        if stream_subscribed:
+            if not self.subscribed_streams[grvt_endpoint_type].get(stream_subscribed):
+                raise Exception("message stream unregistered " + stream_subscribed)
+            
+
     async def _recv(self, grvt_endpoint_type: GrvtEndpointType):
         FN = f"{self._clsname} _recv {grvt_endpoint_type.value}"
         while True:
@@ -212,6 +248,7 @@ class GrvtBaseWSAsync(GrvtCcxtPro):
                     )
                     message = json.loads(response)
                     self.logger.debug(f"{FN} received {message=}")
+                    stream_subscribed: str = message.get("stream")
                     self._check_susbcribed_stream(grvt_endpoint_type, message)
                     if "feed" not in message:
                         self.logger.debug(f"{FN} Non-actionable message:{message}")
@@ -221,6 +258,7 @@ class GrvtBaseWSAsync(GrvtCcxtPro):
                             self.logger.warning(f"{FN} missing stream in {message=}")
                         if stream_subscribed:
                             call_count = 0
+                            callback = 
                             for (stream, feed), callback in self.callbacks[
                                 grvt_endpoint_type
                             ].items():
