@@ -23,10 +23,13 @@ from .grvt_ccxt_env import (
     GrvtEndpointType,
     GrvtEnv,
     get_grvt_ws_endpoint,
+    grvt_exceptions
 )
 from .grvt_ccxt_pro import GrvtCcxtPro
 
 WS_READ_TIMEOUT = 5
+
+#### THESE ARE TO BE MOVED OUT AND AUTO GENERATED ####
 
 # TODO - auto generate full set
 # GrvtStreamType defines the available streams to subscribe to
@@ -34,9 +37,26 @@ class GrvtStreamType(str, Enum):
     MINI_TICKER_SNAPHOT = "mini.s"
     MINI_TICKER_DELTA = "mini.d"
 
+class GrvtParams:
+    def get_feed(self) ->str:
+        pass
+
+class GrvtTickerInterval(int, Enum):
+    INTERVAL_500 = 500
+
+class GrvtMiniTickerParams(GrvtParams):
+    def __init__(self,
+                 instrument: str,
+                 interval: GrvtTickerInterval) -> None:
+        self.instrument = instrument
+        self.interval = interval
+
+    def get_feed(self) ->str:
+        return f"{self.instrument}@{self.interval}" 
+#### END --------------------------------------- ####
 
 # 
-class GrvtRawWSAsync(GrvtCcxtPro):
+class GrvtBaseWSAsync(GrvtCcxtPro):
     """
     GrvtRawWSAsync class to interact with Grvt WebSockets in asynchronous mode.
 
@@ -88,16 +108,23 @@ class GrvtRawWSAsync(GrvtCcxtPro):
         """
         await self.refresh_cookie()
 
-    def subscribe(self, 
+    async def subscribe(self, 
                   subscription: GrvtStreamType,
                   callback: Callable[[any, int], None],
                   subscription_id: int,
-                  params: dict | None = None):
+                  params: GrvtParams | None = None):
         """
         Subscribe to a channel to receive callbacks with incoming messages
         A new web socket connection will be created if needed
         """
         ws_stream = GRVT_WS_STREAMS.get(GrvtStreamType)
+        ws_isconnecting = self.is_connecting.get(ws_stream)
+        if ws_isconnecting:
+            raise grvt_exceptions.ConnectionInProgress
+        ws_isconnected = self.ws.get(ws_stream)
+        if not ws_isconnected:
+            await self.connect_channel(ws_stream)
+        
 
     async def connect_channel(self, grvt_endpoint_type: GrvtEndpointType) -> bool:
         """
@@ -134,8 +161,8 @@ class GrvtRawWSAsync(GrvtCcxtPro):
                 self.logger.info(f"{FN} Connected to {self.api_url[grvt_endpoint_type]}")
         finally:
             self.is_connecting[grvt_endpoint_type] = False
-        # return True  if connection successful
-        return self.is_endpoint_connected(grvt_endpoint_type)
+        # If we get to here, there should be no exception thrown and we should be connected
+        return True
 
 
 
