@@ -28,6 +28,7 @@ pip install grvt-pysdk
 ## Usage
 
 There are various ways to use the GRVT Python SDK
+
 - [GRVT CCXT](./tests/pysdk/test_grvt_ccxt.py) - CCXT compatible client for GRVT
 - [GRVT CCXT Pro](./tests/pysdk/test_grvt_ccxt_pro.py) - CCXT Pro compatible client for GRVT
 - [GRVT API Sync](./tests/pysdk/test_grvt_api_sync.py) - Synchronous API client for GRVT
@@ -37,11 +38,22 @@ There are various ways to use the GRVT Python SDK
 
 ### Table of Contents
 
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [What's in the box ?](#whats-in-the-box-)
-- [Testing](#testing)
-- [Docker](#docker)
+- [GRVT Python SDK](#grvt-python-sdk)
+  - [Installation](#installation)
+  - [Usage](#usage)
+  - [Contributor's guide](#contributors-guide)
+    - [Table of Contents](#table-of-contents)
+    - [Prerequisites](#prerequisites)
+    - [Installation](#installation-1)
+    - [What's in the box ?](#whats-in-the-box-)
+      - [uv](#uv)
+      - [pre-commit](#pre-commit)
+      - [ruff](#ruff)
+      - [mypy](#mypy)
+      - [bandit](#bandit)
+      - [docformatter](#docformatter)
+      - [Testing](#testing)
+      - [Makefile](#makefile)
 
 ---
 
@@ -182,7 +194,6 @@ TOTAL                          1399    305    78%
 ```
 
 </details>
-
 
 #### Makefile
 
