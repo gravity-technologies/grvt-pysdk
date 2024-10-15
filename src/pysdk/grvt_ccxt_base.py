@@ -8,6 +8,7 @@
 
 import logging
 import time
+from decimal import Decimal
 from typing import get_args
 
 from .grvt_ccxt_env import GrvtEnv
@@ -91,29 +92,29 @@ class GrvtCcxtBase:
     def _check_order_arguments(
         self, order_type: GrvtOrderType, side: GrvtOrderSide, amount: Num, price: Num
     ) -> None:
+        FN = f"{self._clsname} _check_order_arguments"
         if order_type not in get_args(GrvtOrderType):
             raise GrvtInvalidOrder(
-                f"{self._clsname} create_order() order_type should be one of "
-                f"{get_args(GrvtOrderType)}"
+                f"{FN}: order_type should be one of {get_args(GrvtOrderType)}"
             )
         if side not in get_args(GrvtOrderSide):
             raise GrvtInvalidOrder(
-                f"{self._clsname} create_order() side should be one of {get_args(GrvtOrderSide)}"
+                f"{FN}: side should be one of {get_args(GrvtOrderSide)}"
             )
         if order_type == "limit":
-            if price is None or price <= 0:
+            if price is None or Decimal(price) <= Decimal("0"):
                 raise GrvtInvalidOrder(
-                    f"{self._clsname} create_order() requires a price argument for a limit order"
+                    f"{FN}: requires a price argument for a limit order"
                 )
         elif order_type == "market":
             if price:
                 raise GrvtInvalidOrder(
-                    f"{self._clsname} create_order() should not have a positive price argument"
+                    f"{FN}: should not have a positive price argument"
                     " for a market order"
                 )
-        if not amount or amount < 0:
+        if not amount or Decimal(amount) < Decimal("0"):
             raise GrvtInvalidOrder(
-                f"{self._clsname} create_order() amount should be above 0"
+                f"{FN}: amount should be above 0"
             )
 
     def _check_account_auth(self) -> bool:
@@ -130,6 +131,29 @@ class GrvtCcxtBase:
         if not market:
             raise GrvtInvalidOrder(f"{self._clsname}: {symbol=} not found")
         return True
+
+    def _get_payload_cancel_all_orders(
+        self,
+        params: dict = {},
+    ) -> dict:
+        """
+        prepares payload for fetch_order_history() method.<br>.
+
+        Args:
+            params: (dict) with possible keys as:.<br>
+                `kind`: (str) - The kind filter to apply. Defaults to all kinds.<br>
+                `base`: (str) - The base currency filter. Defaults to all base currencies.<br>
+                `quote`: (str) - The quote currency filter. Defaults to all quote currencies.<br>
+        Returns: a dictionary with a payload for Rest API call to cancel all orders.<br>
+        """
+        payload = {"sub_account_id": str(self._trading_account_id)}
+        if "kind" in params:
+            payload["kind"] = [params["kind"]]
+        if "base" in params:
+            payload["base"] = [params["base"]]
+        if "quote" in params:
+            payload["quote"] = [params["quote"]]
+        return payload
 
     def _get_payload_fetch_markets(self, params: dict) -> dict:
         payload = {}
@@ -327,8 +351,6 @@ class GrvtCcxtBase:
     def _get_payload_fetch_open_orders(
         self,
         symbol: str | None = None,
-        since: int | None = None,
-        limit: int | None = None,
         params: dict = {},
     ) -> dict:
         """
@@ -339,8 +361,6 @@ class GrvtCcxtBase:
                 `kind`: (str) - The kind filter to apply. Defaults to all kinds.<br>
                 `base`: (str) - The base currency filter. Defaults to all base currencies.<br>
                 `quote`: (str) - The quote currency filter. Defaults to all quote currencies.<br>
-                `limit`: (int) The limit to query for. Defaults to 500; Max 1000.<br>
-                `cursor`: (str) The cursor to use for pagination. If nil, return the first page.<br>
         Returns: a dictionary with a payload for Rest API call to fetch order history.<br>
         """
         payload = {"sub_account_id": str(self._trading_account_id)}
@@ -361,10 +381,6 @@ class GrvtCcxtBase:
                 payload["base"] = [params["base"]]
             if "quote" in params:
                 payload["quote"] = [params["quote"]]
-        if since:
-            payload["start_time"] = since
-        if limit:
-            payload["limit"] = limit
         return payload
 
     def _get_payload_fetch_ohlcv(
