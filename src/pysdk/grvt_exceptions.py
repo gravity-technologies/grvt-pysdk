@@ -11,3 +11,9 @@
 class ConnectionInProgress(Exception):
     """The SDK is attempting to connect to the web socket, we cannot try to subscribe at this time"""
     pass
+
+class UnknownStreamError(Exception):
+    def __init__(self,
+                 stream: str):
+        self.stream = str
+
