@@ -31,6 +31,7 @@ There are various ways to use the GRVT Python SDK
 
 - [GRVT CCXT](https://github.com/gravity-technologies/grvt-pysdk/blob/main/tests/pysdk/test_grvt_ccxt.py) - CCXT compatible client for GRVT (sync Rest API calls)
 - [GRVT CCXT Pro](https://github.com/gravity-technologies/grvt-pysdk/blob/main/tests/pysdk/test_grvt_ccxt_pro.py) - CCXT Pro compatible client for GRVT (async Rest API calls)
+- [GRVT CCXT WS](https://github.com/gravity-technologies/grvt-pysdk/blob/main/tests/pysdk/test_grvt_ccxt_ws.py) - CCXT Pro + Web Socket client, supports async Rest APIs + WS subscriptions + JSON RPC calls over Web Sockets.
 - [GRVT API Sync](https://github.com/gravity-technologies/grvt-pysdk/blob/main/tests/pysdk/test_grvt_raw_sync.py) - Synchronous API client for GRVT
 - [GRVT API Async](https://github.com/gravity-technologies/grvt-pysdk/blob/main/tests/pysdk/test_grvt_raw_async.py) - Asynchronous API client for GRVT
 
