@@ -464,6 +464,21 @@ def get_order_payload(
     }
 
 
+def get_order_rpc_payload(
+    order: GrvtOrder,
+    private_key: str,
+    env: GrvtEnv,
+    instruments: list[dict],
+    version: str = "v1",
+) -> dict:
+    order_payload = get_order_payload(order, private_key, env, instruments)
+    return {
+        "jsonrpc": "2.0",
+        "method": f"{version}/create_order",
+        "params": order_payload,
+    }
+
+
 def get_grvt_order(
     sub_account_id: int,
     symbol: str,

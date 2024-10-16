@@ -139,6 +139,32 @@ class GrvtCcxtPro(GrvtCcxtBase):
         )
         return response.get("result")
 
+    def _get_order_with_validations(
+        self,
+        symbol: str,
+        order_type: GrvtOrderType,
+        side: GrvtOrderSide,
+        amount: Num,
+        price: Num = None,
+        params={},
+    ) -> GrvtOrder:
+        self._check_account_auth()
+        self._check_valid_symbol(symbol)
+        # Validate order fields
+        self._check_order_arguments(order_type, side, amount, price)
+        # create GrvtOrder object
+        order_duration_secs = params.get("order_duration_secs", 24 * 60 * 60)
+        return get_grvt_order(
+            sub_account_id=self._trading_account_id,
+            symbol=symbol,
+            order_type=order_type,
+            side=side,
+            amount=amount,
+            limit_price=price,
+            order_duration_secs=order_duration_secs,
+            params=params,
+        )
+
     async def create_order(
         self,
         symbol: str,
@@ -149,21 +175,8 @@ class GrvtCcxtPro(GrvtCcxtBase):
         params={},
     ) -> dict:
         """Ccxt compliant signature."""
-        self._check_account_auth()
-        await self._check_valid_symbol_async(symbol)
-        # Validate order fields
-        self._check_order_arguments(order_type, side, amount, price)
-        # create GrvtOrder object
-        order_duration_secs = params.get("order_duration_secs", 24 * 60 * 60)
-        order = get_grvt_order(
-            sub_account_id=self._trading_account_id,
-            symbol=symbol,
-            order_type=order_type,
-            side=side,
-            amount=amount,
-            limit_price=price,
-            order_duration_secs=order_duration_secs,
-            params=params,
+        order = self._get_order_with_validations(
+            symbol, order_type, side, amount, price, params
         )
         return await self._create_grvt_order(order)
 
@@ -179,17 +192,20 @@ class GrvtCcxtPro(GrvtCcxtBase):
 
     async def cancel_all_orders(
         self,
-        symbol: str | None = None,
         params: dict = {},
     ) -> bool:
         """
-        ccxt compliant signature
+        ccxt compliant signature BUT lacks symbol
         Cancel all orders for a sub-account.
-        :param sub_account_id: The sub-account ID.
+        params: dictionary with parameters. Valid keys:<br>
+                `kind` (str): instrument kind. Valid values: 'PERPETUAL'.<br>
+                `base` (str): base currency. If missing/empty then fetch
+                                    orders for all base currencies.<br>
+                `quote` (str): quote currency. Defaults to all.<br>
         """
         self._check_account_auth()
         FN = f"{self._clsname} cancel_all_orders"
-        payload: dict = {"sub_account_id": str(self._trading_account_id)}
+        payload: dict = self._get_payload_cancel_all_orders(params)
         path = get_grvt_endpoint(self.env, "CANCEL_ALL_ORDERS")
         response: dict = await self._auth_and_post(path, payload=payload)
         cancel_ack = response.get("result", {}).get("ack")
@@ -258,12 +274,13 @@ class GrvtCcxtPro(GrvtCcxtBase):
         Fetch open orders for the account.<br>
         Private call requires authorization.<br>
         See [Open orders](https://api-docs.grvt.io/trading_api/#open-orders)
-        for details.<br>.
+            for details.<br>.
 
         Args:
             symbol: get orders for this symbol only.<br>
+            since: ccxt-compliant argument, NOT SUPPORTED.<br>
+            limit: ccxt-compliant argument, NOT SUPPORTED.<br>
             params: dictionary with parameters. Valid keys:<br>
-                `sub_account_id` (str): sub account id.<br>
                 `kind` (str): instrument kind. Valid values are 'PERPETUAL'.<br>
                 `base` (str): base currency. If missing/empty then fetch orders
                                     for all base currencies.<br>
@@ -273,7 +290,7 @@ class GrvtCcxtPro(GrvtCcxtBase):
         """
         self._check_account_auth()
         # Prepare request payload
-        payload = self._get_payload_fetch_open_orders(symbol, since, limit, params)
+        payload = self._get_payload_fetch_open_orders(symbol, params)
         # Post payload and parse the response
         path = get_grvt_endpoint(self.env, "GET_OPEN_ORDERS")
         response: dict = await self._auth_and_post(path, payload)
@@ -294,9 +311,20 @@ class GrvtCcxtPro(GrvtCcxtBase):
     ) -> dict:
         """
         ccxt compliant signature
-        Get Order status by order_id or client_order_id
-        Return: dict with order details or {} if order was NOT found.
+        Private call requires authorization.<br>
+        See [Get Order](https://api-docs.grvt.io/trading_api/#get-order)
+            for details.<br>.
+
+        Get Order status by either order_id or client_order_id
+        Args:
+            id: (str) order_id to fetch.<br>
+            symbol: (str) NOT SUPPRTED.<br>
+            params: dictionary with parameters. Valid keys:<br>
+                `client_order_id` (int): client assigned order ID.<br>
+        Returns: 
+            dict with order details or {} if order was NOT found.<br>
         """
+        FN = f"{self._clsname} fetch_order"
         self._check_account_auth()
         payload = {
             "sub_account_id": str(self._trading_account_id),
@@ -307,7 +335,7 @@ class GrvtCcxtPro(GrvtCcxtBase):
             payload["client_order_id"] = str(params["client_order_id"])
         else:
             raise GrvtInvalidOrder(
-                f"{self._clsname} fetch_order() requires either "
+                f"{FN} requires either "
                 "order_id or params['client_order_id']"
             )
         path = get_grvt_endpoint(self.env, "GET_ORDER")

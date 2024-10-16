@@ -22,6 +22,12 @@ class GrvtEndpointType(str, Enum):
     TRADE_DATA = "tdg"
     MARKET_DATA = "mdg"
 
+class GrvtWSEndpointType(str, Enum):
+    TRADE_DATA = "tdg"
+    MARKET_DATA = "mdg"
+    TRADE_DATA_RPC_FULL = "tdg_rpc_full"
+    MARKET_DATA_RPC_FULL = "mdg_rpc_full"
+
 
 END_POINT_VERSION = os.getenv("GRVT_END_POINT_VERSION", "v0")
 
@@ -50,45 +56,51 @@ def get_grvt_endpoint_domains(env_name: str) -> dict[GrvtEndpointType, str]:
 
 def get_grvt_ws_endpoint(
     env: str,
-    endpoint_type: GrvtEndpointType,
+    endpoint_type: GrvtWSEndpointType,
 ) -> str | None:
     """Returns string pointing to WS endpoint for given environment and endpoint type."""
     if env == GrvtEnv.PROD.value:
         return {
-            GrvtEndpointType.TRADE_DATA: "wss://trades.grvt.io/ws",
-            GrvtEndpointType.MARKET_DATA: "wss://market-data.grvt.io/ws",
+            GrvtWSEndpointType.TRADE_DATA: "wss://trades.grvt.io/ws",
+            GrvtWSEndpointType.MARKET_DATA: "wss://market-data.grvt.io/ws",
+            GrvtWSEndpointType.TRADE_DATA_RPC_FULL: "wss://trades.grvt.io/ws/full",
+            GrvtWSEndpointType.MARKET_DATA_RPC_FULL: "wss://market-data.grvt.io/ws/full",
         }.get(endpoint_type)
     if env == GrvtEnv.TESTNET.value:
         return {
-            GrvtEndpointType.TRADE_DATA: f"wss://trades.{env}.grvt.io/ws",
-            GrvtEndpointType.MARKET_DATA: f"wss://market-data.{env}.grvt.io/ws",
+            GrvtWSEndpointType.TRADE_DATA: f"wss://trades.{env}.grvt.io/ws",
+            GrvtWSEndpointType.MARKET_DATA: f"wss://market-data.{env}.grvt.io/ws",
+            GrvtWSEndpointType.TRADE_DATA_RPC_FULL: f"wss://trades.{env}.grvt.io/ws/full",
+            GrvtWSEndpointType.MARKET_DATA_RPC_FULL: f"wss://market-data.{env}.grvt.io/ws/full",
         }.get(endpoint_type)
     if env == GrvtEnv.DEV.value:
         return {
-            GrvtEndpointType.TRADE_DATA: f"wss://trades.{env}.gravitymarkets.io/ws",
-            GrvtEndpointType.MARKET_DATA: f"wss://market-data.{env}.gravitymarkets.io/ws",
+            GrvtWSEndpointType.TRADE_DATA: f"wss://trades.{env}.gravitymarkets.io/ws",
+            GrvtWSEndpointType.MARKET_DATA: f"wss://market-data.{env}.gravitymarkets.io/ws",
+            GrvtWSEndpointType.TRADE_DATA_RPC_FULL: f"wss://trades.{env}.gravitymarkets.io/ws/full",
+            GrvtWSEndpointType.MARKET_DATA_RPC_FULL: f"wss://market-data.{env}.gravitymarkets.io/ws/full",
         }.get(endpoint_type)
     return None
 
 
 GRVT_WS_STREAMS = {
     # ******* Market Data ********
-    "mini.s": GrvtEndpointType.MARKET_DATA,
-    "mini.d": GrvtEndpointType.MARKET_DATA,
-    "ticker.s": GrvtEndpointType.MARKET_DATA,
-    "ticker.d": GrvtEndpointType.MARKET_DATA,
-    "book.s": GrvtEndpointType.MARKET_DATA,
-    "book.d": GrvtEndpointType.MARKET_DATA,
-    "trade": GrvtEndpointType.MARKET_DATA,
-    "candle": GrvtEndpointType.MARKET_DATA,
+    "mini.s": [GrvtWSEndpointType.MARKET_DATA],
+    "mini.d": [GrvtWSEndpointType.MARKET_DATA],
+    "ticker.s": [GrvtWSEndpointType.MARKET_DATA],
+    "ticker.d": [GrvtWSEndpointType.MARKET_DATA],
+    "book.s": [GrvtWSEndpointType.MARKET_DATA],
+    "book.d": [GrvtWSEndpointType.MARKET_DATA],
+    "trade": [GrvtWSEndpointType.MARKET_DATA],
+    "candle": [GrvtWSEndpointType.MARKET_DATA],
     # ******* Trade Data ********
-    "order": GrvtEndpointType.TRADE_DATA,
-    "state": GrvtEndpointType.TRADE_DATA,
-    "position": GrvtEndpointType.TRADE_DATA,
-    "fill": GrvtEndpointType.TRADE_DATA,
-    "transfer": GrvtEndpointType.TRADE_DATA,
-    "deposit": GrvtEndpointType.TRADE_DATA,
-    "withdrawal": GrvtEndpointType.TRADE_DATA,
+    "order": [GrvtWSEndpointType.TRADE_DATA, GrvtWSEndpointType.TRADE_DATA_RPC_FULL],
+    "state": [GrvtWSEndpointType.TRADE_DATA],
+    "position": [GrvtWSEndpointType.TRADE_DATA],
+    "fill": [GrvtWSEndpointType.TRADE_DATA],
+    "transfer": [GrvtWSEndpointType.TRADE_DATA],
+    "deposit": [GrvtWSEndpointType.TRADE_DATA],
+    "withdrawal": [GrvtWSEndpointType.TRADE_DATA],
 }
 
 

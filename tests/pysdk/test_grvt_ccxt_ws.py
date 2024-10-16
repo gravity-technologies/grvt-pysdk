@@ -7,6 +7,8 @@ import traceback
 from pysdk.grvt_ccxt_env import GrvtEnv
 from pysdk.grvt_ccxt_logging_selector import logger
 from pysdk.grvt_ccxt_ws import GrvtCcxtWS
+from pysdk.grvt_ccxt_types import GrvtOrderType
+from pysdk.grvt_ccxt_utils import rand_uint32
 
 
 # Utility functions , not called directly by the __main__ test routine
@@ -24,11 +26,7 @@ async def grvt_ws_subscribe(api: GrvtCcxtWS, args_list: dict) -> None:
         await asyncio.sleep(0)
 
 
-test_api = None
-
-
-async def run_test(loop):
-    global test_api
+async def subscribe(loop) -> GrvtCcxtWS:
     params = {
         "api_key": os.getenv("GRVT_API_KEY"),
         "trading_account_id": os.getenv("GRVT_TRADING_ACCOUNT_ID"),
@@ -94,16 +92,102 @@ async def run_test(loop):
     }
     try:
         if "private_key" in params:
-            await grvt_ws_subscribe(test_api, {**pub_args_dict, **prv_args_dict})
+            # await grvt_ws_subscribe(test_api, {**pub_args_dict, **prv_args_dict})
+            (
+                await grvt_ws_subscribe(
+                    test_api,
+                    {
+                        "order": (
+                            callback_general,
+                            {
+                                "sub_account_id": os.getenv("GRVT_TRADING_ACCOUNT_ID"),
+                                "instrument": "BTC_USDT_Perp",
+                            },
+                        )
+                    },
+                ),
+            )
         else:  # not private_key , subscribe to public feeds only
             await grvt_ws_subscribe(test_api, pub_args_dict)
     except Exception as e:
         logger.error(f"Error in grvt_ws_subscribe: {e} {traceback.format_exc()}")
+    return test_api
 
 
-async def shutdown(loop):
+async def rpc_create_order(test_api: GrvtCcxtWS, side: str, price: str) -> str:
+    if test_api:
+        # Send order
+        client_order_id = str(rand_uint32())
+        payload = await test_api.rpc_create_order(
+            symbol="BTC_USDT_Perp",
+            order_type="limit",
+            side=side,
+            amount=0.001,
+            price=price,
+            params={
+                "client_order_id": client_order_id,
+                #    "time_in_force": "IMMEDIATE_OR_CANCEL",
+                "time_in_force": "GOOD_TILL_TIME",
+            },
+        )
+        logger.info(f"rpc_create_order: {payload=}")
+        return client_order_id
+    return ""
+
+
+async def rpc_fetch_order(test_api: GrvtCcxtWS, client_order_id: str) -> None:
+    if test_api:
+        # Send order
+        payload = await test_api.rpc_fetch_order(
+            params={
+                "client_order_id": client_order_id,
+            },
+        )
+        logger.info(f"rpc_fetch_order: {payload=}")
+
+
+async def rpc_fetch_open_orders(test_api: GrvtCcxtWS) -> None:
+    if test_api:
+        # Send order
+        payload = await test_api.rpc_fetch_open_orders()
+        logger.info(f"rpc_fetch_open_orders: {payload=}")
+
+
+async def rpc_cancel_order(test_api: GrvtCcxtWS, client_order_id: str) -> None:
+    if test_api:
+        # Send order
+        payload = await test_api.rpc_cancel_order(
+            params={
+                "client_order_id": client_order_id,
+            },
+        )
+        logger.info(f"rpc_cancel_order: {payload=}")
+
+
+async def rpc_cancel_all_orders(test_api: GrvtCcxtWS) -> None:
+    if test_api:
+        # Send order
+        payload = await test_api.rpc_cancel_all_orders()
+        logger.info(f"rpc_cancel_order: {payload=}")
+
+
+async def send_rpc_messages(test_api: GrvtCcxtWS) -> None:
+    if test_api:
+        # Send order
+        cloid = await rpc_create_order(test_api, side="buy", price="60000")
+        if cloid:
+            await rpc_fetch_open_orders(test_api)
+            await rpc_fetch_order(test_api, cloid)
+            await rpc_cancel_order(test_api, cloid)
+        cloid = await rpc_create_order(test_api, side="sell", price="70000")
+        if cloid:
+            await rpc_fetch_open_orders(test_api)
+            await rpc_fetch_order(test_api, cloid)
+            await rpc_cancel_all_orders(test_api)
+
+
+async def shutdown(loop, test_api: GrvtCcxtWS) -> None:
     """Clean up resources and stop the bot gracefully."""
-    global test_api
     logger.info("Shutting down gracefully...")
     if test_api:
         for stream, message in test_api._last_message.items():
@@ -118,9 +202,15 @@ async def shutdown(loop):
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
+    test_api = loop.run_until_complete(subscribe(loop))
+    if not test_api:
+        logger.error("Failed to subscribe to Websocket channels.")
+        sys.exit(1)
     for sig in (signal.SIGINT, signal.SIGTERM):
-        loop.add_signal_handler(sig, lambda: asyncio.create_task(shutdown(loop)))
-    logger.info(f"Event loop created:{loop}.")
-    loop.run_until_complete(run_test(loop))
+        loop.add_signal_handler(
+            sig, lambda: asyncio.create_task(shutdown(loop, test_api))
+        )
+    loop.run_until_complete(asyncio.sleep(5))
+    loop.run_until_complete(send_rpc_messages(test_api))
     loop.run_forever()
     loop.close()

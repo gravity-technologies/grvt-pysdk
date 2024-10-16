@@ -177,17 +177,20 @@ class GrvtCcxt(GrvtCcxtBase):
 
     def cancel_all_orders(
         self,
-        symbol: str | None = None,
         params: dict = {},
     ) -> bool:
         """
-        ccxt compliant signature
+        ccxt compliant signature BUT lacks symbol
         Cancel all orders for a sub-account.
-        :param sub_account_id: The sub-account ID.
+        params: dictionary with parameters. Valid keys:<br>
+                `kind` (str): instrument kind. Valid values: 'PERPETUAL'.<br>
+                `base` (str): base currency. If missing/empty then fetch
+                                    orders for all base currencies.<br>
+                `quote` (str): quote currency. Defaults to all.<br>
         """
         self._check_account_auth()
         FN = f"{self._clsname} cancel_all_orders"
-        payload: dict = {"sub_account_id": str(self._trading_account_id)}
+        payload: dict = self._get_payload_cancel_all_orders(params)
         path = get_grvt_endpoint(self.env, "CANCEL_ALL_ORDERS")
         response: dict = self._auth_and_post(path, payload)
         cancel_ack = response.get("result", {}).get("ack")
@@ -255,14 +258,13 @@ class GrvtCcxt(GrvtCcxtBase):
         Fetch open orders for the account.<br>
         Private call requires authorization.<br>
         See [Open orders](https://api-docs.grvt.io/trading_api/#open-orders)
-        for details.<br>.
+            for details.<br>.
 
         Args:
             symbol: (str) get orders for this symbol only.<br>
-            since: (int) fetch orders since this timestamp in nanoseconds.<br>
-            limit: (int) maximum number of orders to fetch.<br>
+            since: ccxt-compliant argument, NOT SUPPORTED.<br>
+            limit: ccxt-compliant argument, NOT SUPPORTED.<br>
             params: dictionary with parameters. Valid keys:<br>
-                `sub_account_id` (str): sub account id.<br>
                 `kind` (str): instrument kind. Valid values: 'PERPETUAL'.<br>
                 `base` (str): base currency. If missing/empty then fetch
                                     orders for all base currencies.<br>
@@ -272,7 +274,7 @@ class GrvtCcxt(GrvtCcxtBase):
         """
         self._check_account_auth()
         # Prepare request payload
-        payload = self._get_payload_fetch_open_orders(symbol, since, limit, params)
+        payload = self._get_payload_fetch_open_orders(symbol, params)
         # Post payload and parse the response
         path = get_grvt_endpoint(self.env, "GET_OPEN_ORDERS")
         response: dict = self._auth_and_post(path, payload)

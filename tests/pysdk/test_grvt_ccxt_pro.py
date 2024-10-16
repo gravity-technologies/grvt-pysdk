@@ -47,7 +47,7 @@ async def cancel_orders(api: GrvtCcxtPro, open_orders: list) -> int:
 async def cancel_all_orders(api: GrvtCcxtPro) -> bool:
     FN = "cancel_all_orders"
     logger.info(f"{FN} START")
-    cancel_response = await api.cancel_all_orders(symbol="BTC_USDT_Perp")
+    cancel_response = await api.cancel_all_orders()
     logger.info(f"{FN} {cancel_response=}")
     return cancel_response
 
