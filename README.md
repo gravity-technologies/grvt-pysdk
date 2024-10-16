@@ -19,7 +19,7 @@
 
 ---
 
-## Installation
+## Installation via pip
 
 ```bash
 pip install grvt-pysdk
@@ -29,22 +29,22 @@ pip install grvt-pysdk
 
 There are various ways to use the GRVT Python SDK
 
-- [GRVT CCXT](./tests/pysdk/test_grvt_ccxt.py) - CCXT compatible client for GRVT
-- [GRVT CCXT Pro](./tests/pysdk/test_grvt_ccxt_pro.py) - CCXT Pro compatible client for GRVT
-- [GRVT API Sync](./tests/pysdk/test_grvt_api_sync.py) - Synchronous API client for GRVT
-- [GRVT API Async](./tests/pysdk/test_grvt_api_async.py) - Asynchronous API client for GRVT
+- [GRVT CCXT](https://github.com/gravity-technologies/grvt-pysdk/blob/main/tests/pysdk/test_grvt_ccxt.py) - CCXT compatible client for GRVT (sync Rest API calls)
+- [GRVT CCXT Pro](https://github.com/gravity-technologies/grvt-pysdk/blob/main/tests/pysdk/test_grvt_ccxt_pro.py) - CCXT Pro compatible client for GRVT (async Rest API calls)
+- [GRVT API Sync](https://github.com/gravity-technologies/grvt-pysdk/blob/main/tests/pysdk/test_grvt_raw_sync.py) - Synchronous API client for GRVT
+- [GRVT API Async](https://github.com/gravity-technologies/grvt-pysdk/blob/main/tests/pysdk/test_grvt_raw_async.py) - Asynchronous API client for GRVT
 
 ## Contributor's guide
 
 ### Table of Contents
 
 - [GRVT Python SDK](#grvt-python-sdk)
-  - [Installation](#installation)
+  - [Installation via pip](#installation-via-pip)
   - [Usage](#usage)
   - [Contributor's guide](#contributors-guide)
     - [Table of Contents](#table-of-contents)
     - [Prerequisites](#prerequisites)
-    - [Installation](#installation-1)
+    - [Installation of code](#installation-of-code)
     - [What's in the box ?](#whats-in-the-box-)
       - [uv](#uv)
       - [pre-commit](#pre-commit)
@@ -66,7 +66,7 @@ There are various ways to use the GRVT Python SDK
 
 ---
 
-### Installation
+### Installation of code
 
 1. Clone the git repository
 
