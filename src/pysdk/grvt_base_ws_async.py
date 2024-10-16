@@ -138,27 +138,6 @@ class GrvtBaseWSAsync(GrvtCcxtPro):
         """
         await self.refresh_cookie()
 
-    async def subscribe(self, 
-                  subscription: GrvtStreamType,
-                  callback: GrvtDecoder,
-                  subscription_id: int,
-                  params: GrvtParams | None = None):
-        """
-        Subscribe to a channel to receive callbacks with incoming messages
-        A new web socket connection will be created if needed
-        """
-        FN = "subscribe"
-        ws_stream = GRVT_WS_STREAMS.get(GrvtStreamType)
-        if ws_stream is None:
-            raise grvt_exceptions.UnknownStreamError(ws_stream)
-        ws_isconnecting = self.is_connecting.get(ws_stream)
-        if ws_isconnecting:
-            raise grvt_exceptions.ConnectionInProgress
-        ws_isconnected = self.ws.get(ws_stream)
-        if not ws_isconnected:
-            await self.connect_channel(ws_stream)
-        self.callbacks[GrvtStreamType][(ws_stream, params.get_feed())] = callback
-
     async def connect_channel(self, grvt_endpoint_type: GrvtEndpointType) -> bool:
         """
         Try to connect to a web socket end point
@@ -197,6 +176,27 @@ class GrvtBaseWSAsync(GrvtCcxtPro):
         # If we get to here, there should be no exception thrown and we should be connected
         return True
 
+    async def subscribe(self, 
+                  subscription: GrvtStreamType,
+                  callback: GrvtDecoder,
+                  subscription_id: int,
+                  params: GrvtParams | None = None):
+        """
+        Subscribe to a channel to receive callbacks with incoming messages
+        A new web socket connection will be created if needed
+        """
+        FN = "subscribe"
+        ws_stream = GRVT_WS_STREAMS.get(GrvtStreamType)
+        if ws_stream is None:
+            raise grvt_exceptions.UnknownStreamError(ws_stream)
+        ws_isconnecting = self.is_connecting.get(ws_stream)
+        if ws_isconnecting:
+            raise grvt_exceptions.ConnectionInProgress
+        ws_isconnected = self.ws.get(ws_stream)
+        if not ws_isconnected:
+            await self.connect_channel(ws_stream)
+        self.callbacks[GrvtStreamType][(ws_stream, params.get_feed())] = callback
+
     async def _subscribe_to_stream(
         self,
         end_point_type: GrvtEndpointType,
@@ -230,12 +230,13 @@ class GrvtBaseWSAsync(GrvtCcxtPro):
             self.logger.info(f"{self._clsname} _send() {end_point_type=} {message=}")
             await self.ws[end_point_type].send(message)
 
-    def _get_callback(self, grvt_endpoint_type: GrvtEndpointType, message: dict) -> GrvtDecoder:
+    def _get_decoder(self, grvt_endpoint_type: GrvtEndpointType, message: dict) -> GrvtDecoder:
         stream_subscribed: str = message.get("stream")
-        if stream_subscribed:
-            if not self.subscribed_streams[grvt_endpoint_type].get(stream_subscribed):
-                raise Exception("message stream unregistered " + stream_subscribed)
-            
+        if not stream_subscribed:
+            self.logger.warning("Received a message without a stream", message)
+        if not self.subscribed_streams[grvt_endpoint_type].get(stream_subscribed):
+            raise Exception("message stream unregistered " + stream_subscribed)
+        return GrvtDecoder(self.subscribed_streams[grvt_endpoint_type].get(stream_subscribed))
 
     async def _recv(self, grvt_endpoint_type: GrvtEndpointType):
         FN = f"{self._clsname} _recv {grvt_endpoint_type.value}"
@@ -257,26 +258,8 @@ class GrvtBaseWSAsync(GrvtCcxtPro):
                         if stream_subscribed is None:
                             self.logger.warning(f"{FN} missing stream in {message=}")
                         if stream_subscribed:
-                            call_count = 0
-                            callback = 
-                            for (stream, feed), callback in self.callbacks[
-                                grvt_endpoint_type
-                            ].items():
-                                if stream_subscribed.endswith(stream):
-                                    self.logger.debug(
-                                        f"{FN} Stream:{stream_subscribed} {feed=}"
-                                        f" callback:{callback.__name__} "
-                                        f" message:{message}"
-                                    )
-                                    await callback(message)
-                                    self._last_message[stream_subscribed] = message
-                                    call_count += 1
-                            if call_count == 0:
-                                self.logger.debug(
-                                    f"{FN} No callback found for {stream_subscribed=} {message=}"
-                                )
-                            else:
-                                self.logger.debug(f"{FN} callback count:{call_count}")
+                            dec = self._get_decoder(message)
+                            dec.handle_message(message)
                 except (
                     websockets.exceptions.ConnectionClosedError,
                     websockets.exceptions.ConnectionClosedOK,
