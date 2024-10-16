@@ -6,9 +6,8 @@ import traceback
 
 from pysdk.grvt_ccxt_env import GrvtEnv
 from pysdk.grvt_ccxt_logging_selector import logger
-from pysdk.grvt_ccxt_ws import GrvtCcxtWS
-from pysdk.grvt_ccxt_types import GrvtOrderType
 from pysdk.grvt_ccxt_utils import rand_uint32
+from pysdk.grvt_ccxt_ws import GrvtCcxtWS
 
 
 # Utility functions , not called directly by the __main__ test routine
@@ -27,6 +26,7 @@ async def grvt_ws_subscribe(api: GrvtCcxtWS, args_list: dict) -> None:
 
 
 async def subscribe(loop) -> GrvtCcxtWS:
+    """Subscribe to Websocket channels and feeds."""
     params = {
         "api_key": os.getenv("GRVT_API_KEY"),
         "trading_account_id": os.getenv("GRVT_TRADING_ACCOUNT_ID"),
@@ -92,21 +92,7 @@ async def subscribe(loop) -> GrvtCcxtWS:
     }
     try:
         if "private_key" in params:
-            # await grvt_ws_subscribe(test_api, {**pub_args_dict, **prv_args_dict})
-            (
-                await grvt_ws_subscribe(
-                    test_api,
-                    {
-                        "order": (
-                            callback_general,
-                            {
-                                "sub_account_id": os.getenv("GRVT_TRADING_ACCOUNT_ID"),
-                                "instrument": "BTC_USDT_Perp",
-                            },
-                        )
-                    },
-                ),
-            )
+            await grvt_ws_subscribe(test_api, {**pub_args_dict, **prv_args_dict})
         else:  # not private_key , subscribe to public feeds only
             await grvt_ws_subscribe(test_api, pub_args_dict)
     except Exception as e:
@@ -172,6 +158,7 @@ async def rpc_cancel_all_orders(test_api: GrvtCcxtWS) -> None:
 
 
 async def send_rpc_messages(test_api: GrvtCcxtWS) -> None:
+    """Sends test RPC messages for send/fetch/cancel orders."""
     if test_api:
         # Send order
         cloid = await rpc_create_order(test_api, side="buy", price="60000")

@@ -19,6 +19,28 @@
 
 ---
 
+### Table of Contents
+
+- [GRVT Python SDK](#grvt-python-sdk)
+    - [Table of Contents](#table-of-contents)
+  - [Installation via pip](#installation-via-pip)
+  - [Usage](#usage)
+  - [Contributor's guide](#contributors-guide)
+    - [Prerequisites](#prerequisites)
+    - [Installation of a source code](#installation-of-a-source-code)
+    - [Manually run example files](#manually-run-example-files)
+    - [What's in the box ?](#whats-in-the-box-)
+      - [uv](#uv)
+      - [pre-commit](#pre-commit)
+      - [ruff](#ruff)
+      - [mypy](#mypy)
+      - [bandit](#bandit)
+      - [docformatter](#docformatter)
+      - [Testing](#testing)
+      - [Makefile](#makefile)
+
+---
+
 ## Installation via pip
 
 ```bash
@@ -37,37 +59,14 @@ There are various ways to use the GRVT Python SDK
 
 ## Contributor's guide
 
-### Table of Contents
-
-- [GRVT Python SDK](#grvt-python-sdk)
-  - [Installation via pip](#installation-via-pip)
-  - [Usage](#usage)
-  - [Contributor's guide](#contributors-guide)
-    - [Table of Contents](#table-of-contents)
-    - [Prerequisites](#prerequisites)
-    - [Installation of code](#installation-of-code)
-    - [What's in the box ?](#whats-in-the-box-)
-      - [uv](#uv)
-      - [pre-commit](#pre-commit)
-      - [ruff](#ruff)
-      - [mypy](#mypy)
-      - [bandit](#bandit)
-      - [docformatter](#docformatter)
-      - [Testing](#testing)
-      - [Makefile](#makefile)
-
----
-
 ### Prerequisites
 
-- [Python](https://www.python.org/downloads/) **>=3.10.0 <3.13** (_tested with 3.10.15_)
+- [Python](https://www.python.org/downloads/) **>=3.10.0 < 3.13** (_tested with 3.10.15_)
 - [pre-commit](https://pre-commit.com/#install)
 - [uv](https://docs.astral.sh/uv/getting-started/installation/) **>=0.3.3** (_tested with 0.4.0_)
 - [docker](https://docs.docker.com/get-docker/) (_optional_)
 
----
-
-### Installation of code
+### Installation of a source code
 
 1. Clone the git repository
 
@@ -100,6 +99,34 @@ There are various ways to use the GRVT Python SDK
    ```
 
 ---
+
+### Manually run example files
+
+Example files run extensive testing of the SDK API classes and log details about details of using GRVT API.
+
+1. Change to tests folder
+
+   ```bash
+   cd tests/pysdk
+   ```
+
+2. Run example of using synchronous CCXT-compatible calls to `Rest API` via `grvt_ccxt.py`, class `GrvtCcxt`
+
+   ```bash
+   uv run python3 test_grvt_ccxt.py
+   ```
+
+3. Run example of using asynchronous CCXT-compatible calls to `Rest API` via `grvt_ccxt_pro.py`, class `GrvtCcxtPro`
+
+   ```bash
+   uv run python3 test_grvt_ccxt_pro.py
+   ```
+
+4. Run example of using WebSockets subscriptions and JSON RPC calls via `grvt_ccxt_ws.py`, class `GrvtCcxtWS`
+
+   ```bash
+   uv run python3 test_grvt_ccxt_ws.py
+   ```
 
 ### What's in the box ?
 

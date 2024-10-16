@@ -27,6 +27,7 @@ from .grvt_ccxt_types import (
 from .grvt_ccxt_utils import (
     EnumEncoder,
     GrvtOrder,
+    get_cookie_with_expiration,
     get_cookie_with_expiration_async,
     get_grvt_order,
     get_order_payload,
@@ -60,7 +61,12 @@ class GrvtCcxtPro(GrvtCcxtBase):
         self._session = aiohttp.ClientSession(
             headers={"Content-Type": "application/json"}
         )
-        # self._cookie: Optional[dict] = None
+        self._cookie = get_cookie_with_expiration(
+            get_grvt_endpoint(self.env, "AUTH"), self._api_key
+        )
+        if self._cookie:
+            self.logger.info(f"refresh_cookie cookie={self._cookie}")
+            self._session.cookie_jar.update_cookies({"gravity": self._cookie["gravity"]})
 
     async def refresh_cookie(self) -> dict | None:
         """Refresh the session cookie."""
