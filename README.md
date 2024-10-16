@@ -19,10 +19,10 @@
 
 ---
 
-### Table of Contents
+## Table of Contents
 
 - [GRVT Python SDK](#grvt-python-sdk)
-    - [Table of Contents](#table-of-contents)
+  - [Table of Contents](#table-of-contents)
   - [Installation via pip](#installation-via-pip)
   - [Usage](#usage)
   - [Contributor's guide](#contributors-guide)
@@ -193,35 +193,31 @@ To run tests with coverage:
 make test
 ```
 
-<details>
-
-<summary>Output</summary>
-
 ```text
-collected 4 items                                                                                                                                                                                                        
+Name                                      Stmts   Miss  Cover
+-------------------------------------------------------------
+src/pysdk/__init__.py                         0      0   100%
+src/pysdk/grvt_ccxt.py                      238     21    91%
+src/pysdk/grvt_ccxt_base.py                 196     57    71%
+src/pysdk/grvt_ccxt_env.py                   48     12    75%
+src/pysdk/grvt_ccxt_logging_selector.py      15      7    53%
+src/pysdk/grvt_ccxt_pro.py                  245     69    72%
+src/pysdk/grvt_ccxt_test_utils.py            30      4    87%
+src/pysdk/grvt_ccxt_types.py                 41      0   100%
+src/pysdk/grvt_ccxt_utils.py                237     89    62%
+src/pysdk/grvt_ccxt_ws.py                   275    238    13%
+src/pysdk/grvt_raw_async.py                 149    109    27%
+src/pysdk/grvt_raw_base.py                  154     69    55%
+src/pysdk/grvt_raw_env.py                    27      5    81%
+src/pysdk/grvt_raw_signing.py                33     17    48%
+src/pysdk/grvt_raw_sync.py                  149    109    27%
+src/pysdk/grvt_raw_types.py                1031      0   100%
+-------------------------------------------------------------
+TOTAL                                      2868    806    72%
 
-tests/pysdk/test_grvt_api_async.py::test_get_all_instruments PASSED                                                                                                                                                [ 25%]
-tests/pysdk/test_grvt_api_async.py::test_open_orders PASSED                                                                                                                                                        [ 50%]
-tests/pysdk/test_grvt_api_sync.py::test_get_all_instruments PASSED                                                                                                                                                 [ 75%]
-tests/pysdk/test_grvt_api_sync.py::test_open_orders PASSED                                                                                                                                                         [100%]
 
----------- coverage: platform darwin, python 3.10.15-final-0 ----------
-Name                          Stmts   Miss  Cover
--------------------------------------------------
-src/pysdk/__init__.py             1      0   100%
-src/pysdk/grvt_api_async.py     152    113    26%
-src/pysdk/grvt_api_base.py      158     75    53%
-src/pysdk/grvt_api_sync.py      152    113    26%
-src/pysdk/grvt_env.py            27      4    85%
-src/pysdk/types.py              909      0   100%
--------------------------------------------------
-TOTAL                          1399    305    78%
-
-
-=================================================================================================== 4 passed in 1.20s ====================================================================================================
+=================================================================================================== 8 passed in 58.20s ====================================================================================================
 ```
-
-</details>
 
 #### Makefile
 
