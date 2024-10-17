@@ -22,10 +22,12 @@ class OurMessageHandler:
     ):
         self.logger = logger
 
-    def handle_mini_ticker_snapshot(self, data: grvt_raw_types.WSMiniTickerFeedDataV1, subscription_id: int):
+    def handle_mini_ticker_snapshot(self, data: grvt_raw_types.WSMiniTickerFeedDataV1, 
+                                    subscription_id: int):
         self.logger.info(f"handle_mini_ticker_snapshot: {data} {subscription_id}")
 
-    def handle_mini_ticker_delta(self, data: grvt_raw_types.WSMiniTickerFeedDataV1, subscription_id: int):
+    def handle_mini_ticker_delta(self, data: grvt_raw_types.WSMiniTickerFeedDataV1, 
+                                 subscription_id: int):
         self.logger.info(f"handle_mini_ticker_snapshot: {data} {subscription_id}")
 
     def handle_error(self, error: grvt_raw_types.GrvtError):
