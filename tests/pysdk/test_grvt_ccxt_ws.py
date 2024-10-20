@@ -118,9 +118,9 @@ async def subscribe(loop) -> GrvtCcxtWS:
                 "instrument": "BTC_USDT_Perp",
             },
         ),
-        "deposit": (callback_general, {}),
-        "transfer": (callback_general, {}),
-        "withdrawal": (callback_general, {}),
+        "deposit": (callback_general, GrvtWSEndpointType.TRADE_DATA, {}),
+        "transfer": (callback_general, GrvtWSEndpointType.TRADE_DATA, {}),
+        "withdrawal": (callback_general, GrvtWSEndpointType.TRADE_DATA, {}),
     }
     try:
         if "private_key" in params:
