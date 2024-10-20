@@ -220,7 +220,7 @@ def test_grvt_ccxt():
         cancel_all_orders,
         get_open_orders,
     ]
-    for f in function_list:
+    for f in function_list:  # [get_open_orders]:
         try:
             f(test_api)
         except Exception as e:
