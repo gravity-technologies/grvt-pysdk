@@ -22,6 +22,7 @@ from .grvt_ccxt_env import (
     GrvtEnv,
     GrvtWSEndpointType,
     get_grvt_ws_endpoint,
+    is_trading_ws_endpoint,
 )
 from .grvt_ccxt_pro import GrvtCcxtPro
 from .grvt_ccxt_types import (
@@ -366,12 +367,12 @@ class GrvtCcxtWS(GrvtCcxtPro):
         # ******** Trade Data ********
         if stream.endswith(("order", "state", "position", "fill")):
             if not params:
-                feed = f"{params.get('sub_account_id', '')}"
+                feed = f"{self._trading_account_id}"
             elif params.get("instrument"):
-                feed = f"{params.get('sub_account_id', '')}-{params.get('instrument', '')}"  # @a"
+                feed = f"{self._trading_account_id}-{params.get('instrument', '')}"
             else:
                 feed = (
-                    f"{params.get('sub_account_id', '')}-{params.get('kind', '')}-"
+                    f"{self._trading_account_id}-{params.get('kind', '')}-"
                     f"{params.get('base', '')}-{params.get('quote', '')}"
                 )
         # Deposit, Transfer, Withdrawal
@@ -385,6 +386,7 @@ class GrvtCcxtWS(GrvtCcxtPro):
         self,
         stream: str,
         callback: Callable,
+        ws_end_point_type: GrvtWSEndpointType | None = None,
         params: dict | None = None,
     ) -> None:
         """
@@ -394,21 +396,25 @@ class GrvtCcxtWS(GrvtCcxtPro):
         (dict) -> None.
         """
         FN = f"{self._clsname} subscribe {stream=}"
-        end_point_types: list = GRVT_WS_STREAMS.get(stream, [])
-        if not end_point_types:
-            self.logger.error(f"{FN} unknown {stream=}")
+        if not ws_end_point_type:  # use default endpoint type
+            ws_end_point_type = GRVT_WS_STREAMS.get(stream)
+        if not ws_end_point_type:
+            self.logger.error(f"{FN} unknown GrvtWSEndpointType for {stream=}")
+            return
+        is_trade_data = is_trading_ws_endpoint(ws_end_point_type)
+        if is_trade_data and not self._trading_account_id:
+            self.logger.error(f"{FN} {stream=} is a trading data connection. Requires trading_account_id.")
             return
         feed = self._construct_feed(stream, params)
-        for end_point_type in end_point_types:
-            self.callbacks[end_point_type][(stream, feed)] = callback
-            self.logger.info(
-                f"{FN} {end_point_type=} {stream=}/{params=}/{feed=} callback:{callback}"
-            )
-            await self._subscribe_to_stream(end_point_type, stream, feed)
+        self.callbacks[ws_end_point_type][(stream, feed)] = callback
+        self.logger.info(
+            f"{FN} {ws_end_point_type=} {stream=}/{params=}/{feed=} callback:{callback}"
+        )
+        await self._subscribe_to_stream(ws_end_point_type, stream, feed)
 
     async def _subscribe_to_stream(
         self,
-        end_point_type: GrvtWSEndpointType,
+        ws_end_point_type: GrvtWSEndpointType,
         stream: str,
         feed: str,
     ) -> None:
@@ -416,7 +422,7 @@ class GrvtCcxtWS(GrvtCcxtPro):
             stream if self.api_ws_version == "v0" else f"{self.api_ws_version}.{stream}"
         )
         self._request_id += 1
-        if end_point_type in [
+        if ws_end_point_type in [
             GrvtWSEndpointType.TRADE_DATA,
             GrvtWSEndpointType.MARKET_DATA,
         ]: # Legacy subscription
@@ -430,7 +436,7 @@ class GrvtCcxtWS(GrvtCcxtPro):
                 }
             )
             self.logger.info(
-                f"{self._clsname} _subscribe_to_stream {end_point_type=} "
+                f"{self._clsname} _subscribe_to_stream {ws_end_point_type=} "
                 f"{stream=} version={self.api_ws_version} {versioned_stream=} {feed=}"
                 f" {subscribe_json=}"
             )
@@ -448,11 +454,11 @@ class GrvtCcxtWS(GrvtCcxtPro):
                 }
             )
             self.logger.info(
-                f"{self._clsname} _subscribe_to_stream {end_point_type=} "
+                f"{self._clsname} _subscribe_to_stream {ws_end_point_type=} "
                 f"{stream=} version={self.api_ws_version} {versioned_stream=} {feed=}"
                 f" {subscribe_json=}"
             )
-        await self._send(end_point_type, subscribe_json)
+        await self._send(ws_end_point_type, subscribe_json)
         if stream not in self._last_message:
             self._last_message[versioned_stream] = {}
 

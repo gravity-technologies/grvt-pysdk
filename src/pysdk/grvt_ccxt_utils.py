@@ -226,14 +226,6 @@ class GrvtCurrency(Enum):
     ETH = 4
     BTC = 5
 
-
-# class TimeInForce(Enum):
-#     GOOD_TILL_TIME = 1
-#     ALL_OR_NONE = 2
-#     IMMEDIATE_OR_CANCEL = 2
-#     FILL_OR_KILL = 3
-
-
 def hexlify(data: bytes) -> str:
     """Convert a byte array to a hex string with a 0x prefix."""
     return f"0x{data.hex()}"
