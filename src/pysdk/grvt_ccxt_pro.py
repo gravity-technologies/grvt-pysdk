@@ -227,7 +227,7 @@ class GrvtCcxtPro(GrvtCcxtBase):
         id: str | None = None,
         symbol: str | None = None,
         params: dict = {},
-    ) -> dict:
+    ) -> bool:
         """
         ccxt compliant signature
         Cancel specific order for the account.<br>
