@@ -98,15 +98,15 @@ class GrvtCcxt(GrvtCcxtBase):
             if not return_value.ok:
                 self.logger.warning(
                     f"{FN} ERROR {return_value=}\n"
-                    f"return_text={return_text}\n"
-                    f"response={response=}"
+                    f"{return_text=}\n"
+                    f"{response=}"
                 )
             else:
                 if len(return_text) > MAX_LEN_TO_LOG:
-                    self.logger.debug(f"{FN} response={response}")
+                    self.logger.debug(f"{FN} {response=}")
                     self.logger.info(f"{FN} response=**TOO LONG**")
                 else:
-                    self.logger.info(f"{FN} OK response={response}")
+                    self.logger.info(f"{FN} OK {response=}")
         except Exception as err:
             self.logger.warning(f"{FN} Unable to parse {return_value=} as json. {err=}")
         self._path_return_value_map[path] = response
