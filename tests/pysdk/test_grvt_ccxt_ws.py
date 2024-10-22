@@ -53,7 +53,7 @@ async def subscribe(loop) -> GrvtCcxtWS:
         "mini.d": (
             callback_general,
             GrvtWSEndpointType.MARKET_DATA_RPC_FULL,
-            {"instrument": "BTC_USDT_Perp", "rate": 50},
+            {"instrument": "BTC_USDT_Perp", "rate": 0},
         ),
         "ticker.s": (
             callback_general,
