@@ -100,6 +100,7 @@ class GrvtRawSyncBase(GrvtRawBase):
                 path,
                 json={"api_key": api_key},
                 headers={"Content-Type": "application/json"},
+                timeout=5,
             )
             self.logger.info(f"{FN} {return_value=}")
             if return_value.ok:
@@ -139,7 +140,7 @@ class GrvtRawSyncBase(GrvtRawBase):
         resp_json: Any = {}
 
         self.logger.debug(f"{FN} {req_json=}")
-        resp: requests.Response = self._session.post(path, data=req_json)
+        resp: requests.Response = self._session.post(path, data=req_json, timeout=5)
         try:
             resp_json = resp.json()
             if not resp.ok:
@@ -184,7 +185,7 @@ class GrvtRawAsyncBase(GrvtRawBase):
             data = {"api_key": api_key}
             self.logger.info(f"{FN} ask for cookie {path=} {data=}")
             async with aiohttp.ClientSession() as session:
-                async with session.post(url=path, json=data) as return_value:
+                async with session.post(url=path, json=data, timeout=5) as return_value:
                     self.logger.info(f"{FN} {return_value=}")
                     if return_value.ok:
                         cookie = SimpleCookie()
@@ -223,7 +224,9 @@ class GrvtRawAsyncBase(GrvtRawBase):
         resp_json: Any = {}
 
         self.logger.debug(f"{FN} {req_json=}")
-        resp: aiohttp.ClientResponse = await self._session.post(path, data=req_json)
+        resp: aiohttp.ClientResponse = await self._session.post(
+            path, data=req_json, timeout=5
+        )
         try:
             resp_text = await resp.text()
             resp_json = json.loads(resp_text)

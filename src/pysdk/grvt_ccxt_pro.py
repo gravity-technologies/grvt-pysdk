@@ -98,7 +98,10 @@ class GrvtCcxtPro(GrvtCcxtBase):
         payload_json = json.dumps(payload, cls=EnumEncoder)
         self.logger.info(f"{FN} {payload=}\n{payload_json=}")
         async with self._session.post(
-            url=path, data=payload_json, headers={"Content-Type": "application/json"}
+            url=path,
+            data=payload_json,
+            headers={"Content-Type": "application/json"},
+            timeout=5,
         ) as return_value:
             try:
                 return_text = await return_value.text()
@@ -327,7 +330,7 @@ class GrvtCcxtPro(GrvtCcxtBase):
             symbol: (str) NOT SUPPRTED.<br>
             params: dictionary with parameters. Valid keys:<br>
                 `client_order_id` (int): client assigned order ID.<br>
-        Returns: 
+        Returns:
             dict with order details or {} if order was NOT found.<br>
         """
         FN = f"{self._clsname} fetch_order"
@@ -341,8 +344,7 @@ class GrvtCcxtPro(GrvtCcxtBase):
             payload["client_order_id"] = str(params["client_order_id"])
         else:
             raise GrvtInvalidOrder(
-                f"{FN} requires either "
-                "order_id or params['client_order_id']"
+                f"{FN} requires either order_id or params['client_order_id']"
             )
         path = get_grvt_endpoint(self.env, "GET_ORDER")
         response: dict = await self._auth_and_post(path, payload)

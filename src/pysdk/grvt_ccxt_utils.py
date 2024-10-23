@@ -93,6 +93,7 @@ def get_cookie(path: str, api_key: str | None) -> dict[str, str] | None:
                 path,
                 json=data,
                 headers={"Content-Type": "application/json"},
+                timeout=5,
             )
             grvt_cookie = response.cookies.get("gravity")
             if not grvt_cookie:
@@ -120,6 +121,7 @@ def get_cookie_with_expiration(path: str, api_key: str | None) -> dict[str, str]
                 path,
                 json=data,
                 headers={"Content-Type": "application/json"},
+                timeout=5,
             )
             if return_value.ok:
                 cookie = SimpleCookie()
@@ -152,7 +154,7 @@ async def get_cookie_async(path: str, api_key: str | None) -> dict[str, str] | N
         try:
             data = {"api_key": api_key}
             async with aiohttp.ClientSession() as session:
-                async with session.post(url=path, json=data) as return_value:
+                async with session.post(url=path, json=data, timeout=5) as return_value:
                     response: dict = await return_value.json(content_type=None)
                     if return_value.ok:
                         logging.info(f"{FN} OK response:{response}")
@@ -187,7 +189,7 @@ async def get_cookie_with_expiration_async(
             data = {"api_key": api_key}
             logging.info(f"{FN} ask for cookie {path=} {data=}")
             async with aiohttp.ClientSession() as session:
-                async with session.post(url=path, json=data) as return_value:
+                async with session.post(url=path, json=data, timeout=5) as return_value:
                     logging.info(f"{FN} {return_value=}")
                     if return_value.ok:
                         cookie = SimpleCookie()
@@ -225,6 +227,7 @@ class GrvtCurrency(Enum):
     USDT = 3
     ETH = 4
     BTC = 5
+
 
 def hexlify(data: bytes) -> str:
     """Convert a byte array to a hex string with a 0x prefix."""
