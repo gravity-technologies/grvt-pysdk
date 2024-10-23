@@ -4,7 +4,7 @@ import signal
 import sys
 import traceback
 
-from pysdk.grvt_ccxt_env import GrvtEnv
+from pysdk.grvt_ccxt_env import GrvtEnv, GrvtWSEndpointType
 from pysdk.grvt_ccxt_logging_selector import logger
 from pysdk.grvt_ccxt_utils import rand_uint32
 from pysdk.grvt_ccxt_ws import GrvtCcxtWS
@@ -19,9 +19,14 @@ async def callback_general(message: dict) -> None:
 
 async def grvt_ws_subscribe(api: GrvtCcxtWS, args_list: dict) -> None:
     """Subscribes to Websocket channels/feeds in args list."""
-    for stream, (callback, params) in args_list.items():
+    for stream, (callback, ws_endpoint_type, params) in args_list.items():
         logger.info(f"Subscribing to {stream} {params=}")
-        await api.subscribe(stream=stream, callback=callback, params=params)
+        await api.subscribe(
+            stream=stream,
+            callback=callback,
+            ws_end_point_type=ws_endpoint_type,
+            params=params,
+        )
         await asyncio.sleep(0)
 
 
@@ -40,15 +45,44 @@ async def subscribe(loop) -> GrvtCcxtWS:
     await test_api.initialize()
     pub_args_dict = {
         # ********* Market Data *********
-        "mini.s": (callback_general, {"instrument": "BTC_USDT_Perp"}),
-        "mini.d": (callback_general, {"instrument": "BTC_USDT_Perp"}),
-        "ticker.s": (callback_general, {"instrument": "BTC_USDT_Perp"}),
-        "ticker.d": (callback_general, {"instrument": "BTC_USDT_Perp"}),
-        "book.s": (callback_general, {"instrument": "BTC_USDT_Perp"}),
-        "book.d": (callback_general, {"instrument": "BTC_USDT_Perp"}),
-        "trade": (callback_general, {"instrument": "BTC_USDT_Perp"}),
+        "mini.s": (
+            callback_general,
+            None,  # use deafult endpoint
+            {"instrument": "BTC_USDT_Perp"},
+        ),
+        "mini.d": (
+            callback_general,
+            GrvtWSEndpointType.MARKET_DATA_RPC_FULL,
+            {"instrument": "BTC_USDT_Perp", "rate": 0},
+        ),
+        "ticker.s": (
+            callback_general,
+            None,  # use deafult endpoint
+            {"instrument": "BTC_USDT_Perp"},
+        ),
+        "ticker.d": (
+            callback_general,
+            GrvtWSEndpointType.MARKET_DATA_RPC_FULL,
+            {"instrument": "BTC_USDT_Perp"},
+        ),
+        "book.s": (
+            callback_general,
+            GrvtWSEndpointType.MARKET_DATA_RPC_FULL,
+            {"instrument": "BTC_USDT_Perp"},
+        ),
+        "book.d": (
+            callback_general,
+            GrvtWSEndpointType.MARKET_DATA_RPC_FULL,
+            {"instrument": "BTC_USDT_Perp"},
+        ),
+        "trade": (
+            callback_general,
+            GrvtWSEndpointType.MARKET_DATA_RPC_FULL,
+            {"instrument": "BTC_USDT_Perp"},
+        ),
         "candle": (
             callback_general,
+            GrvtWSEndpointType.MARKET_DATA_RPC_FULL,
             {
                 "instrument": "BTC_USDT_Perp",
                 "interval": "CI_1_M",
@@ -60,35 +94,33 @@ async def subscribe(loop) -> GrvtCcxtWS:
         # ********* Trade Data *********
         "position": (
             callback_general,
-            {
-                "sub_account_id": os.getenv("GRVT_TRADING_ACCOUNT_ID"),
-                "instrument": "BTC_USDT_Perp",
-            },
+            GrvtWSEndpointType.TRADE_DATA_RPC_FULL,
+            {},
         ),
         "order": (
             callback_general,
+            GrvtWSEndpointType.TRADE_DATA_RPC_FULL,
             {
-                "sub_account_id": os.getenv("GRVT_TRADING_ACCOUNT_ID"),
                 "instrument": "BTC_USDT_Perp",
             },
         ),
         "state": (
             callback_general,
+            GrvtWSEndpointType.TRADE_DATA_RPC_FULL,
             {
-                "sub_account_id": os.getenv("GRVT_TRADING_ACCOUNT_ID"),
                 "instrument": "BTC_USDT_Perp",
             },
         ),
         "fill": (
             callback_general,
+            GrvtWSEndpointType.TRADE_DATA_RPC_FULL,
             {
-                "sub_account_id": os.getenv("GRVT_TRADING_ACCOUNT_ID"),
                 "instrument": "BTC_USDT_Perp",
             },
         ),
-        "deposit": (callback_general, {}),
-        "transfer": (callback_general, {}),
-        "withdrawal": (callback_general, {}),
+        "deposit": (callback_general, GrvtWSEndpointType.TRADE_DATA, {}),
+        "transfer": (callback_general, GrvtWSEndpointType.TRADE_DATA, {}),
+        "withdrawal": (callback_general, GrvtWSEndpointType.TRADE_DATA, {}),
     }
     try:
         if "private_key" in params:
@@ -101,7 +133,7 @@ async def subscribe(loop) -> GrvtCcxtWS:
 
 
 async def rpc_create_order(test_api: GrvtCcxtWS, side: str, price: str) -> str:
-    if test_api:
+    if test_api and test_api._private_key:
         # Send order
         client_order_id = str(rand_uint32())
         payload = await test_api.rpc_create_order(
@@ -122,7 +154,7 @@ async def rpc_create_order(test_api: GrvtCcxtWS, side: str, price: str) -> str:
 
 
 async def rpc_fetch_order(test_api: GrvtCcxtWS, client_order_id: str) -> None:
-    if test_api:
+    if test_api and test_api._private_key:
         # Send order
         payload = await test_api.rpc_fetch_order(
             params={
@@ -133,14 +165,14 @@ async def rpc_fetch_order(test_api: GrvtCcxtWS, client_order_id: str) -> None:
 
 
 async def rpc_fetch_open_orders(test_api: GrvtCcxtWS) -> None:
-    if test_api:
+    if test_api and test_api._private_key:
         # Send order
         payload = await test_api.rpc_fetch_open_orders()
         logger.info(f"rpc_fetch_open_orders: {payload=}")
 
 
 async def rpc_cancel_order(test_api: GrvtCcxtWS, client_order_id: str) -> None:
-    if test_api:
+    if test_api and test_api._private_key:
         # Send order
         payload = await test_api.rpc_cancel_order(
             params={
@@ -151,7 +183,7 @@ async def rpc_cancel_order(test_api: GrvtCcxtWS, client_order_id: str) -> None:
 
 
 async def rpc_cancel_all_orders(test_api: GrvtCcxtWS) -> None:
-    if test_api:
+    if test_api and test_api._private_key:
         # Send order
         payload = await test_api.rpc_cancel_all_orders()
         logger.info(f"rpc_cancel_order: {payload=}")
@@ -159,7 +191,7 @@ async def rpc_cancel_all_orders(test_api: GrvtCcxtWS) -> None:
 
 async def send_rpc_messages(test_api: GrvtCcxtWS) -> None:
     """Sends test RPC messages for send/fetch/cancel orders."""
-    if test_api:
+    if test_api and test_api._private_key:
         # Send order
         cloid = await rpc_create_order(test_api, side="buy", price="60000")
         if cloid:

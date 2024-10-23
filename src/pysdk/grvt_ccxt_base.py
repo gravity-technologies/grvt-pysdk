@@ -47,7 +47,7 @@ class GrvtCcxtBase:
         """Initialize the GrvtCcxtBase part."""
         self.logger = logger or logging.getLogger(__name__)
         self.env: GrvtEnv = env
-        self._trading_account_id = parameters.get("trading_account_id")
+        self._trading_account_id: str | None = parameters.get("trading_account_id")
         self._private_key = parameters.get("private_key")
         self._api_key = parameters.get("api_key")
         self._path_return_value_map: dict = {}
@@ -55,6 +55,10 @@ class GrvtCcxtBase:
         self.markets: dict | None = None
         self._clsname: str = type(self).__name__
         self.logger.info(f"GrvtCcxtBase: {self.env=}, {self._trading_account_id=}")
+
+    def get_trading_account_id(self) -> str | None:
+        """Returns the trading account id."""
+        return self._trading_account_id
 
     def should_refresh_cookie(self) -> bool:
         """

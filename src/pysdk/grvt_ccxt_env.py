@@ -22,6 +22,7 @@ class GrvtEndpointType(str, Enum):
     TRADE_DATA = "tdg"
     MARKET_DATA = "mdg"
 
+
 class GrvtWSEndpointType(str, Enum):
     TRADE_DATA = "tdg"
     MARKET_DATA = "mdg"
@@ -82,26 +83,33 @@ def get_grvt_ws_endpoint(
         }.get(endpoint_type)
     return None
 
-
+# Mapping of WS stream names to DEFAULT endpoint types
 GRVT_WS_STREAMS = {
     # ******* Market Data ********
-    "mini.s": [GrvtWSEndpointType.MARKET_DATA],
-    "mini.d": [GrvtWSEndpointType.MARKET_DATA],
-    "ticker.s": [GrvtWSEndpointType.MARKET_DATA],
-    "ticker.d": [GrvtWSEndpointType.MARKET_DATA],
-    "book.s": [GrvtWSEndpointType.MARKET_DATA],
-    "book.d": [GrvtWSEndpointType.MARKET_DATA],
-    "trade": [GrvtWSEndpointType.MARKET_DATA],
-    "candle": [GrvtWSEndpointType.MARKET_DATA],
+    "mini.s": GrvtWSEndpointType.MARKET_DATA,
+    "mini.d": GrvtWSEndpointType.MARKET_DATA,
+    "ticker.s": GrvtWSEndpointType.MARKET_DATA,
+    "ticker.d": GrvtWSEndpointType.MARKET_DATA,
+    "book.s": GrvtWSEndpointType.MARKET_DATA,
+    "book.d": GrvtWSEndpointType.MARKET_DATA,
+    "trade": GrvtWSEndpointType.MARKET_DATA,
+    "candle": GrvtWSEndpointType.MARKET_DATA,
     # ******* Trade Data ********
-    "order": [GrvtWSEndpointType.TRADE_DATA, GrvtWSEndpointType.TRADE_DATA_RPC_FULL],
-    "state": [GrvtWSEndpointType.TRADE_DATA],
-    "position": [GrvtWSEndpointType.TRADE_DATA],
-    "fill": [GrvtWSEndpointType.TRADE_DATA],
-    "transfer": [GrvtWSEndpointType.TRADE_DATA],
-    "deposit": [GrvtWSEndpointType.TRADE_DATA],
-    "withdrawal": [GrvtWSEndpointType.TRADE_DATA],
+    "order": GrvtWSEndpointType.TRADE_DATA,
+    "state": GrvtWSEndpointType.TRADE_DATA,
+    "position": GrvtWSEndpointType.TRADE_DATA,
+    "fill": GrvtWSEndpointType.TRADE_DATA,
+    "transfer": GrvtWSEndpointType.TRADE_DATA,
+    "deposit": GrvtWSEndpointType.TRADE_DATA,
+    "withdrawal": GrvtWSEndpointType.TRADE_DATA,
 }
+
+
+def is_trading_ws_endpoint(end_point_type: GrvtWSEndpointType) -> bool:
+    return end_point_type in [
+        GrvtWSEndpointType.TRADE_DATA,
+        GrvtWSEndpointType.TRADE_DATA_RPC_FULL,
+    ]
 
 
 # "wss://market-data.testnet.grvt.io/ws"
