@@ -35,6 +35,7 @@ from .grvt_ccxt_utils import get_order_rpc_payload
 
 WS_READ_TIMEOUT = 5
 
+
 class GrvtCcxtWS(GrvtCcxtPro):
     """
     GrvtCcxtPro class to interact with Grvt Rest API and WebSockets in asynchronous mode.
@@ -125,12 +126,8 @@ class GrvtCcxtWS(GrvtCcxtPro):
             return bool(not self._cookie or connection_is_open)
         raise ValueError(f"Unknown endpoint type {grvt_endpoint_type}")
 
-    def are_endpoints_connected(
-        self, grvt_endpoint_types: list[GrvtWSEndpointType]
-    ) -> bool:
-        return all(
-            self.is_endpoint_connected(endpoint) for endpoint in grvt_endpoint_types
-        )
+    def are_endpoints_connected(self, grvt_endpoint_types: list[GrvtWSEndpointType]) -> bool:
+        return all(self.is_endpoint_connected(endpoint) for endpoint in grvt_endpoint_types)
 
     async def connect_all_channels(self) -> None:
         """
@@ -216,9 +213,7 @@ class GrvtCcxtWS(GrvtCcxtPro):
 
     async def _reconnect(self, grvt_endpoint_type: GrvtWSEndpointType):
         try:
-            self.logger.info(
-                f"{self._clsname} {grvt_endpoint_type=} reconnect websocket starts"
-            )
+            self.logger.info(f"{self._clsname} {grvt_endpoint_type=} reconnect websocket starts")
             if not self.is_connecting[grvt_endpoint_type]:
                 await self._close_connection(grvt_endpoint_type)
                 await self.connect_channel(grvt_endpoint_type)
@@ -241,15 +236,21 @@ class GrvtCcxtWS(GrvtCcxtPro):
             self.logger.warning(f"{self._clsname} _resubscribe - No connection.")
 
     # **************** PUBLIC API CALLS
+    def is_stream_subscribed(self, grvt_endpoint_type: GrvtWSEndpointType, stream: str) -> bool:
+        versioned_stream = self.get_versioned_stream(stream)
+        return self.subscribed_streams.get(grvt_endpoint_type, {}).get(versioned_stream, False)
+
     def _check_susbcribed_stream(
         self, grvt_endpoint_type: GrvtWSEndpointType, message: dict
     ) -> None:
-        stream_subscribed: str = message.get("stream")
+        stream_subscribed: str = ""
+        if "stream" in message:
+            stream_subscribed = message.get("stream")
+        elif "result" in message and "stream" in message["result"]:
+            stream_subscribed = message.get("result", {}).get("stream", "")
         if stream_subscribed:
             if not self.subscribed_streams[grvt_endpoint_type].get(stream_subscribed):
-                self.logger.info(
-                    f"{self._clsname} subscribed to stream:{stream_subscribed}"
-                )
+                self.logger.info(f"{self._clsname} subscribed to stream:{stream_subscribed}")
                 self.subscribed_streams[grvt_endpoint_type][stream_subscribed] = True
 
     async def _read_messages(self, grvt_endpoint_type: GrvtWSEndpointType):
@@ -311,17 +312,13 @@ class GrvtCcxtWS(GrvtCcxtPro):
                     websockets.exceptions.ConnectionClosedError,
                     websockets.exceptions.ConnectionClosedOK,
                 ):
-                    self.logger.exception(
-                        f"{FN} connection closed {traceback.format_exc()}"
-                    )
+                    self.logger.exception(f"{FN} connection closed {traceback.format_exc()}")
                     await self._reconnect(grvt_endpoint_type)
                 except asyncio.TimeoutError:  # noqa: UP041
                     self.logger.debug(f"{FN} Timeout {WS_READ_TIMEOUT} secs")
                     pass
                 except Exception:
-                    self.logger.exception(
-                        f"{FN} connection failed {traceback.format_exc()}"
-                    )
+                    self.logger.exception(f"{FN} connection failed {traceback.format_exc()}")
                     await asyncio.sleep(1)
             else:
                 self.logger.info(f"{FN} not ready")
@@ -406,7 +403,9 @@ class GrvtCcxtWS(GrvtCcxtPro):
             return
         is_trade_data = is_trading_ws_endpoint(ws_end_point_type)
         if is_trade_data and not self._trading_account_id:
-            self.logger.error(f"{FN} {stream=} is a trading data connection. Requires trading_account_id.")
+            self.logger.error(
+                f"{FN} {stream=} is a trading data connection. Requires trading_account_id."
+            )
             return
         feed = self._construct_feed(stream, params)
         self.callbacks[ws_end_point_type][(stream, feed)] = callback
@@ -415,20 +414,21 @@ class GrvtCcxtWS(GrvtCcxtPro):
         )
         await self._subscribe_to_stream(ws_end_point_type, stream, feed)
 
+    def get_versioned_stream(self, stream: str) -> str:
+        return stream if self.api_ws_version == "v0" else f"{self.api_ws_version}.{stream}"
+
     async def _subscribe_to_stream(
         self,
         ws_end_point_type: GrvtWSEndpointType,
         stream: str,
         feed: str,
     ) -> None:
-        versioned_stream = (
-            stream if self.api_ws_version == "v0" else f"{self.api_ws_version}.{stream}"
-        )
+        versioned_stream = self.get_versioned_stream(stream)
         self._request_id += 1
         if ws_end_point_type in [
             GrvtWSEndpointType.TRADE_DATA,
             GrvtWSEndpointType.MARKET_DATA,
-        ]: # Legacy subscription
+        ]:  # Legacy subscription
             subscribe_json = json.dumps(
                 {
                     "request_id": self._request_id,
@@ -443,7 +443,7 @@ class GrvtCcxtWS(GrvtCcxtPro):
                 f"{stream=} version={self.api_ws_version} {versioned_stream=} {feed=}"
                 f" {subscribe_json=}"
             )
-        else: # RPC WS format
+        else:  # RPC WS format
             self._request_id += 1
             subscribe_json = json.dumps(
                 {
@@ -477,9 +477,7 @@ class GrvtCcxtWS(GrvtCcxtPro):
             "id": self._request_id,
         }
 
-    async def send_rpc_message(
-        self, end_point_type: GrvtWSEndpointType, message: dict
-    ) -> None:
+    async def send_rpc_message(self, end_point_type: GrvtWSEndpointType, message: dict) -> None:
         """
         Send a message to the server.
         """
@@ -501,9 +499,7 @@ class GrvtCcxtWS(GrvtCcxtPro):
         FN = f"{self._clsname} rpc_create_order"
         if not self.is_endpoint_connected(GrvtWSEndpointType.TRADE_DATA_RPC_FULL):
             raise GrvtInvalidOrder("Trade data connection not available.")
-        order = self._get_order_with_validations(
-            symbol, order_type, side, amount, price, params
-        )
+        order = self._get_order_with_validations(symbol, order_type, side, amount, price, params)
         self.logger.info(f"{FN} {order=}")
         payload = get_order_rpc_payload(order, self._private_key, self.env, self.markets)
         self._request_id += 1
@@ -625,7 +621,7 @@ class GrvtCcxtWS(GrvtCcxtPro):
             symbol: (str) NOT SUPPRTED.<br>
             params: dictionary with parameters. Valid keys:<br>
                 `client_order_id` (int): client assigned order ID.<br>
-        Returns: 
+        Returns:
             payload used to fetch order.<br>
         """
         FN = f"{self._clsname} rpc_cancel_order"
@@ -638,11 +634,7 @@ class GrvtCcxtWS(GrvtCcxtPro):
         elif "client_order_id" in params:
             payload["client_order_id"] = str(params["client_order_id"])
         else:
-            raise GrvtInvalidOrder(
-                f"{FN} requires either "
-                "order_id or params['client_order_id']"
-            )
+            raise GrvtInvalidOrder(f"{FN} requires either order_id or params['client_order_id']")
         jsonrpc_payload = self.jsonrpc_wrap_payload(payload, method="order")
         await self.send_rpc_message(GrvtWSEndpointType.TRADE_DATA_RPC_FULL, jsonrpc_payload)
         return jsonrpc_payload
-
