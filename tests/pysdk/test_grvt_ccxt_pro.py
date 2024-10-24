@@ -196,7 +196,7 @@ async def grvt_ccxt_pro():
         "trading_account_id": os.getenv("GRVT_TRADING_ACCOUNT_ID"),
         "private_key": os.getenv("GRVT_PRIVATE_KEY"),
     }
-    env = GrvtEnv(os.getenv("GRVT_ENV", "dev"))
+    env = GrvtEnv(os.getenv("GRVT_ENV", "testnet"))
     test_api = GrvtCcxtPro(env, logger, parameters=params)
     await test_api.load_markets()
     await asyncio.sleep(2)
