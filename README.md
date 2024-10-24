@@ -24,6 +24,7 @@
 - [GRVT Python SDK](#grvt-python-sdk)
   - [Table of Contents](#table-of-contents)
   - [Installation via pip](#installation-via-pip)
+    - [Configuration](#configuration)
   - [Usage](#usage)
   - [Contributor's guide](#contributors-guide)
     - [Prerequisites](#prerequisites)
@@ -47,13 +48,26 @@
 pip install grvt-pysdk
 ```
 
+### Configuration
+
+Setup these environment variables:
+
+```bash
+export GRVT_PRIVATE_KEY="`Secret Private Key` in API setup"
+export GRVT_API_KEY="`API Key` in API setup"
+export GRVT_TRADING_ACCOUNT_ID=<`Trading account ID` in API>
+export GRVT_ENV="testnet"
+export GRVT_END_POINT_VERSION="v1"
+export GRVT_WS_STREAM_VERSION="v1"
+```
+
 ## Usage
 
-There are various ways to use the GRVT Python SDK
+**Examples of how to use various methods to connect to GRVT API:**
 
-- [GRVT CCXT](https://github.com/gravity-technologies/grvt-pysdk/blob/main/tests/pysdk/test_grvt_ccxt.py) - CCXT compatible client for GRVT (sync Rest API calls)
-- [GRVT CCXT Pro](https://github.com/gravity-technologies/grvt-pysdk/blob/main/tests/pysdk/test_grvt_ccxt_pro.py) - CCXT Pro compatible client for GRVT (async Rest API calls)
-- [GRVT CCXT WS](https://github.com/gravity-technologies/grvt-pysdk/blob/main/tests/pysdk/test_grvt_ccxt_ws.py) - CCXT Pro + Web Socket client, supports async Rest APIs + WS subscriptions + JSON RPC calls over Web Sockets.
+- [GRVT CCXT](https://github.com/gravity-technologies/grvt-pysdk/blob/main/tests/pysdk/test_grvt_ccxt.py) - Example of usage of CCXT-compatible Python class `GrvtCcxt` with `synchronous` Rest API calls.
+- [GRVT CCXT Pro](https://github.com/gravity-technologies/grvt-pysdk/blob/main/tests/pysdk/test_grvt_ccxt_pro.py) - Example of usage of CCXT.PRO-compatible Python class `GrvtCcxtPro` with `asynchronous` Rest API calls.
+- [GRVT CCXT WS](https://github.com/gravity-technologies/grvt-pysdk/blob/main/tests/pysdk/test_grvt_ccxt_ws.py) - Example of usage of CCXT.PRO-compatible Python class `GrvtCcxtWS` with `asynchronous` Rest API calls + Web Socket subscriptions + JSON RPC calls over Web Sockets.
 - [GRVT API Sync](https://github.com/gravity-technologies/grvt-pysdk/blob/main/tests/pysdk/test_grvt_raw_sync.py) - Synchronous API client for GRVT
 - [GRVT API Async](https://github.com/gravity-technologies/grvt-pysdk/blob/main/tests/pysdk/test_grvt_raw_async.py) - Asynchronous API client for GRVT
 
