@@ -61,7 +61,7 @@ class GrvtCcxtWS(GrvtCcxtPro):
         super().__init__(env, logger, parameters)
         self._loop = loop
         self._clsname: str = type(self).__name__
-        self.api_ws_version = parameters.get("api_ws_version", "v0")
+        self.api_ws_version = parameters.get("api_ws_version", "v1")
         self.ws: dict[GrvtWSEndpointType, websockets.WebSocketClientProtocol | None] = {}
         self.callbacks: dict[GrvtWSEndpointType, dict[tuple[str, str], Callable]] = {}
         self.subscribed_streams: dict[GrvtWSEndpointType, dict] = {}
@@ -87,6 +87,9 @@ class GrvtCcxtWS(GrvtCcxtPro):
             self._loop.create_task(self._read_messages(grvt_endpoint_type))
         self.logger.info(f"{self._clsname} initialized {self.api_url=}")
         self.logger.info(f"{self._clsname} initialized {self.ws=}")
+
+    def __repr__(self) -> str:
+        return f"{self._clsname} {self.env=} {self.api_ws_version=}"
 
     async def __aexit__(self):
         for grvt_endpoint_type in self.endpoint_types:

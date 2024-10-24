@@ -39,7 +39,7 @@ async def subscribe(loop) -> GrvtCcxtWS:
     }
     if os.getenv("GRVT_PRIVATE_KEY"):
         params["private_key"] = os.getenv("GRVT_PRIVATE_KEY")
-    env = GrvtEnv(os.getenv("GRVT_ENV", "dev"))
+    env = GrvtEnv(os.getenv("GRVT_ENV", "testnet"))
 
     test_api = GrvtCcxtWS(env, loop, logger, parameters=params)
     await test_api.initialize()
