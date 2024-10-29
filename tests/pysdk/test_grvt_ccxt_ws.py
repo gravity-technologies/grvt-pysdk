@@ -13,8 +13,7 @@ from pysdk.grvt_ccxt_ws import GrvtCcxtWS
 # Utility functions , not called directly by the __main__ test routine
 async def callback_general(message: dict) -> None:
     message.get("params", {}).get("channel")
-    market = message.get("feed", {}).get("instrument")
-    logger.info(f"callback_general(): market:{market} message:{message}")
+    logger.info(f"callback_general(): message:{message}")
 
 
 async def grvt_ws_subscribe(api: GrvtCcxtWS, args_list: dict) -> None:
