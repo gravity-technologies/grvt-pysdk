@@ -1,5 +1,6 @@
 from enum import Enum
 
+from eth_keys import keys
 from eth_account import Account
 from eth_account.messages import encode_typed_data
 
@@ -10,6 +11,9 @@ from .grvt_raw_types import Instrument, Order, TimeInForce
 # INSTRUMENT CONVERSION #
 #########################
 
+
+# Ethereum Curve Contant from https://github.com/ethereum/eth-keys/blob/d8d1ecc6e159dd1dd7b12d7a203f8a276fa2a8ba/eth_keys/constants.py#L10
+SECPK1_N = 115792089237316195423570985008687907852837564279074904382605163141518161494337
 
 PRICE_MULTIPLIER = 1_000_000_000
 
@@ -65,6 +69,12 @@ EIP712_ORDER_MESSAGE_TYPE = {
     ],
 }
 
+def normalize_s(s: int) -> int:
+    curve_order = SECPK1_N  # SECP256k1 curve order
+    half_order = curve_order // 2
+    if s > half_order:
+        return curve_order - s
+    return s
 
 def sign_order(
     order: Order,
@@ -100,8 +110,17 @@ def sign_order(
     domain_data = get_EIP712_domain_data(config.env)
     signature = encode_typed_data(domain_data, EIP712_ORDER_MESSAGE_TYPE, message_data)
     signed_message = account.sign_message(signature)
-    order.signature.r = "0x" + hex(signed_message.r)[2:].zfill(64)
-    order.signature.s = "0x" + hex(signed_message.s)[2:].zfill(64)
-    order.signature.v = signed_message.v
+
+    # Normalize the s value
+    normalized_s = normalize_s(signed_message.s)
+    order.signature.s = "0x" + normalized_s.to_bytes(32, byteorder='big').hex()
+
+    # Handle the v value
+    # Ensure v is either 27 or 28
+    v = signed_message.v
+    if v not in (27, 28):
+        v = v + 27 if v < 27 else v
+    order.signature.v = v
+
     order.signature.signer = str(account.address)
     return order
