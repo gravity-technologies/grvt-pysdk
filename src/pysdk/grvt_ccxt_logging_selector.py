@@ -11,9 +11,9 @@ if LOG_FILE == "TRUE":
     fn = sys.argv[0].split("/")[-1]
     fn_base = fn.split(".")[0]
     if GRVT_ENV:
-        filename=f"logs/{fn_base}_{GRVT_ENV}_{LOG_TIMESTAMP}.log"
+        filename = f"logs/{fn_base}_{GRVT_ENV}_{LOG_TIMESTAMP}.log"
     else:
-        filename=f"logs/{fn_base}_{LOG_TIMESTAMP}.log"
+        filename = f"logs/{fn_base}_{LOG_TIMESTAMP}.log"
     os.makedirs("logs", exist_ok=True)
     logging.basicConfig(
         filename=filename,
@@ -25,7 +25,8 @@ if LOG_FILE == "TRUE":
     logger.info(f"Using FILE logger {LOG_FILE=}")
 else:
     logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+        level=os.getenv("LOGGING_LEVEL", "INFO"),
+        format="%(asctime)s - %(levelname)s - %(message)s",
     )
     logger = logging.getLogger(__name__)
     logger.info(f"Using CONSOLE logger {LOG_FILE=}")
