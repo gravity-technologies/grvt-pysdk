@@ -864,7 +864,6 @@ dependencies = [
     { name = "eth-account", marker = "python_full_version < '3.11' or python_full_version >= '3.13'" },
     { name = "inflection", marker = "python_full_version < '3.11' or python_full_version >= '3.13'" },
     { name = "requests", marker = "python_full_version < '3.11' or python_full_version >= '3.13'" },
-    { name = "websocket", marker = "python_full_version < '3.11' or python_full_version >= '3.13'" },
     { name = "websockets", marker = "python_full_version < '3.11' or python_full_version >= '3.13'" },
 ]
 
@@ -888,7 +887,6 @@ requires-dist = [
     { name = "eth-account", specifier = ">=0.13.4" },
     { name = "inflection", specifier = ">=0.5.1" },
     { name = "requests", specifier = ">=2.32.3" },
-    { name = "websocket", specifier = ">=0.2.1" },
     { name = "websockets", specifier = ">=13.1" },
 ]
 
@@ -1720,16 +1718,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/ed/63/22ba4ebfe7430b763
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ce/d9/5f4c13cecde62396b0d3fe530a50ccea91e7dfc1ccf0e09c228841bb5ba8/urllib3-2.2.3-py3-none-any.whl", hash = "sha256:ca899ca043dcb1bafa3e262d73aa25c465bfb49e0bd9dd5d59f1d0acba2f8fac", size = 126338 },
 ]
-
-[[package]]
-name = "websocket"
-version = "0.2.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "gevent", marker = "python_full_version < '3.11' or python_full_version >= '3.13'" },
-    { name = "greenlet", marker = "python_full_version < '3.11' or python_full_version >= '3.13'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/f2/6d/a60d620ea575c885510c574909d2e3ed62129b121fa2df00ca1c81024c87/websocket-0.2.1.tar.gz", hash = "sha256:42b506fae914ac5ed654e23ba9742e6a342b1a1c3eb92632b6166c65256469a4", size = 195339 }
 
 [[package]]
 name = "websockets"

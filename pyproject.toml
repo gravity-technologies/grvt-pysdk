@@ -16,7 +16,6 @@ dependencies = [
     "eth-account>=0.13.4",
     "inflection>=0.5.1",
     "requests>=2.32.3",
-    "websocket>=0.2.1",
     "websockets>=13.1",
 ]
 
