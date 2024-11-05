@@ -1,4 +1,5 @@
 from enum import Enum
+from decimal import Decimal
 
 from eth_account import Account
 from eth_account.messages import encode_typed_data
@@ -68,12 +69,14 @@ EIP712_ORDER_MESSAGE_TYPE = {
     ],
 }
 
+
 def normalize_s(s: int) -> int:
     curve_order = SECPK1_N  # SECP256k1 curve order
     half_order = curve_order // 2
     if s > half_order:
         return curve_order - s
     return s
+
 
 def sign_order(
     order: Order,
@@ -88,11 +91,17 @@ def sign_order(
     for leg in order.legs:
         instrument = instruments[leg.instrument]
         size_multiplier = 10**instrument.base_decimals
+
+        # use Decimal() instead of float() to avoid precision loss
+        # int(float("1.013") * 1e9) = 1012999999
+        # int(Decimal("1.013") * Decimal(1e9) = 1013000000
+        size_int = int(Decimal(leg.size) * Decimal(size_multiplier))
+        price_int = int(Decimal(leg.limit_price) * Decimal(PRICE_MULTIPLIER))
         legs.append(
             {
                 "assetID": instrument.instrument_hash,
-                "contractSize": int(float(leg.size) * size_multiplier),
-                "limitPrice": int(float(leg.limit_price) * PRICE_MULTIPLIER),
+                "contractSize": size_int,
+                "limitPrice": price_int,
                 "isBuyingContract": leg.is_buying_asset,
             }
         )
@@ -107,19 +116,15 @@ def sign_order(
         "expiration": order.signature.expiration,
     }
     domain_data = get_EIP712_domain_data(config.env)
-    signature = encode_typed_data(domain_data, EIP712_ORDER_MESSAGE_TYPE, message_data)
+    signature = encode_typed_data(
+        domain_data, EIP712_ORDER_MESSAGE_TYPE, message_data)
     signed_message = account.sign_message(signature)
 
-    # Normalize the s value
-    normalized_s = normalize_s(signed_message.s)
-    order.signature.s = "0x" + normalized_s.to_bytes(32, byteorder='big').hex()
-
-    # Handle the v value
-    # Ensure v is either 27 or 28
-    v = signed_message.v
-    if v not in (27, 28):
-        v = v + 27 if v < 27 else v
-    order.signature.v = v
-
+    order.signature.s = "0x" + \
+        signed_message.s.to_bytes(32, byteorder='big').hex()
+    order.signature.r = "0x" + \
+        signed_message.r.to_bytes(32, byteorder='big').hex()
+    order.signature.v = signed_message.v
     order.signature.signer = str(account.address)
+
     return order
