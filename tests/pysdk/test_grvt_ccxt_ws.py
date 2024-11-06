@@ -196,11 +196,13 @@ async def send_rpc_messages(test_api: GrvtCcxtWS) -> None:
         if cloid:
             await rpc_fetch_open_orders(test_api)
             await rpc_fetch_order(test_api, cloid)
+            await asyncio.sleep(5)
             await rpc_cancel_order(test_api, cloid)
         cloid = await rpc_create_order(test_api, side="sell", price="70000")
         if cloid:
             await rpc_fetch_open_orders(test_api)
             await rpc_fetch_order(test_api, cloid)
+            await asyncio.sleep(5)
             await rpc_cancel_all_orders(test_api)
 
 
