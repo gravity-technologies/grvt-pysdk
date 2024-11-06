@@ -12,9 +12,6 @@ from .grvt_raw_types import Instrument, Order, TimeInForce
 #########################
 
 
-# Ethereum Curve Contant from https://github.com/ethereum/eth-keys/blob/d8d1ecc6e159dd1dd7b12d7a203f8a276fa2a8ba/eth_keys/constants.py#L10
-SECPK1_N = 115792089237316195423570985008687907852837564279074904382605163141518161494337
-
 PRICE_MULTIPLIER = 1_000_000_000
 
 
@@ -68,15 +65,6 @@ EIP712_ORDER_MESSAGE_TYPE = {
         {"name": "isBuyingContract", "type": "bool"},
     ],
 }
-
-
-def normalize_s(s: int) -> int:
-    curve_order = SECPK1_N  # SECP256k1 curve order
-    half_order = curve_order // 2
-    if s > half_order:
-        return curve_order - s
-    return s
-
 
 def sign_order(
     order: Order,

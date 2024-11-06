@@ -398,8 +398,8 @@ def get_signable_message(
         legs.append(
             {
                 "assetID": instrument["instrument_hash"],
-                "contractSize": int(float(leg.size) * size_multiplier),
-                "limitPrice": int(leg.limit_price * PRICE_MULTIPLIER),
+                "contractSize": int(Decimal(leg.size) * Decimal(size_multiplier)),
+                "limitPrice": int(Decimal(leg.limit_price) * Decimal(PRICE_MULTIPLIER)),
                 "isBuyingContract": leg.is_buying_asset,
             }
         )
@@ -423,8 +423,10 @@ def get_order_payload(
 ) -> dict:
     signable_message = get_signable_message(order, env, instruments)
     signed_message = Account.sign_message(signable_message, private_key)
-    order.signature.r = "0x" + hex(signed_message.r)[2:].zfill(64)
-    order.signature.s = "0x" + hex(signed_message.s)[2:].zfill(64)
+    order.signature.s = "0x" + \
+        signed_message.s.to_bytes(32, byteorder='big').hex()
+    order.signature.r = "0x" + \
+        signed_message.r.to_bytes(32, byteorder='big').hex()
     order.signature.v = signed_message.v
     order.signature.signer = Account.from_key(private_key).address
 

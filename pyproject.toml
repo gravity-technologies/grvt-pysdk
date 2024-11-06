@@ -1,6 +1,6 @@
 [project]
 name = "grvt-pysdk"
-version = "0.1.9"
+version = "0.1.10"
 description = "GRVT Python SDK"
 requires-python = ">=3.10"
 license = { file = "LICENSE" }
