@@ -1,6 +1,7 @@
 import os
 import time
 import traceback
+from decimal import Decimal
 
 from pysdk.grvt_ccxt import GrvtCcxt
 from pysdk.grvt_ccxt_env import GrvtEnv
@@ -8,10 +9,13 @@ from pysdk.grvt_ccxt_logging_selector import logger
 from pysdk.grvt_ccxt_test_utils import validate_return_values
 from pysdk.grvt_ccxt_utils import rand_uint32
 
+tickers: dict[str, dict] = {}
+mini_tickers: dict[str, dict] = {}
 
-def get_open_orders(api: GrvtCcxt) -> int:
+
+def get_open_orders(api: GrvtCcxt, symbol: str = "BTC_USDT_Perp") -> int:
     open_orders = api.fetch_open_orders(
-        symbol="BTC_USDT_Perp",
+        symbol=symbol,
         params={"kind": "PERPETUAL"},
     )
     logger.info(f"open_orders: {open_orders=}")
@@ -50,6 +54,7 @@ def cancel_all_orders(api: GrvtCcxt) -> bool:
 
 
 def print_instruments(api: GrvtCcxt):
+    global mini_tickers, tickers
     logger.info("print_instruments: START")
     if not api.markets:
         return
@@ -57,10 +62,10 @@ def print_instruments(api: GrvtCcxt):
         logger.info(f"{market=}")
         instrument = market["instrument"]
         logger.info(f"fetch_market: {instrument=}, {api.fetch_market(instrument)}")
-        logger.info(
-            f"fetch_mini_ticker: {instrument=}, " f"{api.fetch_mini_ticker(instrument)}"
-        )
-        logger.info(f"fetch_ticker: {instrument=}, " f"{api.fetch_ticker(instrument)}")
+        mini_tickers[instrument] = api.fetch_mini_ticker(instrument)
+        logger.info(f"fetch_mini_ticker: {instrument=}, {mini_tickers[instrument]}")
+        tickers[instrument] = api.fetch_ticker(instrument)
+        logger.info(f"fetch_ticker: {instrument=}, {tickers[instrument]}")
         logger.info(
             f"fetch_order_book {instrument=}, "
             f"{api.fetch_order_book(instrument, limit=10)}"
@@ -83,10 +88,37 @@ def print_instruments(api: GrvtCcxt):
             logger.info(f"fetch_ohlcv {type} {instrument=}, {ohlc}")
 
 
-def send_order(api: GrvtCcxt, side: str, client_order_id: int) -> dict:
-    price = 64_000 if side == "buy" else 65_000
+def send_order(
+    api: GrvtCcxt,
+    symbol: str,
+    side: str,
+    client_order_id: int,
+    price: Decimal | None = None,
+    passive: bool = True,
+) -> dict:
+    global tickers, mini_tickers
+    if not price:
+        if symbol in tickers:
+            price = (
+                tickers[symbol].get("best_bid_price")
+                if (side == "buy" and passive) or (side == "sell" and not passive)
+                else tickers[symbol].get("best_ask_price")
+            )
+        elif symbol in mini_tickers:
+            price = (
+                mini_tickers[symbol].get("best_bid_price")
+                if (side == "buy" and passive) or (side == "sell" and not passive)
+                else mini_tickers[symbol].get("best_ask_price")
+            )
+        else:
+            logger.warning(
+                f"send_order: {symbol=} not found in {tickers=} OR {mini_tickers=}"
+            )
+            price = 60000 if side == "buy" else 70000
+        if price:
+            price = Decimal(price)
     send_order_response = api.create_order(
-        symbol="BTC_USDT_Perp",
+        symbol=symbol,
         order_type="limit",
         side=side,
         amount=0.01,
@@ -98,12 +130,14 @@ def send_order(api: GrvtCcxt, side: str, client_order_id: int) -> dict:
 
 
 # Test scenarios, called by the __main__ test routine
-def send_fetch_order(api: GrvtCcxt):
+def send_fetch_order(api: GrvtCcxt, symbol: str = "BTC_USDT_Perp"):
     client_order_id = rand_uint32()
-    _ = send_order(api, side="buy", client_order_id=client_order_id)
+    _ = send_order(
+        api, symbol, side="buy", client_order_id=client_order_id, price=None, passive=True
+    )
     order_status = api.fetch_order(
         id=None,
-        symbol="BTC_USDT_Perp",
+        symbol=symbol,
         params={"client_order_id": client_order_id},
     )
     logger.info(f"result of fetch_order: {order_status=}")
@@ -117,10 +151,10 @@ def check_cancel_check_orders(api: GrvtCcxt):
         get_open_orders(api)
 
 
-def fetch_my_trades(api: GrvtCcxt):
+def fetch_my_trades(api: GrvtCcxt, symbol: str = "BTC_USDT_Perp"):
     logger.info("fetch_my_trades: START")
     my_trades = api.fetch_my_trades(
-        symbol="BTC_USDT_Perp",
+        symbol=symbol,
         limit=10,
         params={},
     )
@@ -128,9 +162,11 @@ def fetch_my_trades(api: GrvtCcxt):
     logger.info(f"my_trades: {my_trades=}")
 
 
-def send_cancel_order(api: GrvtCcxt):
+def send_cancel_order(api: GrvtCcxt, symbol: str = "BTC_USDT_Perp"):
     logger.info("send_cancel_order: START")
-    order_response = send_order(api, side="sell", client_order_id=rand_uint32())
+    order_response = send_order(
+        api, symbol, side="sell", client_order_id=rand_uint32(), price=None, passive=True
+    )
     if order_response:
         # Get status
         client_order_id = order_response.get("metadata", {}).get("client_order_id")
@@ -138,12 +174,33 @@ def send_cancel_order(api: GrvtCcxt):
         order_status = api.fetch_order(params={"client_order_id": client_order_id})
         logger.info(f"{order_status=}")
         # Cancel
-        time.sleep(10)
+        time.sleep(2)
         logger.info(f"cancel order by {client_order_id=}")
         success = api.cancel_order(params={"client_order_id": client_order_id})
         logger.info(f"cancel_order: {success=}")
     else:
         logger.warning("send_cancel_order: order_response is None")
+
+
+def send_cancel_aggressive_order(api: GrvtCcxt, symbol: str = "BTC_USDT_Perp"):
+    FN = f"send_cancel_aggressive_order {symbol=}"
+    logger.info(f"{FN}: START")
+    order_response = send_order(
+        api, symbol, side="sell", client_order_id=rand_uint32(), price=None, passive=False
+    )
+    if order_response:
+        # Get status
+        client_order_id = order_response.get("metadata", {}).get("client_order_id")
+        logger.info(f"{FN} fetch_order by {client_order_id=}")
+        order_status = api.fetch_order(params={"client_order_id": client_order_id})
+        logger.info(f"{FN} {order_status=}")
+        # Cancel
+        time.sleep(2)
+        logger.info(f"{FN} cancel order by {client_order_id=}")
+        success = api.cancel_order(params={"client_order_id": client_order_id})
+        logger.info(f"{FN} cancel_order: {success=}")
+    else:
+        logger.warning("{FN}: order_response is None")
 
 
 def print_markets(api: GrvtCcxt):
@@ -200,25 +257,26 @@ def test_grvt_ccxt():
     test_api = GrvtCcxt(env, logger, parameters=params)
     function_list = [
         fetch_all_markets,
-        print_markets,
+        # print_markets,
         print_instruments,
-        print_account_summary,
-        print_account_history,
+        # print_account_summary,
+        # print_account_history,
         # print_positions,
         # -------- TRADE related
         # fetch_my_trades,
-        fetch_order_history,
+        # fetch_order_history,
         # # -------- order related
-        send_fetch_order,
-        fetch_my_trades,
-        print_positions,
-        check_cancel_check_orders,
-        send_cancel_order,
-        get_open_orders,
-        send_fetch_order,
-        get_open_orders,
-        cancel_all_orders,
-        get_open_orders,
+        send_cancel_aggressive_order,
+        # send_fetch_order,
+        # fetch_my_trades,
+        # print_positions,
+        # check_cancel_check_orders,
+        # send_cancel_order,
+        # get_open_orders,
+        # send_fetch_order,
+        # get_open_orders,
+        # cancel_all_orders,
+        # get_open_orders,
     ]
     for f in function_list:  # [get_open_orders]:
         try:

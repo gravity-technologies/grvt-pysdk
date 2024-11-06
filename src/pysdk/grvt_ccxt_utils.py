@@ -30,6 +30,9 @@ from .grvt_ccxt_types import (
     Num,
 )
 
+# Ethereum Curve Contant from https://github.com/ethereum/eth-keys/blob/d8d1ecc6e159dd1dd7b12d7a203f8a276fa2a8ba/eth_keys/constants.py#L10
+SECPK1_N = 115792089237316195423570985008687907852837564279074904382605163141518161494337
+
 
 def rand_uint32():
     return random.randint(0, 2**32 - 1)
@@ -417,6 +420,13 @@ def get_signable_message(
     logging.info(f"{FN} {domain_data=}\n{EIP712_ORDER_MESSAGE_TYPE=}\n{message_data=}")
     return encode_typed_data(domain_data, EIP712_ORDER_MESSAGE_TYPE, message_data)
 
+def normalize_s(s: int) -> int:
+    curve_order = SECPK1_N  # SECP256k1 curve order
+    half_order = curve_order // 2
+    if s > half_order:
+        return curve_order - s
+    return s
+
 
 def get_order_payload(
     order: GrvtOrder, private_key: str, env: GrvtEnv, instruments: list[dict]
@@ -424,9 +434,15 @@ def get_order_payload(
     signable_message = get_signable_message(order, env, instruments)
     signed_message = Account.sign_message(signable_message, private_key)
     order.signature.r = "0x" + hex(signed_message.r)[2:].zfill(64)
-    order.signature.s = "0x" + hex(signed_message.s)[2:].zfill(64)
-    order.signature.v = signed_message.v
-    order.signature.signer = Account.from_key(private_key).address
+    # Normalize the s value
+    normalized_s = normalize_s(signed_message.s)
+    order.signature.s = "0x" + normalized_s.to_bytes(32, byteorder='big').hex()
+    # Handle the v value. Ensure v is either 27 or 28
+    v = signed_message.v
+    if v not in (27, 28):
+        v = v + 27 if v < 27 else v
+    order.signature.v = v
+    order.signature.signer = str(Account.from_key(private_key).address)
 
     return {
         "order": {

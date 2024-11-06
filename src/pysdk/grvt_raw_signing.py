@@ -109,7 +109,7 @@ def sign_order(
     domain_data = get_EIP712_domain_data(config.env)
     signature = encode_typed_data(domain_data, EIP712_ORDER_MESSAGE_TYPE, message_data)
     signed_message = account.sign_message(signature)
-
+    order.signature.r = "0x" + hex(signed_message.r)[2:].zfill(64)
     # Normalize the s value
     normalized_s = normalize_s(signed_message.s)
     order.signature.s = "0x" + normalized_s.to_bytes(32, byteorder='big').hex()
