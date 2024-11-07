@@ -13,9 +13,12 @@ import traceback
 from asyncio.events import AbstractEventLoop
 from collections.abc import Callable
 from enum import Enum
-from dacite import Config, from_dict
 
 import websockets
+from dacite import Config, from_dict
+
+from . import grvt_exceptions as grvt_exceptions
+from . import grvt_raw_types as grvt_types
 
 # import requests
 # from env import ENDPOINTS
@@ -23,19 +26,19 @@ from .grvt_ccxt_env import (
     GRVT_WS_STREAMS,
     GrvtEndpointType,
     GrvtEnv,
-    get_grvt_ws_endpoint
+    get_grvt_ws_endpoint,
 )
-from .grvt_raw_base import GrvtError
-from . import grvt_exceptions as grvt_exceptions
 from .grvt_ccxt_pro import GrvtCcxtPro
-from . import grvt_raw_types as grvt_types
+from .grvt_raw_base import GrvtError
 
 WS_READ_TIMEOUT = 5
 
 #### THESE ARE TO BE MOVED OUT AND AUTO GENERATED ####
 
 # TODO - auto generate full set
+
 # GrvtStreamType defines the available streams to subscribe to
+# This should be auto generated from the API documentation
 class GrvtStreamType(str, Enum):
     MINI_TICKER_SNAPHOT = "mini.s"
     MINI_TICKER_DELTA = "mini.d"
@@ -47,6 +50,9 @@ class GrvtParams:
 class GrvtTickerInterval(int, Enum):
     INTERVAL_500 = 500
 
+### One of these should be generated for each type of data that can be subscribed
+### The client script simply instantiates the ones they're interested in and passes them
+### to the GrvtBaseWSAsync.subscribe() method
 class GrvtMiniTickerParams(GrvtParams):
     def __init__(self,
                  instrument: str,
@@ -57,6 +63,9 @@ class GrvtMiniTickerParams(GrvtParams):
     def get_feed(self) ->str:
         return f"{self.instrument}@{self.interval}" 
 
+### This interface should be auto generated from the API documentation
+### The client script needs to implement this interface and pass it to a 
+### GrvtStream derived class such as MiniTickerSnapStream
 class GrvtMessageHandler:
     def handle_mini_ticker_snapshot(self, data: grvt_types.WSMiniTickerFeedDataV1, subscription_id: int):
         pass
@@ -73,6 +82,9 @@ class GrvtStream:
     def handle_message(self, json_data: any):
         pass
 
+### We need to auto gen one of these for each type of data that can be recieved
+### The client script simply instantiates the ones they're interested in and passes them
+### to the GrvtBaseWSAsync.subscribe() method
 class MiniTickerSnapStream(GrvtStream):
     def __init__(
             self,
