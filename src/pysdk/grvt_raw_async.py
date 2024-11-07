@@ -160,6 +160,18 @@ class GrvtRawAsync(GrvtRawAsyncBase):
             return GrvtError(**resp)
         return from_dict(types.ApiPositionsResponse, resp, Config(cast=[Enum]))
 
+    async def funding_payment_history_v1(
+        self, req: types.ApiFundingPaymentHistoryRequest
+    ) -> types.ApiFundingPaymentHistoryResponse | GrvtError:
+        resp = await self._post(
+            True, self.td_rpc + "/full/v1/funding_payment_history", req
+        )
+        if resp.get("code"):
+            return GrvtError(**resp)
+        return from_dict(
+            types.ApiFundingPaymentHistoryResponse, resp, Config(cast=[Enum])
+        )
+
     async def deposit_v1(
         self, req: types.ApiDepositRequest
     ) -> types.AckResponse | GrvtError:

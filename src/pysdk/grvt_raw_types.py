@@ -157,18 +157,22 @@ class OrderRejectReason(Enum):
     UNSUPPORTED_TIME_IN_FORCE = "UNSUPPORTED_TIME_IN_FORCE"
     # the order has multiple legs, but multiple legs are not supported by this venue
     MULTI_LEGGED_ORDER = "MULTI_LEGGED_ORDER"
+    # the order would have caused the subaccount to exceed the max position size
+    EXCEED_MAX_POSITION_SIZE = "EXCEED_MAX_POSITION_SIZE"
+    # the signature supplied is more than 30 days in the future
+    EXCEED_MAX_SIGNATURE_EXPIRATION = "EXCEED_MAX_SIGNATURE_EXPIRATION"
 
 
 class OrderStatus(Enum):
-    # Order is waiting for Trigger Condition to be hit
+    # Order has been sent to the matching engine and is pending a transition to open/filled/rejected.
     PENDING = "PENDING"
-    # Order is actively matching on the orderbook, could be unfilled or partially filled
+    # Order is actively matching on the matching engine, could be unfilled or partially filled.
     OPEN = "OPEN"
-    # Order is fully filled and hence closed
+    # Order is fully filled and hence closed. Taker Orders can transition directly from pending to filled, without going through open.
     FILLED = "FILLED"
-    # Order is rejected by GRVT Backend since if fails a particular check (See OrderRejectReason)
+    # Order is rejected by matching engine since if fails a particular check (See OrderRejectReason). Once an order is open, it cannot be rejected.
     REJECTED = "REJECTED"
-    # Order is cancelled by the user using one of the supported APIs (See OrderRejectReason)
+    # Order is cancelled by the user using one of the supported APIs (See OrderRejectReason). Before an order is open, it cannot be cancelled.
     CANCELLED = "CANCELLED"
 
 
@@ -362,6 +366,56 @@ class ApiFillHistoryResponse:
 
 
 @dataclass
+class ApiFundingPaymentHistoryRequest:
+    """
+    Query for all historical funding payments made by a single account.
+
+    Pagination works as follows:<ul><li>We perform a reverse chronological lookup, starting from `end_time`. If `end_time` is not set, we start from the most recent data.</li><li>The lookup is limited to `limit` records. If more data is requested, the response will contain a `next` cursor for you to query the next page.</li><li>If a `cursor` is provided, it will be used to fetch results from that point onwards.</li><li>Pagination will continue until the `start_time` is reached. If `start_time` is not set, pagination will continue as far back as our data retention policy allows.</li></ul>
+    """
+
+    # The sub account ID to request for
+    sub_account_id: str
+    # The perpetual instrument to filter for
+    instrument: str | None = None
+    # The start time to apply in unix nanoseconds. If nil, this defaults to all start times. Otherwise, only entries matching the filter will be returned
+    start_time: str | None = None
+    # The end time to apply in unix nanoseconds. If nil, this defaults to all end times. Otherwise, only entries matching the filter will be returned
+    end_time: str | None = None
+    # The limit to query for. Defaults to 500; Max 1000
+    limit: int | None = None
+    # The cursor to indicate when to start the query from
+    cursor: str | None = None
+
+
+@dataclass
+class FundingPayment:
+    # Time at which the event was emitted in unix nanoseconds
+    event_time: str
+    # The sub account ID that made the funding payment
+    sub_account_id: str
+    # The perpetual instrument being funded
+    instrument: str
+    # The currency of the funding payment
+    currency: Currency
+    # The amount of the funding payment. Positive if paid, negative if received
+    amount: str
+    """
+    The transaction ID of the funding payment.
+    Funding payments can be triggered by a trade, transfer, or liquidation.
+    The `tx_id` will match the corresponding `trade_id` or `tx_id`.
+    """
+    tx_id: str
+
+
+@dataclass
+class ApiFundingPaymentHistoryResponse:
+    # The funding payments matching the request asset
+    result: list[FundingPayment]
+    # The cursor to indicate when to start the query from
+    next: str
+
+
+@dataclass
 class ApiSubAccountSummaryRequest:
     # The subaccount ID to filter by
     sub_account_id: str
@@ -510,6 +564,18 @@ class FundingAccountSummary:
 class ApiFundingAccountSummaryResponse:
     # The funding account summary
     result: FundingAccountSummary
+
+
+@dataclass
+class ApiListAggregatedAccountSummaryRequest:
+    # The list of main account ID to request for
+    main_account_ids: list
+
+
+@dataclass
+class ApiListAggregatedAccountSummaryResponse:
+    # The list of aggregated account summaries of requested main accounts
+    account_summaries: list[ApiAggregatedAccountSummaryResponse]
 
 
 @dataclass
@@ -770,12 +836,14 @@ class Instrument:
     base_decimals: int
     # The smallest denomination of the quote asset supported by GRVT (+3 represents 0.001, -3 represents 1000, 0 represents 1)
     quote_decimals: int
-    # The size of a single tick, expressed in quote asset decimal units
+    # The size of a single tick, expressed in price decimal units
     tick_size: str
     # The minimum contract size, expressed in base asset decimal units
     min_size: str
     # Creation time in unix nanoseconds
     create_time: str
+    # The maximum position size, expressed in base asset decimal units
+    max_position_size: str
 
 
 @dataclass
@@ -980,6 +1048,8 @@ class JSONRPCResponse:
 
     # The JSON RPC version to use for the request
     jsonrpc: str
+    # The method used in the request for this response (eg: `subscribe` / `unsubscribe` / `v1/instrument` )
+    method: str
     # The result for the request
     result: Any | None = None
     # The error for the request
@@ -1249,6 +1319,34 @@ class WSCandlestickFeedDataV1:
 
 
 @dataclass
+class WSUnsubscribeAllParams:
+    pass
+
+@dataclass
+class StreamReference:
+    # The channel to subscribe to (eg: ticker.s / ticker.d)
+    stream: str
+    # The list of selectors for the stream
+    selectors: list[str]
+
+
+@dataclass
+class WSUnsubscribeAllResult:
+    # The list of stream references unsubscribed from
+    stream_reference: list[StreamReference]
+
+
+@dataclass
+class WSListStreamsParams:
+    pass
+
+@dataclass
+class WSListStreamsResult:
+    # The list of stream references  the connection is connected to
+    stream_reference: list[StreamReference]
+
+
+@dataclass
 class ApiGetAllInstrumentsRequest:
     # Fetch only active instruments
     is_active: bool | None = None
@@ -1332,6 +1430,8 @@ class OrderState:
     traded_size: list[str]
     # Time at which the order was updated by GRVT, expressed in unix nanoseconds
     update_time: str
+    # The average fill price of the order. Sorted in same order as Order.Legs
+    avg_fill_price: list[str]
 
 
 @dataclass
@@ -1495,7 +1595,6 @@ class ApiOrderHistoryResponse:
 class EmptyRequest:
     pass
 
-
 @dataclass
 class Ack:
     # Gravity has acknowledged that the request has been successfully received and it will process it in the backend
@@ -1649,6 +1748,18 @@ class ApiFindFirstEpochMetricResponse:
 
 
 @dataclass
+class ApiFindEcosystemEpochMetricResponse:
+    # The epoch metric
+    metric: EcosystemMetric
+    # The rank of the account in the ecosystem
+    rank: int
+    # The total number of accounts in the ecosystem
+    total: int
+    # The time when the ecosystem points were last calculated
+    last_calculated_at: str
+
+
+@dataclass
 class EcosystemLeaderboardUser:
     # The off chain account id
     account_id: str
@@ -1742,10 +1853,6 @@ class ApproximateLPSnapshot:
 class LPPoint:
     # The main account id
     main_account_id: str
-    # The LP Asset
-    lp_asset: str
-    # Start time of the epoch - phase
-    start_interval: str
     # Liquidity score
     liquidity_score: str
     # The rank of user in the LP leaderboard
@@ -1771,9 +1878,9 @@ class QueryGetLatestLPSnapshotResponse:
 @dataclass
 class ApiGetLatestLPSnapshotRequest:
     # The kind filter to apply
-    kind: Kind
+    kind: Kind | None = None
     # The base filter to apply
-    base: Currency
+    base: Currency | None = None
 
 
 @dataclass
@@ -1802,12 +1909,12 @@ class ApiGetLPLeaderboardResponse:
 
 @dataclass
 class ApiGetLPPointRequest:
-    # Start time of the epoch - phase
-    start_interval: str
-    # The kind filter to apply
-    kind: Kind
-    # The base filter to apply
-    base: Currency
+    # Optional. Start time of the epoch - phase
+    start_interval: str | None = None
+    # Optional. The kind filter to apply
+    kind: Kind | None = None
+    # Optional. The base filter to apply
+    base: Currency | None = None
 
 
 @dataclass
@@ -1819,59 +1926,31 @@ class ApiGetLPPointResponse:
 
 
 @dataclass
-class ApiGetLPConfigRequest:
+class ApiGetLPInfoRequest:
     # The kind filter to apply
     kind: Kind
     # The base filter to apply
-    base: Currency
+    base: Currency | None = None
 
 
 @dataclass
-class ApiGetLPConfigResponse:
-    # The spread score multiplier
-    spread_score_multiplier: str
-    # The depth score multiplier
-    depth_score_multiplier: str
-    # The market share multiplier
-    market_share_multiplier: str
+class ApiGetLPInfoResponse:
     # Is LP maker
     is_lp_maker: bool
-
-
-@dataclass
-class ApiSubAccountTradeRequest:
-    # The readable instrument name:<ul><li>Perpetual: `ETH_USDT_Perp`</li><li>Future: `BTC_USDT_Fut_20Oct23`</li><li>Call: `ETH_USDT_Call_20Oct23_2800`</li><li>Put: `ETH_USDT_Put_20Oct23_2800`</li></ul>
-    instrument: str
-    # The interval of each sub account trade
-    interval: SubAccountTradeInterval
-    # The list of sub account ids to query
-    sub_account_i_ds: list[str]
-    # Optional. The starting time in unix nanoseconds of a specific interval to query
-    start_interval: str
-    # Optional. Start time in unix nanoseconds
-    start_time: str | None = None
-    # Optional. End time in unix nanoseconds
-    end_time: str | None = None
-
-
-@dataclass
-class SubAccountTrade:
-    # Start of calculation epoch
-    start_interval: str
-    # The sub account id
-    sub_account_id: str
-    # The instrument being represented
-    instrument: str
-    # Total fee paid
-    total_fee: str
-    # Total volume traded
-    total_trade_volume: str
-
-
-@dataclass
-class ApiSubAccountTradeResponse:
-    # The sub account trade result set for given interval
-    result: list[SubAccountTrade]
+    # The spread score value multiplier
+    spread_score_value_multiplier: str
+    # The depth score value multiplier
+    depth_score_value_multiplier: str
+    # The market share value multiplier
+    market_share_value_multiplier: str
+    # Underlying multiplier
+    underlying_multiplier: str
+    # The market share multiplier, equal to the maker trading volume in the past 2 hours
+    market_share_multiplier: str
+    # Ask fast market multiplier
+    ask_fast_market_multiplier: int
+    # Bid fast market multiplier
+    bid_fast_market_multiplier: int
 
 
 @dataclass
@@ -1886,6 +1965,10 @@ class ApiSubAccountTradeAggregationRequest:
     sub_account_id_greater_than: str
     # Optional. The starting time in unix nanoseconds of a specific interval to query
     start_interval: str
+    # Filter on the maker of the trade
+    is_maker: bool
+    # Filter on the taker of the trade
+    is_taker: bool
     # Optional. Start time in unix nanoseconds
     start_time: str | None = None
     # Optional. End time in unix nanoseconds
@@ -1902,6 +1985,8 @@ class SubAccountTradeAggregation:
     total_fee: str
     # Total volume traded
     total_trade_volume: str
+    # Number of trades
+    num_traded: str
 
 
 @dataclass
@@ -1923,7 +2008,7 @@ class TraderMetric:
     # Total fee paid
     total_fee: str
     # Total trader point of this epoch/phase
-    total_point: str
+    total_point: float
 
 
 @dataclass
@@ -1945,7 +2030,7 @@ class TraderLeaderboardUser:
     # The rank of the account in the Trader
     rank: int
     # Total Trader point
-    total_point: str
+    total_point: float
     # The twitter username of the account
     twitter_username: str
 
@@ -2279,18 +2364,22 @@ class ApiDepositHistoryRequest:
 
 @dataclass
 class DepositHistory:
-    # The transaction ID of the deposit
-    tx_id: str
-    # The txHash of the bridgemint event
-    tx_hash: str
+    # The L1 txHash of the deposit
+    l_1_hash: str
+    # The L2 txHash of the deposit
+    l_2_hash: str
     # The account to deposit into
     to_account_id: str
     # The token currency to deposit
     currency: Currency
     # The number of tokens to deposit
     num_tokens: str
-    # The timestamp of the deposit in unix nanoseconds
-    event_time: str
+    # The timestamp when the deposit was initiated on L1 in unix nanoseconds
+    initiated_time: str
+    # The timestamp when the deposit was confirmed on L2 in unix nanoseconds
+    confirmed_time: str
+    # The address of the sender
+    from_address: str
 
 
 @dataclass
@@ -2397,3 +2486,5 @@ class ApiWithdrawalHistoryResponse:
     result: list[WithdrawalHistory]
     # The cursor to indicate when to start the next query from
     next: str | None = None
+
+
