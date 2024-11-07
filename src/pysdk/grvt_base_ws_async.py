@@ -23,11 +23,12 @@ from .grvt_ccxt_env import (
     GRVT_WS_STREAMS,
     GrvtEndpointType,
     GrvtEnv,
-    get_grvt_ws_endpoint,
-    grvt_exceptions
+    get_grvt_ws_endpoint
 )
+from .grvt_raw_base import GrvtError
+from . import grvt_exceptions as grvt_exceptions
 from .grvt_ccxt_pro import GrvtCcxtPro
-import grvt_raw_types as grvt_types
+from . import grvt_raw_types as grvt_types
 
 WS_READ_TIMEOUT = 5
 
@@ -56,14 +57,14 @@ class GrvtMiniTickerParams(GrvtParams):
     def get_feed(self) ->str:
         return f"{self.instrument}@{self.interval}" 
 
-class GrvtMessageHander:
+class GrvtMessageHandler:
     def handle_mini_ticker_snapshot(self, data: grvt_types.WSMiniTickerFeedDataV1, subscription_id: int):
         pass
 
     def handle_mini_ticker_delta(self, data: grvt_types.WSMiniTickerFeedDataV1, subscription_id: int):
         pass
 
-    def handle_error(self, error: grvt_types.GrvtError):
+    def handle_error(self, error: GrvtError):
         pass
 
 class GrvtStream:
@@ -75,10 +76,9 @@ class GrvtStream:
 class MiniTickerSnapStream(GrvtStream):
     def __init__(
             self,
-            callback: GrvtMessageHander,
+            callback: GrvtMessageHandler,
             ):
         self.callback = callback
-        self.on_error
 
     def get_stream(self) -> str:
         return "mini.s"
@@ -93,7 +93,7 @@ class MiniTickerSnapStream(GrvtStream):
 
 #### END --------------------------------------- ####
 
-# 
+# THIS NEEDS REFACTORING WITH grvt_ccxt_ws.py from which much of this code is taken
 class GrvtBaseWSAsync(GrvtCcxtPro):
     """
     GrvtRawWSAsync class to interact with Grvt WebSockets in asynchronous mode.
@@ -146,6 +146,7 @@ class GrvtBaseWSAsync(GrvtCcxtPro):
         Prepares the GrvtCcxtPro instance and connects to WS server.
         """
         await self.refresh_cookie()
+
     def setup_ws_endpoints(self, grvt_endpoint_type: GrvtEndpointType):
             self.api_url[grvt_endpoint_type] = get_grvt_ws_endpoint(
                 self.env.value, grvt_endpoint_type
@@ -153,8 +154,25 @@ class GrvtBaseWSAsync(GrvtCcxtPro):
             self.callbacks[grvt_endpoint_type] = {}
             self.subscribed_streams[grvt_endpoint_type] = {}
             self.ws[grvt_endpoint_type] = None
-            task = self._loop.create_task(self._read_messages(grvt_endpoint_type))
+            task = self._loop.create_task(self._recv(grvt_endpoint_type))
             self.tasks[grvt_endpoint_type] = task
+
+    def is_endpoint_connected(self, grvt_endpoint_type: GrvtEndpointType) -> bool:
+        """
+        For  MARKET_DATA returns True if connection is open.
+        for TRADE_DATA returns True if one of the following is true:
+            1. No cookie - this means this is public connection and we can't connect to TRADE_DATA
+            2. Connection to TRADE_DATA is open
+        """
+        if grvt_endpoint_type not in self.ws:
+            return False
+        connection_is_open = self.ws[grvt_endpoint_type].open
+        if grvt_endpoint_type == GrvtEndpointType.MARKET_DATA:
+            return connection_is_open
+        if grvt_endpoint_type == GrvtEndpointType.TRADE_DATA:
+            return bool(not self._cookie or connection_is_open)
+        raise ValueError(f"Unknown endpoint type {grvt_endpoint_type}")
+
 
     async def connect_channel(self, grvt_endpoint_type: GrvtEndpointType) -> bool:
         """

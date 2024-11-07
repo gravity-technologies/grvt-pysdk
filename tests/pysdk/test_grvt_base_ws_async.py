@@ -6,9 +6,10 @@ import traceback
 import logging
 
 from pysdk.grvt_ccxt_env import GrvtEnv
+from pysdk.grvt_raw_base import GrvtError
 from pysdk.grvt_ccxt_logging_selector import logger
 from pysdk.grvt_base_ws_async import GrvtBaseWSAsync
-from pysdk.grvt_base_ws_async import MiniTickerSnapStreamer
+from pysdk.grvt_base_ws_async import MiniTickerSnapStream
 from pysdk.grvt_base_ws_async import GrvtMiniTickerParams
 from pysdk.grvt_base_ws_async import GrvtTickerInterval
 from pysdk import grvt_raw_types
@@ -30,7 +31,7 @@ class OurMessageHandler:
                                  subscription_id: int):
         self.logger.info(f"handle_mini_ticker_snapshot: {data} {subscription_id}")
 
-    def handle_error(self, error: grvt_raw_types.GrvtError):
+    def handle_error(self, error: GrvtError):
         self.logger.info(f"handle_mini_ticker_snapshot: {error}")
 
 
@@ -47,7 +48,7 @@ async def test_miniticker_stream(loop):
 
     test_api = GrvtBaseWSAsync(env, loop, logger, parameters=params)
     message_handler = OurMessageHandler(logger)
-    mini_ticker_streamer = MiniTickerSnapStreamer(message_handler)
+    mini_ticker_streamer = MiniTickerSnapStream(message_handler)
     await test_api.initialize()
 
     mini_ticker_params = GrvtMiniTickerParams("BTC_USDT_Perp", 
