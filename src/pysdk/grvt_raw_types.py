@@ -157,6 +157,8 @@ class OrderRejectReason(Enum):
     UNSUPPORTED_TIME_IN_FORCE = "UNSUPPORTED_TIME_IN_FORCE"
     # the order has multiple legs, but multiple legs are not supported by this venue
     MULTI_LEGGED_ORDER = "MULTI_LEGGED_ORDER"
+    # the order would have caused the subaccount to exceed the max position size
+    EXCEED_MAX_POSITION_SIZE = "EXCEED_MAX_POSITION_SIZE"
 
 
 class OrderStatus(Enum):
