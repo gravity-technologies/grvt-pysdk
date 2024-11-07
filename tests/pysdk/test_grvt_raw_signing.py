@@ -190,7 +190,8 @@ def test_sign_order_table():
             min_size="0.00000001",
             create_time="123",
             base_decimals=9,
-            quote_decimals=9
+            quote_decimals=9,
+            max_position_size="1000000",
         )
     }
 

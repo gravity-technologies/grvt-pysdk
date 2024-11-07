@@ -158,6 +158,16 @@ class GrvtRawSync(GrvtRawSyncBase):
             return GrvtError(**resp)
         return from_dict(types.ApiPositionsResponse, resp, Config(cast=[Enum]))
 
+    def funding_payment_history_v1(
+        self, req: types.ApiFundingPaymentHistoryRequest
+    ) -> types.ApiFundingPaymentHistoryResponse | GrvtError:
+        resp = self._post(True, self.td_rpc + "/full/v1/funding_payment_history", req)
+        if resp.get("code"):
+            return GrvtError(**resp)
+        return from_dict(
+            types.ApiFundingPaymentHistoryResponse, resp, Config(cast=[Enum])
+        )
+
     def deposit_v1(self, req: types.ApiDepositRequest) -> types.AckResponse | GrvtError:
         resp = self._post(True, self.td_rpc + "/full/v1/deposit", req)
         if resp.get("code"):
