@@ -133,6 +133,7 @@ class GrvtBaseWSAsync(GrvtCcxtPro):
         self.is_connecting: dict[GrvtEndpointType, bool] = {}
         self._last_message: dict[str, dict] = {}
         self._request_id = 0
+        self.tasks: dict[GrvtEndpointType, asyncio.Task] = {}
 
     async def __aexit__(self):
         for grvt_endpoint_type in [
@@ -230,6 +231,8 @@ class GrvtBaseWSAsync(GrvtCcxtPro):
         ws_isconnected = self.ws.get(ws_stream)
         if not ws_isconnected:
             await self.connect_channel(ws_stream)
+        if GrvtStreamType not in self.callbacks:
+            self.callbacks[GrvtStreamType] = {}
         self.callbacks[GrvtStreamType][(ws_stream, params.get_feed())] = callback
 
     async def _subscribe_to_stream(
