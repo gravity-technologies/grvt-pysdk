@@ -64,7 +64,7 @@ class GrvtCcxtWS(GrvtCcxtPro):
         self._clsname: str = type(self).__name__
         self.api_ws_version = parameters.get("api_ws_version", "v1")
         self.ws: dict[GrvtWSEndpointType, websockets.WebSocketClientProtocol | None] = {}
-        self.callbacks: dict[GrvtWSEndpointType, dict[tuple[str, str], Callable]] = {}
+        self.callbacks: dict[GrvtWSEndpointType, dict[str, dict[str, Callable]]] = {}
         self.subscribed_streams: dict[GrvtWSEndpointType, dict] = {}
         self.api_url: dict[GrvtWSEndpointType, str] = {}
         self._last_message: dict[str, dict] = {}
@@ -139,7 +139,7 @@ class GrvtCcxtWS(GrvtCcxtPro):
                 for end_point_type in self.endpoint_types:
                     if not self.is_endpoint_connected(end_point_type):
                         await self._reconnect(end_point_type)
-                all_are_connected = self.are_endpoints_connected(self.endpoint_types)    
+                all_are_connected = self.are_endpoints_connected(self.endpoint_types)
                 self.logger.info(f"{FN} Connection status: {all_are_connected=}")
             except Exception as e:
                 self.logger.exception(f"{FN} {e=}")
@@ -216,14 +216,17 @@ class GrvtCcxtWS(GrvtCcxtPro):
             if success:
                 await self._resubscribe(grvt_endpoint_type)
         except Exception:
-            self.logger.exception(
-                f"{FN} failed {traceback.format_exc()}"
-            )
+            self.logger.exception(f"{FN} failed {traceback.format_exc()}")
 
     async def _resubscribe(self, grvt_endpoint_type: GrvtWSEndpointType):
         if self.is_connection_open(grvt_endpoint_type):
-            for stream, feed in self.callbacks[grvt_endpoint_type]:
-                await self._subscribe_to_stream(grvt_endpoint_type, stream, feed)
+            for versioned_stream in self.callbacks[grvt_endpoint_type]:
+                for selector in self.callbacks[grvt_endpoint_type][versioned_stream]:
+                    self.logger.info(
+                        f"{self._clsname} _resubscribe {grvt_endpoint_type=}"
+                        f" {versioned_stream=}/{selector=}"
+                    )
+                    await self._subscribe_to_stream(grvt_endpoint_type, versioned_stream, selector)
         else:
             self.logger.warning(f"{self._clsname} _resubscribe - No connection.")
 
@@ -259,28 +262,22 @@ class GrvtCcxtWS(GrvtCcxtPro):
                     self._check_susbcribed_stream(grvt_endpoint_type, message)
                     if "feed" in message:
                         stream_subscribed: str | None = message.get("stream")
+                        selector: str = message.get("selector")
                         if stream_subscribed is None:
                             self.logger.warning(f"{FN} missing stream in {message=}")
-                        if stream_subscribed:
-                            call_count = 0
-                            for (stream, feed), callback in self.callbacks[
-                                grvt_endpoint_type
-                            ].items():
-                                if stream_subscribed.endswith(stream):
-                                    self.logger.debug(
-                                        f"{FN} Stream:{stream_subscribed} {feed=}"
-                                        f" callback:{callback.__name__} "
-                                        f" message:{message}"
-                                    )
-                                    await callback(message)
-                                    self._last_message[stream_subscribed] = message
-                                    call_count += 1
-                            if call_count == 0:
-                                self.logger.debug(
-                                    f"{FN} No callback found for {stream_subscribed=} {message=}"
-                                )
+                        if selector is None:
+                            self.logger.warning(f"{FN} missing selector in {message=}")
+                        if stream_subscribed and selector:
+                            callback = self.callbacks[grvt_endpoint_type].get(
+                                stream_subscribed, {}).get(selector, None)
+                            if callback:
+                                await callback(message)
+                                stream: str = self.get_non_versioned_stream(stream_subscribed)
+                                self._last_message[stream] = message
                             else:
-                                self.logger.debug(f"{FN} callback count:{call_count}")
+                                self.logger.warning(
+                                    f"{FN} No callback for {stream_subscribed=}/{selector=}"
+                                )
                     elif "jsonrpc" in message:
                         """
                         {'jsonrpc': '', 'result': {'result': 
@@ -337,7 +334,7 @@ class GrvtCcxtWS(GrvtCcxtPro):
             self.logger.exception(f"{self._clsname} send failed {traceback.format_exc()}")
             await self._reconnect(end_point_type)
 
-    def _construct_feed(self, stream: str, params: dict | None) -> str:
+    def _construct_selector(self, stream: str, params: dict | None) -> str:
         feed: str = ""
         # ******** Market Data ********
         if stream.endswith(("mini.s", "mini.d", "ticker.s", "ticker.d")):
@@ -399,28 +396,40 @@ class GrvtCcxtWS(GrvtCcxtPro):
                 f"{FN} {stream=} is a trading data connection. Requires trading_account_id."
             )
             return
-        # create feed and register callback
-        feed = self._construct_feed(stream, params)
-        self.callbacks[ws_end_point_type][(stream, feed)] = callback
+        # create selector string and register callback
+        selector: str = self._construct_selector(stream, params)
+        versioned_stream: str = self.get_versioned_stream(stream)
+        if versioned_stream not in self.callbacks[ws_end_point_type]:
+            self.callbacks[ws_end_point_type][versioned_stream] = {}
+        self.callbacks[ws_end_point_type][versioned_stream][selector] = callback
         self.logger.info(
-            f"{FN} {ws_end_point_type=} {stream=}/{params=}/{feed=} callback:{callback}"
+            f"{FN} {params=} {ws_end_point_type=}/{versioned_stream=}/{selector=} callback:{callback}"
         )
         # check if connection is open and subscribe
         if self.is_connection_open(ws_end_point_type):
-            await self._subscribe_to_stream(ws_end_point_type, stream, feed)
+            await self._subscribe_to_stream(ws_end_point_type, versioned_stream, selector)
         else:
             self.logger.info(f"{FN} Connection not open. Will subscribe on connect.")
 
     def get_versioned_stream(self, stream: str) -> str:
         return stream if self.api_ws_version == "v0" else f"{self.api_ws_version}.{stream}"
 
+    def get_non_versioned_stream(self, versioned_stream: str) -> str:
+        if self.api_ws_version == "v0":
+            return versioned_stream
+        else:
+            return versioned_stream.split(".")[1]
+
     async def _subscribe_to_stream(
         self,
         ws_end_point_type: GrvtWSEndpointType,
-        stream: str,
-        feed: str,
+        versioned_stream: str,
+        selector: str,
     ) -> None:
-        versioned_stream = self.get_versioned_stream(stream)
+        FN = (
+            f"{self._clsname} _subscribe_to_stream {ws_end_point_type=}"
+            f" {versioned_stream=} {selector=}"
+        )
         self._request_id += 1
         if ws_end_point_type in [
             GrvtWSEndpointType.TRADE_DATA,
@@ -430,16 +439,12 @@ class GrvtCcxtWS(GrvtCcxtPro):
                 {
                     "request_id": self._request_id,
                     "stream": versioned_stream,
-                    "feed": [feed],
+                    "feed": [selector],
                     "method": "subscribe",
                     "is_full": True,
                 }
             )
-            self.logger.info(
-                f"{self._clsname} _subscribe_to_stream {ws_end_point_type=} "
-                f"{stream=} version={self.api_ws_version} {versioned_stream=} {feed=}"
-                f" {subscribe_json=}"
-            )
+            self.logger.info(f"{FN} {versioned_stream=} {subscribe_json=}")
         else:  # RPC WS format
             self._request_id += 1
             subscribe_json = json.dumps(
@@ -448,19 +453,16 @@ class GrvtCcxtWS(GrvtCcxtPro):
                     "method": "subscribe",
                     "params": {
                         "stream": versioned_stream,
-                        "selectors": [feed],
+                        "selectors": [selector],
                     },
                     "id": self._request_id,
                 }
             )
-            self.logger.info(
-                f"{self._clsname} _subscribe_to_stream {ws_end_point_type=} "
-                f"{stream=} version={self.api_ws_version} {versioned_stream=} {feed=}"
-                f" {subscribe_json=}"
-            )
+            self.logger.info(f"{FN} {versioned_stream=} {subscribe_json=}")
         await self._send(ws_end_point_type, subscribe_json)
+        stream: str = self.get_non_versioned_stream(versioned_stream)
         if stream not in self._last_message:
-            self._last_message[versioned_stream] = {}
+            self._last_message[stream] = {}
 
     def jsonrpc_wrap_payload(self, payload: dict, method: str, version: str = "v1") -> dict:
         """
