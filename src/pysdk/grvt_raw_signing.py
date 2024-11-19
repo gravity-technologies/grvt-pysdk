@@ -142,26 +142,30 @@ def sign_transfer(
     transfer: Transfer,
     config: GrvtApiConfig,
     account: Account,
+    chainId: int = None,
 ) -> Transfer:
     if config.private_key is None:
         raise ValueError("Private key is not set")
+
+    domain = get_EIP712_domain_data(config.env)
+    if chainId:
+        domain["chainId"] = chainId
 
     message_data = {
         "fromAccount": transfer.from_account_id,
         "fromSubAccount": transfer.from_sub_account_id,
         "toAccount": transfer.to_account_id,
         "toSubAccount": transfer.to_sub_account_id,
-        "tokenCurrency": GrvtCurrency.USDT.value,
+        "tokenCurrency": GrvtCurrency[transfer.currency.value].value,
         "numTokens": int(Decimal(transfer.num_tokens) * Decimal(1e6)), # USDT has 6 decimals
-        "expiration": transfer.signature.nonce,
-        "nonce": transfer.signature.expiration,
+        "nonce": transfer.signature.nonce,
+        "expiration": transfer.signature.expiration,
     }
-    domain_data = get_EIP712_domain_data(config.env)
-    signature = encode_typed_data(domain_data, EIP712_TRANSFER_MESSAGE_TYPE, message_data)
+    signature = encode_typed_data(domain, EIP712_TRANSFER_MESSAGE_TYPE, message_data)
     signed_message = account.sign_message(signature)
 
-    transfer.signature.s = "0x" + signed_message.s.to_bytes(32, byteorder='big').hex()
     transfer.signature.r = "0x" + signed_message.r.to_bytes(32, byteorder='big').hex()
+    transfer.signature.s = "0x" + signed_message.s.to_bytes(32, byteorder='big').hex()
     transfer.signature.v = signed_message.v
     transfer.signature.signer = str(account.address)
 
