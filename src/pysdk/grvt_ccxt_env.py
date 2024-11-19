@@ -11,10 +11,10 @@ from enum import Enum
 
 
 class GrvtEnv(str, Enum):
-    TESTNET = "testnet"
-    DEV = "dev"
     PROD = "prod"
-
+    TESTNET = "testnet"
+    STAGING = "staging"
+    DEV = "dev"
 
 # GrvtEndpointType defines the root path for a family of endpoints
 class GrvtEndpointType(str, Enum):
@@ -30,7 +30,7 @@ class GrvtWSEndpointType(str, Enum):
     MARKET_DATA_RPC_FULL = "mdg_rpc_full"
 
 
-END_POINT_VERSION = os.getenv("GRVT_END_POINT_VERSION", "v1")
+END_POINT_VERSION = os.getenv("GRVT_END_POINT_VERSION", "v0")
 
 
 def get_grvt_endpoint_domains(env_name: str) -> dict[GrvtEndpointType, str]:
@@ -45,6 +45,12 @@ def get_grvt_endpoint_domains(env_name: str) -> dict[GrvtEndpointType, str]:
             GrvtEndpointType.EDGE: f"https://edge.{env_name}.grvt.io",
             GrvtEndpointType.TRADE_DATA: f"https://trades.{env_name}.grvt.io",
             GrvtEndpointType.MARKET_DATA: f"https://market-data.{env_name}.grvt.io",
+        }
+    if env_name == GrvtEnv.STAGING.value:
+        return {
+            GrvtEndpointType.EDGE: f"https://edge.{env_name}.gravitymarkets.io",
+            GrvtEndpointType.TRADE_DATA: f"https://trades.{env_name}.gravitymarkets.io",
+            GrvtEndpointType.MARKET_DATA: f"https://market-data.{env_name}.gravitymarkets.io",
         }
     if env_name == GrvtEnv.DEV.value:
         return {
@@ -73,6 +79,13 @@ def get_grvt_ws_endpoint(
             GrvtWSEndpointType.MARKET_DATA: f"wss://market-data.{env}.grvt.io/ws",
             GrvtWSEndpointType.TRADE_DATA_RPC_FULL: f"wss://trades.{env}.grvt.io/ws/full",
             GrvtWSEndpointType.MARKET_DATA_RPC_FULL: f"wss://market-data.{env}.grvt.io/ws/full",
+        }.get(endpoint_type)
+    if env == GrvtEnv.STAGING.value:
+        return {
+            GrvtWSEndpointType.TRADE_DATA: f"wss://trades.{env}.gravitymarkets.io/ws",
+            GrvtWSEndpointType.MARKET_DATA: f"wss://market-data.{env}.gravitymarkets.io/ws",
+            GrvtWSEndpointType.TRADE_DATA_RPC_FULL: f"wss://trades.{env}.gravitymarkets.io/ws/full",
+            GrvtWSEndpointType.MARKET_DATA_RPC_FULL: f"wss://market-data.{env}.gravitymarkets.io/ws/full",
         }.get(endpoint_type)
     if env == GrvtEnv.DEV.value:
         return {
@@ -170,6 +183,7 @@ def get_all_grvt_endpoints(environment: GrvtEnv) -> dict[str, str]:
 
 CHAIN_IDS = {
     GrvtEnv.DEV.value: 327,
+    GrvtEnv.STAGING.value: 327,
     GrvtEnv.TESTNET.value: 326,
 }
 
