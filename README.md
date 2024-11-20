@@ -23,6 +23,9 @@
 
 - [GRVT Python SDK](#grvt-python-sdk)
   - [Table of Contents](#table-of-contents)
+  - [What's in the library](#whats-in-the-library)
+    - [Environments](#environments)
+    - [Files](#files)
   - [Installation via pip](#installation-via-pip)
     - [Configuration](#configuration)
   - [Usage](#usage)
@@ -41,6 +44,40 @@
       - [Makefile](#makefile)
 
 ---
+
+## What's in the library
+
+GRVT Python SDK library provides Python classes and utility methods for easy access to GRVT trading environments.
+
+### Environments
+
+- `testnet` - Testnet environment.
+- `staging` - Development Integration environment.
+- `dev` - Development environment.
+
+SDK Library provides two types of classes:
+
+1. **Raw** - thin wrapper classes around Rest API.
+2. **Ccxt-compatible** - classes with ccxt-like methods. Provide access to both Rest API and WebSockets.
+
+### Files
+
+Raw access:
+
+- `grvt_raw_base.py` - base classes for Rest API access.
+- `grvt_raw_env.py` - definitions of environments for raw access.
+- `grvt_raw_signing.py` - utility methods for signing orders.
+- `grvt_raw_sync.py` - class for raw synchronous calls to Rest API.
+- `grvt_raw_async.py` - class for raw asynchronous calls to Rest API.
+
+CCXT-compatible access:
+
+- `grvt_ccxt_utils.py` - utility methods for signing orders.
+- `grvt_ccxt_env.py` - definitions of environments for ccxt-like access.
+- `grvt_ccxt_base.py` - base class for Rest API access.
+- `grvt_ccxt.py` - class for synchronous calls to Rest API.
+- `grvt_ccxt_pro.py` - class for asynchronous calls to Rest API.
+- `grvt_ccxt_ws.py` - class for WebSocket calls.
 
 ## Installation via pip
 
