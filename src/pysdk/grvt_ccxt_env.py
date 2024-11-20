@@ -30,7 +30,7 @@ class GrvtWSEndpointType(str, Enum):
     MARKET_DATA_RPC_FULL = "mdg_rpc_full"
 
 
-END_POINT_VERSION = os.getenv("GRVT_END_POINT_VERSION", "v0")
+END_POINT_VERSION = os.getenv("GRVT_END_POINT_VERSION", "v1")
 
 
 def get_grvt_endpoint_domains(env_name: str) -> dict[GrvtEndpointType, str]:
