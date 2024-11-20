@@ -327,6 +327,52 @@ def test_sign_transfer_table():
             "want_v": 27,
             "want_error": None
         },
+        {
+            "name": "Transfer $1 external",
+            "transfer": Transfer(
+                from_account_id="0x922a4874196806460fc63b5bcbff45f94c87f76f",
+                from_sub_account_id="0",
+                to_account_id="0x6a3434fce60ff567f60d80fb98f2f981e9b081fd",
+                to_sub_account_id="0",
+                currency=Currency.USDT,
+                num_tokens="1",
+                signature=Signature(
+                    signer='',
+                    r='',
+                    s='',
+                    v=0,
+                    expiration=expiry,
+                    nonce=nonce
+                )
+            ),
+            "want_r": "0x185ad129ca0de3584fcd91f6df0c25d8065411041db117c50dabd057249a1a43",
+            "want_s": "0x58b1979c1f8c65970578bc2756f17a0b5c7352c27007811800dcd8966351647d",
+            "want_v": 28,
+            "want_error": None
+        },
+        {
+            "name": "Transfer $1.5 external revert",
+            "transfer": Transfer(
+                from_account_id="0x6a3434fce60ff567f60d80fb98f2f981e9b081fd",
+                from_sub_account_id="0",
+                to_account_id="0x922a4874196806460fc63b5bcbff45f94c87f76f",
+                to_sub_account_id="0",
+                currency=Currency.USDT,
+                num_tokens="1.5",
+                signature=Signature(
+                    signer='',
+                    r='',
+                    s='',
+                    v=0,
+                    expiration=expiry,
+                    nonce=nonce
+                )
+            ),
+            "want_r": "0xbbdd4726fef5cddb6eeb5fac07ed95702673293133d66481777a6a3ee82adc12",
+            "want_s": "0x0ad3592ea3ebf428b260c56723386383253481bc188d9aeb87d9b21b85069821",
+            "want_v": 28,
+            "want_error": None
+        },
     ]
 
     account = Account.from_key(private_key)
