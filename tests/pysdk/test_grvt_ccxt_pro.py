@@ -143,7 +143,7 @@ async def send_cancel_order(api: GrvtCcxtPro):
         order_status = await api.fetch_order(params={"client_order_id": client_order_id})
         logger.info(f"{order_status=}")
         # Cancel
-        time.sleep(10)
+        await asyncio.sleep(5)
         logger.info(f"cancel order by id: {client_order_id=}")
         await api.cancel_order(params={"client_order_id": client_order_id})
 

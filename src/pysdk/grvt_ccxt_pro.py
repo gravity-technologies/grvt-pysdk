@@ -105,7 +105,6 @@ class GrvtCcxtPro(GrvtCcxtBase):
         ) as return_value:
             try:
                 return_text = await return_value.text()
-                self.logger.info(f"{FN} {return_text=}")
                 response = await return_value.json(content_type="application/json")
             except Exception as err:
                 self.logger.warning(
@@ -113,7 +112,7 @@ class GrvtCcxtPro(GrvtCcxtBase):
                     f" json(content_type='application/json'). {err=}"
                 )
             if not return_value.ok:
-                self.logger.warning(f"{FN} {json=} {return_value=} {response=}")
+                self.logger.warning(f"{FN} {payload_json=}\n{return_value=}\n{response=}")
             else:
                 if len(return_text) > MAX_LEN_TO_LOG:
                     self.logger.debug(f"{FN} OK {return_value=} response={response}")
