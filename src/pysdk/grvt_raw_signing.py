@@ -36,6 +36,7 @@ TIME_IN_FORCE_TO_SIGN_TIME_IN_FORCE = {
 #####################
 CHAIN_IDS = {
     GrvtEnv.DEV: 327,
+    GrvtEnv.STAGING: 327,
     GrvtEnv.TESTNET: 326,
 }
 
