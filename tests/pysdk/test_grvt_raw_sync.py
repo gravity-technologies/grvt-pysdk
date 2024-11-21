@@ -2,7 +2,7 @@ from pysdk import grvt_raw_types
 from pysdk.grvt_raw_base import GrvtError
 from pysdk.grvt_raw_sync import GrvtRawSync
 
-from .test_raw_utils import get_config, get_test_order
+from .test_raw_utils import get_config, get_test_order, get_test_transfer
 
 
 def test_get_all_instruments() -> None:
@@ -56,6 +56,31 @@ def test_create_order_with_signing() -> None:
     if order is None:
         return None  # Skip test if configs are not set
     resp = api.create_order_v1(grvt_raw_types.ApiCreateOrderRequest(order=order))
+
+    if isinstance(resp, GrvtError):
+        raise ValueError(f"Received error: {resp}")
+    if resp.result is None:
+        raise ValueError("Expected order to be non-null")
+
+
+def test_transfer_with_signing() -> None:
+    api = GrvtRawSync(config=get_config())
+    transfer = get_test_transfer(api)
+    
+    if transfer is None:
+        return None  # Skip test if configs are not set
+
+    resp = api.transfer_v1(
+        grvt_raw_types.ApiTransferRequest(
+            transfer.from_account_id,
+            transfer.from_sub_account_id,
+            transfer.to_account_id,
+            transfer.to_sub_account_id,
+            transfer.currency,
+            transfer.num_tokens,
+            transfer.signature,
+        )
+    )
 
     if isinstance(resp, GrvtError):
         raise ValueError(f"Received error: {resp}")
