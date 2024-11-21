@@ -85,4 +85,4 @@ def test_transfer_with_signing() -> None:
     if isinstance(resp, GrvtError):
         raise ValueError(f"Received error: {resp}")
     if resp.result is None:
-        raise ValueError("Expected order to be non-null")
+        raise ValueError("Expected transfer response to be non-null")
