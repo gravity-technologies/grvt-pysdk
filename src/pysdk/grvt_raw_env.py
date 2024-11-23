@@ -4,7 +4,7 @@ from enum import Enum
 
 class GrvtEnv(Enum):
     DEV = "dev"
-    STG = "stg"
+    STAGING = "staging"
     TESTNET = "testnet"
     PROD = "prod"
 
@@ -57,7 +57,7 @@ def get_env_config(environment: GrvtEnv) -> GrvtEnvConfig:
                 ),
                 chain_id=326,
             )
-        case GrvtEnv.DEV | GrvtEnv.STG:
+        case GrvtEnv.DEV | GrvtEnv.STAGING:
             return GrvtEnvConfig(
                 edge=GrvtEndpointConfig(
                     rpc_endpoint=f"https://edge.{environment.value}.gravitymarkets.io",

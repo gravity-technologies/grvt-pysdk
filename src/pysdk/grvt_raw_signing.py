@@ -4,8 +4,9 @@ from decimal import Decimal
 from eth_account import Account
 from eth_account.messages import encode_typed_data
 
+from .grvt_ccxt_utils import GrvtCurrency
 from .grvt_raw_base import GrvtApiConfig, GrvtEnv
-from .grvt_raw_types import Instrument, Order, TimeInForce
+from .grvt_raw_types import Instrument, Order, Transfer, TimeInForce
 
 #########################
 # INSTRUMENT CONVERSION #
@@ -35,6 +36,7 @@ TIME_IN_FORCE_TO_SIGN_TIME_IN_FORCE = {
 #####################
 CHAIN_IDS = {
     GrvtEnv.DEV: 327,
+    GrvtEnv.STAGING: 327,
     GrvtEnv.TESTNET: 326,
 }
 
@@ -46,6 +48,9 @@ def get_EIP712_domain_data(env: GrvtEnv) -> dict[str, str | int]:
         "chainId": CHAIN_IDS[env],
     }
 
+#####################
+# Sign Order #
+#####################
 
 EIP712_ORDER_MESSAGE_TYPE = {
     "Order": [
@@ -116,3 +121,53 @@ def sign_order(
     order.signature.signer = str(account.address)
 
     return order
+
+#####################
+# Sign Transfer #
+#####################
+
+EIP712_TRANSFER_MESSAGE_TYPE = {
+    "Transfer": [
+        {"name": "fromAccount", "type": "address"},
+        {"name": "fromSubAccount", "type": "uint64"},
+        {"name": "toAccount", "type": "address"},
+        {"name": "toSubAccount", "type": "uint64"},
+        {"name": "tokenCurrency", "type": "uint8"},
+        {"name": "numTokens", "type": "uint64"},
+        {"name": "nonce", "type": "uint32"},
+        {"name": "expiration", "type": "int64"},
+    ],
+}
+
+def sign_transfer(
+    transfer: Transfer,
+    config: GrvtApiConfig,
+    account: Account,
+    chainId: int = None,
+) -> Transfer:
+    if config.private_key is None:
+        raise ValueError("Private key is not set")
+
+    domain = get_EIP712_domain_data(config.env)
+    if chainId:
+        domain["chainId"] = chainId
+
+    message_data = {
+        "fromAccount": transfer.from_account_id,
+        "fromSubAccount": transfer.from_sub_account_id,
+        "toAccount": transfer.to_account_id,
+        "toSubAccount": transfer.to_sub_account_id,
+        "tokenCurrency": GrvtCurrency[transfer.currency.value].value,
+        "numTokens": int(Decimal(transfer.num_tokens) * Decimal(1e6)), # USDT has 6 decimals
+        "nonce": transfer.signature.nonce,
+        "expiration": transfer.signature.expiration,
+    }
+    signature = encode_typed_data(domain, EIP712_TRANSFER_MESSAGE_TYPE, message_data)
+    signed_message = account.sign_message(signature)
+
+    transfer.signature.r = "0x" + signed_message.r.to_bytes(32, byteorder='big').hex()
+    transfer.signature.s = "0x" + signed_message.s.to_bytes(32, byteorder='big').hex()
+    transfer.signature.v = signed_message.v
+    transfer.signature.signer = str(account.address)
+
+    return transfer
