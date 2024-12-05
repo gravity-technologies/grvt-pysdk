@@ -185,6 +185,7 @@ CHAIN_IDS = {
     GrvtEnv.DEV.value: 327,
     GrvtEnv.STAGING.value: 327,
     GrvtEnv.TESTNET.value: 326,
+    GrvtEnv.PROD.value: 325,
 }
 
 ########################################################
