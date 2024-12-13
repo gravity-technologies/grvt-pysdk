@@ -113,7 +113,7 @@ class OrderRejectReason(Enum):
     CLIENT_BULK_CANCEL = "CLIENT_BULK_CANCEL"
     # client called a Session Cancel API, or set the WebSocket connection to 'cancelOrdersOnTerminate'
     CLIENT_SESSION_END = "CLIENT_SESSION_END"
-    # the market order was cancelled after no/partial fill. Takes precedence over other TimeInForce cancel reasons
+    # the market order was cancelled after no/partial fill. Lower precedence than other TimeInForce cancel reasons
     MARKET_CANCEL = "MARKET_CANCEL"
     # the IOC order was cancelled after no/partial fill
     IOC_CANCEL = "IOC_CANCEL"
@@ -161,6 +161,8 @@ class OrderRejectReason(Enum):
     EXCEED_MAX_POSITION_SIZE = "EXCEED_MAX_POSITION_SIZE"
     # the signature supplied is more than 30 days in the future
     EXCEED_MAX_SIGNATURE_EXPIRATION = "EXCEED_MAX_SIGNATURE_EXPIRATION"
+    # the market order has a limit price set
+    MARKET_ORDER_WITH_LIMIT_PRICE = "MARKET_ORDER_WITH_LIMIT_PRICE"
 
 
 class OrderStatus(Enum):
@@ -335,7 +337,7 @@ class Fill:
     fee_rate: str
     """
     A trade identifier, globally unique, and monotonically increasing (not by `1`).
-    All trades sharing a single taker execution share the same first component (before `:`), and `event_time`.
+    All trades sharing a single taker execution share the same first component (before `-`), and `event_time`.
     `trade_id` is guaranteed to be consistent across MarketData `Trade` and Trading `Fill`.
     """
     trade_id: str
@@ -355,6 +357,8 @@ class Fill:
     When GRVT Backend receives an order with an overlapping clientOrderID, we will reject the order with rejectReason set to overlappingClientOrderId
     """
     client_order_id: str
+    # The address (public key) of the wallet signing the payload
+    signer: str
 
 
 @dataclass
@@ -567,9 +571,17 @@ class ApiFundingAccountSummaryResponse:
 
 
 @dataclass
+class ApiSocializedLossStatusResponse:
+    # Whether the socialized loss is active
+    is_active: bool
+    # The socialized loss haircut ratio in centi-beeps
+    haircut_ratio: str
+
+
+@dataclass
 class ApiListAggregatedAccountSummaryRequest:
     # The list of main account ID to request for
-    main_account_ids: list
+    main_account_ids: list[bytes]
 
 
 @dataclass
@@ -697,9 +709,9 @@ class Ticker:
     best_ask_price: str | None = None
     # The number of assets offered on the best ask price of the instrument, expressed in base asset decimal units
     best_ask_size: str | None = None
-    # The current funding rate of the instrument, expressed in centibeeps (1/100th of a basis point)
+    # The current funding rate of the instrument, expressed in percentage points
     funding_rate_8h_curr: str | None = None
-    # The average funding rate of the instrument (over last 8h), expressed in centibeeps (1/100th of a basis point)
+    # The average funding rate of the instrument (over last 8h), expressed in percentage points
     funding_rate_8h_avg: str | None = None
     # The interest rate of the underlying, expressed in centibeeps (1/100th of a basis point)
     interest_rate: str | None = None
@@ -766,7 +778,7 @@ class Trade:
     forward_price: str
     """
     A trade identifier, globally unique, and monotonically increasing (not by `1`).
-    All trades sharing a single taker execution share the same first component (before `:`), and `event_time`.
+    All trades sharing a single taker execution share the same first component (before `-`), and `event_time`.
     `trade_id` is guaranteed to be consistent across MarketData `Trade` and Trading `Fill`.
     """
     trade_id: str
@@ -952,8 +964,8 @@ class ApiFundingRateRequest:
 class FundingRate:
     # The readable instrument name:<ul><li>Perpetual: `ETH_USDT_Perp`</li><li>Future: `BTC_USDT_Fut_20Oct23`</li><li>Call: `ETH_USDT_Call_20Oct23_2800`</li><li>Put: `ETH_USDT_Put_20Oct23_2800`</li></ul>
     instrument: str
-    # The funding rate of the instrument, expressed in centibeeps
-    funding_rate: int
+    # The funding rate of the instrument, expressed in percentage points
+    funding_rate: str
     # The funding timestamp of the funding rate, expressed in unix nanoseconds
     funding_time: str
     # The mark price of the instrument at funding timestamp, expressed in `9` decimals
@@ -1322,6 +1334,7 @@ class WSCandlestickFeedDataV1:
 class WSUnsubscribeAllParams:
     pass
 
+
 @dataclass
 class StreamReference:
     # The channel to subscribe to (eg: ticker.s / ticker.d)
@@ -1339,6 +1352,7 @@ class WSUnsubscribeAllResult:
 @dataclass
 class WSListStreamsParams:
     pass
+
 
 @dataclass
 class WSListStreamsResult:
@@ -1595,6 +1609,7 @@ class ApiOrderHistoryResponse:
 class EmptyRequest:
     pass
 
+
 @dataclass
 class Ack:
     # Gravity has acknowledged that the request has been successfully received and it will process it in the backend
@@ -1637,6 +1652,44 @@ class ApiGetOrderRequest:
 class ApiGetOrderResponse:
     # The order object for the requested filter
     result: Order
+
+
+@dataclass
+class ApiPreOrderCheckRequest:
+    # The subaccount ID of orders to query
+    sub_account_id: str
+    # The order to do pre-order check
+    orders: list[Order]
+
+
+@dataclass
+class AssetMaxQty:
+    # The asset associated with the max quantity
+    asset: str
+    # The maximum buy quantity
+    max_buy_qty: str
+    # The maximum sell quantity
+    max_sell_qty: str
+
+
+@dataclass
+class PreOrderCheckResult:
+    # The maximum quantity for each leg
+    max_qty: list[AssetMaxQty]
+    # The margin required for the order (reported in `settle_currency`)
+    margin_required: str
+    # Whether the order is valid
+    order_valid: bool
+    # The reason the order is invalid, if any
+    reason: str
+    # The subAccount settle currency
+    settle_currency: Currency
+
+
+@dataclass
+class ApiPreOrderCheckResponse:
+    # Pre order check for each new order in the request
+    results: list[PreOrderCheckResult]
 
 
 @dataclass
@@ -1803,6 +1856,8 @@ class FlatReferral:
     main_account_id: str
     # The referrer main account id
     referrer_main_account_id: str
+    # The account is a business account or not
+    is_business: bool
 
 
 @dataclass
@@ -1861,8 +1916,8 @@ class LPPoint:
 
 @dataclass
 class ApproximateLPPoint:
-    # The main account id
-    main_account_id: str
+    # The off chain account id
+    off_chain_account_id: str
     # Liquidity score
     liquidity_score: str
     # The rank of user in the LP leaderboard
@@ -1904,7 +1959,7 @@ class ApiGetLPLeaderboardRequest:
 @dataclass
 class ApiGetLPLeaderboardResponse:
     # The list of LP points
-    points: list[LPPoint]
+    points: list[ApproximateLPPoint]
 
 
 @dataclass
@@ -1920,7 +1975,7 @@ class ApiGetLPPointRequest:
 @dataclass
 class ApiGetLPPointResponse:
     # LP points of user
-    point: ApproximateLPPoint
+    point: LPPoint
     # The number of maker
     maker_count: int
 
@@ -1987,6 +2042,8 @@ class SubAccountTradeAggregation:
     total_trade_volume: str
     # Number of trades
     num_traded: str
+    # Total positive fee paid by user
+    positive_fee: str
 
 
 @dataclass
@@ -2275,24 +2332,6 @@ class WSWithdrawalFeedDataV1:
 
 
 @dataclass
-class ApiDepositRequest:
-    """
-    GRVT runs on a ZKSync Hyperchain which settles directly onto Ethereum.
-    To Deposit funds from your L1 wallet into a GRVT SubAccount, you will be required to submit a deposit transaction directly to Ethereum.
-    GRVT's bridge verifier will scan Ethereum from time to time. Once it receives proof that your deposit has been confirmed on Ethereum, it will initiate the deposit process.
-
-    This current payload is used for alpha testing only.
-    """
-
-    # The main account to deposit into
-    to_account_id: str
-    # The token currency to deposit
-    currency: Currency
-    # The number of tokens to deposit, quoted in token_currency decimals
-    num_tokens: str
-
-
-@dataclass
 class ApiWithdrawalRequest:
     """
     Leverage this API to initialize a withdrawal from GRVT's Hyperchain onto Ethereum.
@@ -2486,5 +2525,3 @@ class ApiWithdrawalHistoryResponse:
     result: list[WithdrawalHistory]
     # The cursor to indicate when to start the next query from
     next: str | None = None
-
-
