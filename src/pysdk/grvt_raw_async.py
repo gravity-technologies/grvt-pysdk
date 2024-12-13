@@ -220,6 +220,14 @@ class GrvtRawAsync(GrvtRawAsyncBase):
             return GrvtError(**resp)
         return from_dict(types.ApiWithdrawalHistoryResponse, resp, Config(cast=[Enum]))
 
+    async def pre_deposit_check_v1(
+        self, req: types.ApiPreDepositCheckRequest
+    ) -> types.ApiPreDepositCheckResponse | GrvtError:
+        resp = await self._post(True, self.td_rpc + "/full/v1/pre_deposit_check", req)
+        if resp.get("code"):
+            return GrvtError(**resp)
+        return from_dict(types.ApiPreDepositCheckResponse, resp, Config(cast=[Enum]))
+
     async def sub_account_summary_v1(
         self, req: types.ApiSubAccountSummaryRequest
     ) -> types.ApiSubAccountSummaryResponse | GrvtError:

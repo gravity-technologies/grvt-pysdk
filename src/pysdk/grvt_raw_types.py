@@ -10,6 +10,11 @@ from enum import Enum
 from typing import Any
 
 
+class BridgeType(Enum):
+    # XY Bridge type
+    XY = "XY"
+
+
 class CandlestickInterval(Enum):
     # 1 minute
     CI_1_M = "CI_1_M"
@@ -1690,6 +1695,20 @@ class PreOrderCheckResult:
 class ApiPreOrderCheckResponse:
     # Pre order check for each new order in the request
     results: list[PreOrderCheckResult]
+
+
+@dataclass
+class ApiPreDepositCheckRequest:
+    # The currency you hold the deposit in
+    currency: Currency
+    # The bridge type to conduct checks for
+    bridge: BridgeType
+
+
+@dataclass
+class ApiPreDepositCheckResponse:
+    # Max Deposit Limit reported for the Bridge Account reported in the currency balance
+    max_deposit_limit: str
 
 
 @dataclass
