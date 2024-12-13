@@ -61,12 +61,18 @@ class GrvtCcxtPro(GrvtCcxtBase):
         self._session = aiohttp.ClientSession(
             headers={"Content-Type": "application/json"}
         )
+        # Force sync call to get cookie here
         self._cookie = get_cookie_with_expiration(
             get_grvt_endpoint(self.env, "AUTH"), self._api_key
         )
         if self._cookie:
             self.logger.info(f"refresh_cookie cookie={self._cookie}")
             self._session.cookie_jar.update_cookies({"gravity": self._cookie["gravity"]})
+            self._session.headers.update({"X-Grvt-Account-Id": self._cookie["X-Grvt-Account-Id"]})
+            self.logger.info(
+                f"refresh_cookie {self._cookie=} {self._session.cookie_jar=}"
+                f" {self._session.headers=}"
+            )
 
     async def refresh_cookie(self) -> dict | None:
         """Refresh the session cookie."""
@@ -78,6 +84,11 @@ class GrvtCcxtPro(GrvtCcxtBase):
         if self._cookie:
             self.logger.info(f"refresh_cookie cookie={self._cookie}")
             self._session.cookie_jar.update_cookies({"gravity": self._cookie["gravity"]})
+            self._session.headers.update({"X-Grvt-Account-Id": self._cookie["X-Grvt-Account-Id"]})
+            self.logger.info(
+                f"refresh_cookie {self._cookie=} {self._session.cookie_jar=}"
+                f" {self._session.headers=}"
+            )
         return self._cookie
 
     # PRIVATE API CALLS

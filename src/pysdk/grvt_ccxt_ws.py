@@ -63,6 +63,7 @@ class GrvtCcxtWS(GrvtCcxtPro):
         self._loop = loop
         self._clsname: str = type(self).__name__
         self.api_ws_version = parameters.get("api_ws_version", "v1")
+        self.force_reconnect_flag: bool = False
         self.ws: dict[GrvtWSEndpointType, websockets.WebSocketClientProtocol | None] = {}
         self.callbacks: dict[GrvtWSEndpointType, dict[str, dict[str, Callable]]] = {}
         self.subscribed_streams: dict[GrvtWSEndpointType, dict] = {}
@@ -93,6 +94,9 @@ class GrvtCcxtWS(GrvtCcxtPro):
     async def __aexit__(self):
         for grvt_endpoint_type in self.endpoint_types:
             await self._close_connection(grvt_endpoint_type)
+
+    def force_reconnect(self) -> None:
+        self.force_reconnect_flag = True
 
     async def initialize(self):
         """
@@ -137,10 +141,13 @@ class GrvtCcxtWS(GrvtCcxtPro):
         while True:
             try:
                 for end_point_type in self.endpoint_types:
-                    if not self.is_endpoint_connected(end_point_type):
+                    if not self.is_endpoint_connected(end_point_type) or self.force_reconnect_flag:
                         await self._reconnect(end_point_type)
                 all_are_connected = self.are_endpoints_connected(self.endpoint_types)
-                self.logger.info(f"{FN} Connection status: {all_are_connected=}")
+                self.logger.info(
+                    f"{FN} Connection status: {all_are_connected=} {self.force_reconnect_flag=}"
+                )
+                self.force_reconnect_flag = False
             except Exception as e:
                 self.logger.exception(f"{FN} {e=}")
             finally:
@@ -159,7 +166,10 @@ class GrvtCcxtWS(GrvtCcxtPro):
                 GrvtWSEndpointType.TRADE_DATA_RPC_FULL,
             ]:
                 if self._cookie:
-                    extra_headers = {"Cookie": f"gravity={self._cookie['gravity']}"}
+                    extra_headers = {
+                        "Cookie": f"gravity={self._cookie['gravity']}",
+                        "X-Grvt-Account-Id": self._cookie["X-Grvt-Account-Id"],
+                    }
                     self.ws[grvt_endpoint_type] = await websockets.connect(
                         uri=self.api_url[grvt_endpoint_type],
                         extra_headers=extra_headers,
@@ -258,7 +268,7 @@ class GrvtCcxtWS(GrvtCcxtPro):
                         self.ws[grvt_endpoint_type].recv(), timeout=WS_READ_TIMEOUT
                     )
                     message = json.loads(response)
-                    self.logger.info(f"{FN} received {message=}")
+                    self.logger.debug(f"{FN} received {message=}")
                     self._check_susbcribed_stream(grvt_endpoint_type, message)
                     if "feed" in message:
                         stream_subscribed: str | None = message.get("stream")

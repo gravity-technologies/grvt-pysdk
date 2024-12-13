@@ -78,37 +78,11 @@ def get_EIP712_domain_data(env: GrvtEnv) -> dict[str, str | int]:
     }
 
 
-def get_cookie(path: str, api_key: str | None) -> dict[str, str] | None:
+def get_cookie_with_expiration(
+    path: str, api_key: str | None
+) -> dict[str, str | None] | None:
     """
-    Authenticates and retrieves the session cookie.
-
-    :return: The session cookie.
-    """
-    if api_key:
-        data = {}
-        try:
-            data = {"api_key": api_key}
-            session = requests.Session()
-            response = session.post(
-                path,
-                json=data,
-                headers={"Content-Type": "application/json"},
-                timeout=5,
-            )
-            grvt_cookie = response.cookies.get("gravity")
-            if not grvt_cookie:
-                return None
-            return {"gravity": grvt_cookie}
-        except Exception:
-            return None
-    else:
-        return None
-
-
-def get_cookie_with_expiration(path: str, api_key: str | None) -> dict[str, str] | None:
-    """
-    Authenticates and retrieves the session cookie.
-
+    Authenticates and retrieves the session cookie, its expiration time and grvt-account-id token.
     :return: The session cookie.
     """
     FN = f"get_cookie_with_expiration {path=}"
@@ -131,8 +105,17 @@ def get_cookie_with_expiration(path: str, api_key: str | None) -> dict[str, str]
                     cookie["gravity"]["expires"],
                     "%a, %d %b %Y %H:%M:%S %Z",
                 )
-                logging.info(f"{FN} OK response {cookie_value=} {cookie_expiry=}")
-                return {"gravity": cookie_value, "expires": cookie_expiry.timestamp()}
+                grvt_account_id: str | None = return_value.headers.get(
+                    "X-Grvt-Account-Id"
+                )
+                logging.info(
+                    f"{FN} OK response {cookie_value=} {cookie_expiry=} {grvt_account_id=}"
+                )
+                return {
+                    "gravity": cookie_value,
+                    "expires": cookie_expiry.timestamp(),
+                    "X-Grvt-Account-Id": grvt_account_id,
+                }
             logging.warning(f"{FN} Invalid return_value {data=} {path=} {return_value=}")
             return None
         except Exception as e:
@@ -142,44 +125,11 @@ def get_cookie_with_expiration(path: str, api_key: str | None) -> dict[str, str]
         return None
 
 
-async def get_cookie_async(path: str, api_key: str | None) -> dict[str, str] | None:
-    """
-    Authenticates and retrieves the session cookie.
-
-    :return: The session cookie.
-    """
-    FN = f"get_cookie_async {path=}"
-    if api_key:
-        data = {}
-        try:
-            data = {"api_key": api_key}
-            async with aiohttp.ClientSession() as session:
-                async with session.post(url=path, json=data, timeout=5) as return_value:
-                    response: dict = await return_value.json(content_type=None)
-                    if return_value.ok:
-                        logging.info(f"{FN} OK response:{response}")
-                        logging.info(f"{FN} cookies={return_value.cookies}")
-                        grvt_cookie = return_value.cookies.get("gravity")
-                        if not grvt_cookie:
-                            logging.info(
-                                f"{FN} No `gravity` cookie found for {return_value.cookies=}"
-                            )
-                            return None
-                        logging.info(f"{FN} Found GRVT cookie {grvt_cookie.value=}")
-                        return {"gravity": grvt_cookie.value}
-                    logging.warning(f"{FN} {return_value.status=} Response:{response}")
-                    return None
-        except Exception:
-            return None
-    else:
-        return None
-
-
 async def get_cookie_with_expiration_async(
     path: str, api_key: str | None
 ) -> dict[str, str] | None:
     """
-    Authenticates and retrieves the session cookie.
+    Authenticates and retrieves the session cookie, its expiration time and grvt-account-id token.
     :return: The session cookie.
     """
     FN = f"get_cookie_with_expiration_async {path=}"
@@ -193,18 +143,22 @@ async def get_cookie_with_expiration_async(
                     logging.info(f"{FN} {return_value=}")
                     if return_value.ok:
                         cookie = SimpleCookie()
-                        cookie_header = return_value.headers.get("Set-Cookie")
-                        grvt_cookie = return_value.cookies.get("gravity")
-                        logging.info(f"{FN} OK {grvt_cookie=}")
-                        cookie.load(cookie_header)
+                        cookie.load(return_value.headers.get("Set-Cookie"))
                         cookie_value = cookie["gravity"].value
                         cookie_expiry = datetime.strptime(
                             cookie["gravity"]["expires"],
                             "%a, %d %b %Y %H:%M:%S %Z",
                         )
+                        grvt_account_id: str | None = return_value.headers.get(
+                            "X-Grvt-Account-Id"
+                        )
+                        logging.info(
+                            f"{FN} OK response {cookie_value=} {cookie_expiry=} {grvt_account_id=}"
+                        )
                         return {
                             "gravity": cookie_value,
                             "expires": cookie_expiry.timestamp(),
+                            "X-Grvt-Account-Id": grvt_account_id,
                         }
         except Exception as e:
             logging.error(f"{FN} Error getting cookie: {e}")
@@ -423,10 +377,8 @@ def get_order_payload(
 ) -> dict:
     signable_message = get_signable_message(order, env, instruments)
     signed_message = Account.sign_message(signable_message, private_key)
-    order.signature.s = "0x" + \
-        signed_message.s.to_bytes(32, byteorder='big').hex()
-    order.signature.r = "0x" + \
-        signed_message.r.to_bytes(32, byteorder='big').hex()
+    order.signature.s = "0x" + signed_message.s.to_bytes(32, byteorder="big").hex()
+    order.signature.r = "0x" + signed_message.r.to_bytes(32, byteorder="big").hex()
     order.signature.v = signed_message.v
     order.signature.signer = Account.from_key(private_key).address
 
