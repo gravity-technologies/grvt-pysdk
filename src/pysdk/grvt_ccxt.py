@@ -55,12 +55,8 @@ class GrvtCcxt(GrvtCcxtBase):
         """Initialize the GrvtCcxt instance."""
         super().__init__(env, logger, parameters)
         self._clsname: str = type(self).__name__
-        self._session = requests.Session()
-        self._session.headers.update(
-            {
-                "Content-Type": "application/json",
-            }
-        )
+        self._session: requests.Session = requests.Session()
+        self._session.headers.update({"Content-Type": "application/json"})
         self.refresh_cookie()
         # Assign markets here
         self.markets = self.load_markets()
@@ -74,7 +70,9 @@ class GrvtCcxt(GrvtCcxtBase):
         self._path_return_value_map[path] = self._cookie
         if self._cookie:
             self._session.cookies.update({"gravity": self._cookie["gravity"]})
-            self._session.headers.update({"X-Grvt-Account-Id": self._cookie["X-Grvt-Account-Id"]})
+            self._session.headers.update(
+                {"X-Grvt-Account-Id": self._cookie["X-Grvt-Account-Id"]}
+            )
             self.logger.info(
                 f"refresh_cookie {self._cookie=} {self._session.cookies=}"
                 f" {self._session.headers=}"

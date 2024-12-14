@@ -35,6 +35,7 @@ class GrvtError:
 class GrvtCookie:
     gravity: str
     expires: datetime
+    grvt_account_id: str | None = None
 
 
 class GrvtRawBase:
@@ -85,12 +86,17 @@ class GrvtRawSyncBase(GrvtRawBase):
     def _refresh_cookie(self) -> None:
         if not self._should_refresh_cookie():
             return None
-
         # Get cookie
         self._cookie = self._get_cookie(
             self.env.edge.rpc_endpoint + "/auth/api_key/login", str(self.config.api_key)
         )
         self.logger.info(f"refresh_cookie cookie={self._cookie}")
+        # Update cookie in session
+        if self._cookie:
+            self._session.cookies.update({"gravity": self._cookie.gravity})
+            self._session.headers.update(
+                {"X-Grvt-Account-Id": self._cookie.grvt_account_id}
+            )
         return None
 
     def _get_cookie(self, path: str, api_key: str) -> GrvtCookie | None:
@@ -117,9 +123,13 @@ class GrvtRawSyncBase(GrvtRawBase):
                     cookie["gravity"]["expires"],
                     "%a, %d %b %Y %H:%M:%S %Z",
                 )
+                grvt_account_id: str | None = return_value.headers.get(
+                    "X-Grvt-Account-Id"
+                )
                 return GrvtCookie(
                     gravity=cookie_value,
                     expires=cookie_expiry,
+                    grvt_account_id=grvt_account_id,
                 )
             return None
         except Exception as e:
@@ -177,6 +187,9 @@ class GrvtRawAsyncBase(GrvtRawBase):
         # Update cookie in session
         if self._cookie:
             self._session.cookie_jar.update_cookies({"gravity": self._cookie.gravity})
+            self._session.headers.update(
+                {"X-Grvt-Account-Id": self._cookie.grvt_account_id}
+            )
         return None
 
     async def _get_cookie(self, path: str, api_key: str) -> GrvtCookie | None:
@@ -201,9 +214,13 @@ class GrvtRawAsyncBase(GrvtRawBase):
                             cookie["gravity"]["expires"],
                             "%a, %d %b %Y %H:%M:%S %Z",
                         )
+                        grvt_account_id: str | None = return_value.headers.get(
+                            "X-Grvt-Account-Id"
+                        )
                         return GrvtCookie(
                             gravity=cookie_value,
                             expires=cookie_expiry,
+                            grvt_account_id=grvt_account_id,
                         )
             return None
         except Exception as e:
