@@ -142,6 +142,14 @@ class GrvtRawSync(GrvtRawSyncBase):
             return GrvtError(**resp)
         return from_dict(types.ApiOrderHistoryResponse, resp, Config(cast=[Enum]))
 
+    def pre_order_check_v1(
+        self, req: types.ApiPreOrderCheckRequest
+    ) -> types.ApiPreOrderCheckResponse | GrvtError:
+        resp = self._post(True, self.td_rpc + "/full/v1/pre_order_check", req)
+        if resp.get("code"):
+            return GrvtError(**resp)
+        return from_dict(types.ApiPreOrderCheckResponse, resp, Config(cast=[Enum]))
+
     def fill_history_v1(
         self, req: types.ApiFillHistoryRequest
     ) -> types.ApiFillHistoryResponse | GrvtError:
@@ -167,12 +175,6 @@ class GrvtRawSync(GrvtRawSyncBase):
         return from_dict(
             types.ApiFundingPaymentHistoryResponse, resp, Config(cast=[Enum])
         )
-
-    def deposit_v1(self, req: types.ApiDepositRequest) -> types.AckResponse | GrvtError:
-        resp = self._post(True, self.td_rpc + "/full/v1/deposit", req)
-        if resp.get("code"):
-            return GrvtError(**resp)
-        return from_dict(types.AckResponse, resp, Config(cast=[Enum]))
 
     def deposit_history_v1(
         self, req: types.ApiDepositHistoryRequest
@@ -212,6 +214,14 @@ class GrvtRawSync(GrvtRawSyncBase):
             return GrvtError(**resp)
         return from_dict(types.ApiWithdrawalHistoryResponse, resp, Config(cast=[Enum]))
 
+    def pre_deposit_check_v1(
+        self, req: types.ApiPreDepositCheckRequest
+    ) -> types.ApiPreDepositCheckResponse | GrvtError:
+        resp = self._post(True, self.td_rpc + "/full/v1/pre_deposit_check", req)
+        if resp.get("code"):
+            return GrvtError(**resp)
+        return from_dict(types.ApiPreDepositCheckResponse, resp, Config(cast=[Enum]))
+
     def sub_account_summary_v1(
         self, req: types.ApiSubAccountSummaryRequest
     ) -> types.ApiSubAccountSummaryResponse | GrvtError:
@@ -247,3 +257,11 @@ class GrvtRawSync(GrvtRawSyncBase):
         return from_dict(
             types.ApiFundingAccountSummaryResponse, resp, Config(cast=[Enum])
         )
+
+    def socialized_loss_status_v1(
+        self, req: types.EmptyRequest
+    ) -> types.ApiSocializedLossStatusResponse | GrvtError:
+        resp = self._post(True, self.td_rpc + "/full/v1/socialized_loss_status", req)
+        if resp.get("code"):
+            return GrvtError(**resp)
+        return from_dict(types.ApiSocializedLossStatusResponse, resp, Config(cast=[Enum]))
