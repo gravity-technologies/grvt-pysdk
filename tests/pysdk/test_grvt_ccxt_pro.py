@@ -1,6 +1,5 @@
 import asyncio
 import os
-import time
 import traceback
 
 from pysdk.grvt_ccxt_env import GrvtEnv

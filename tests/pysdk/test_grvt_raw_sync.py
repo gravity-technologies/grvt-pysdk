@@ -66,7 +66,7 @@ def test_create_order_with_signing() -> None:
 def test_transfer_with_signing() -> None:
     api = GrvtRawSync(config=get_config())
     transfer = get_test_transfer(api)
-    
+
     if transfer is None:
         return None  # Skip test if configs are not set
 
