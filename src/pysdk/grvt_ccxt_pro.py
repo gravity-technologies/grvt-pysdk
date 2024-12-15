@@ -65,15 +65,17 @@ class GrvtCcxtPro(GrvtCcxtBase):
         self._cookie = get_cookie_with_expiration(
             get_grvt_endpoint(self.env, "AUTH"), self._api_key
         )
+        self.update_session_with_cookie()
+
+    def update_session_with_cookie(self) -> None:
         if self._cookie:
-            self.logger.info(f"refresh_cookie cookie={self._cookie}")
             self._session.cookie_jar.update_cookies({"gravity": self._cookie["gravity"]})
             if self._cookie["X-Grvt-Account-Id"]:
                 self._session.headers.update(
                     {"X-Grvt-Account-Id": self._cookie["X-Grvt-Account-Id"]}
                 )
             self.logger.info(
-                f"refresh_cookie {self._cookie=} {self._session.cookie_jar=}"
+                f"update_session_with_cookie {self._cookie=} {self._session.cookie_jar=}"
                 f" {self._session.headers=}"
             )
 
@@ -84,16 +86,7 @@ class GrvtCcxtPro(GrvtCcxtBase):
         path = get_grvt_endpoint(self.env, "AUTH")
         self._cookie = await get_cookie_with_expiration_async(path, self._api_key)
         self._path_return_value_map[path] = self._cookie
-        if self._cookie:
-            self.logger.info(f"refresh_cookie cookie={self._cookie}")
-            self._session.cookie_jar.update_cookies({"gravity": self._cookie["gravity"]})
-            self._session.headers.update(
-                {"X-Grvt-Account-Id": self._cookie["X-Grvt-Account-Id"]}
-            )
-            self.logger.info(
-                f"refresh_cookie {self._cookie=} {self._session.cookie_jar=}"
-                f" {self._session.headers=}"
-            )
+        self.update_session_with_cookie()
         return self._cookie
 
     # PRIVATE API CALLS

@@ -94,9 +94,10 @@ class GrvtRawSyncBase(GrvtRawBase):
         # Update cookie in session
         if self._cookie:
             self._session.cookies.update({"gravity": self._cookie.gravity})
-            self._session.headers.update(
-                {"X-Grvt-Account-Id": self._cookie.grvt_account_id}
-            )
+            if self._cookie.grvt_account_id:
+                self._session.headers.update(
+                    {"X-Grvt-Account-Id": self._cookie.grvt_account_id}
+                )
         return None
 
     def _get_cookie(self, path: str, api_key: str) -> GrvtCookie | None:
@@ -187,9 +188,10 @@ class GrvtRawAsyncBase(GrvtRawBase):
         # Update cookie in session
         if self._cookie:
             self._session.cookie_jar.update_cookies({"gravity": self._cookie.gravity})
-            self._session.headers.update(
-                {"X-Grvt-Account-Id": self._cookie.grvt_account_id}
-            )
+            if self._cookie.grvt_account_id:
+                self._session.headers.update(
+                    {"X-Grvt-Account-Id": self._cookie.grvt_account_id}
+                )
         return None
 
     async def _get_cookie(self, path: str, api_key: str) -> GrvtCookie | None:
