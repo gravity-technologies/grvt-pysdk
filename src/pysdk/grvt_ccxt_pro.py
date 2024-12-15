@@ -68,7 +68,10 @@ class GrvtCcxtPro(GrvtCcxtBase):
         if self._cookie:
             self.logger.info(f"refresh_cookie cookie={self._cookie}")
             self._session.cookie_jar.update_cookies({"gravity": self._cookie["gravity"]})
-            self._session.headers.update({"X-Grvt-Account-Id": self._cookie["X-Grvt-Account-Id"]})
+            if self._cookie["X-Grvt-Account-Id"]:
+                self._session.headers.update(
+                    {"X-Grvt-Account-Id": self._cookie["X-Grvt-Account-Id"]}
+                )
             self.logger.info(
                 f"refresh_cookie {self._cookie=} {self._session.cookie_jar=}"
                 f" {self._session.headers=}"
@@ -84,7 +87,9 @@ class GrvtCcxtPro(GrvtCcxtBase):
         if self._cookie:
             self.logger.info(f"refresh_cookie cookie={self._cookie}")
             self._session.cookie_jar.update_cookies({"gravity": self._cookie["gravity"]})
-            self._session.headers.update({"X-Grvt-Account-Id": self._cookie["X-Grvt-Account-Id"]})
+            self._session.headers.update(
+                {"X-Grvt-Account-Id": self._cookie["X-Grvt-Account-Id"]}
+            )
             self.logger.info(
                 f"refresh_cookie {self._cookie=} {self._session.cookie_jar=}"
                 f" {self._session.headers=}"

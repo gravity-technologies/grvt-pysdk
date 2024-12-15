@@ -107,7 +107,9 @@ class GrvtCcxtWS(GrvtCcxtPro):
         self._loop.create_task(self.connect_all_channels())
 
     def is_connection_open(self, grvt_endpoint_type: GrvtWSEndpointType) -> bool:
-        return self.ws[grvt_endpoint_type] is not None and self.ws[grvt_endpoint_type].open
+        return (
+            self.ws[grvt_endpoint_type] is not None and self.ws[grvt_endpoint_type].open
+        )
 
     def is_endpoint_connected(self, grvt_endpoint_type: GrvtWSEndpointType) -> bool:
         """
@@ -128,8 +130,12 @@ class GrvtCcxtWS(GrvtCcxtPro):
             return bool(not self._cookie or self.is_connection_open(grvt_endpoint_type))
         raise ValueError(f"Unknown endpoint type {grvt_endpoint_type}")
 
-    def are_endpoints_connected(self, grvt_endpoint_types: list[GrvtWSEndpointType]) -> bool:
-        return all(self.is_endpoint_connected(endpoint) for endpoint in grvt_endpoint_types)
+    def are_endpoints_connected(
+        self, grvt_endpoint_types: list[GrvtWSEndpointType]
+    ) -> bool:
+        return all(
+            self.is_endpoint_connected(endpoint) for endpoint in grvt_endpoint_types
+        )
 
     async def connect_all_channels(self) -> None:
         """
@@ -141,7 +147,10 @@ class GrvtCcxtWS(GrvtCcxtPro):
         while True:
             try:
                 for end_point_type in self.endpoint_types:
-                    if not self.is_endpoint_connected(end_point_type) or self.force_reconnect_flag:
+                    if (
+                        not self.is_endpoint_connected(end_point_type)
+                        or self.force_reconnect_flag
+                    ):
                         await self._reconnect(end_point_type)
                 all_are_connected = self.are_endpoints_connected(self.endpoint_types)
                 self.logger.info(
@@ -166,10 +175,11 @@ class GrvtCcxtWS(GrvtCcxtPro):
                 GrvtWSEndpointType.TRADE_DATA_RPC_FULL,
             ]:
                 if self._cookie:
-                    extra_headers = {
-                        "Cookie": f"gravity={self._cookie['gravity']}",
-                        "X-Grvt-Account-Id": self._cookie["X-Grvt-Account-Id"],
-                    }
+                    extra_headers = {"Cookie": f"gravity={self._cookie['gravity']}"}
+                    if self._cookie["X-Grvt-Account-Id"]:
+                        extra_headers.update(
+                            {"X-Grvt-Account-Id": self._cookie["X-Grvt-Account-Id"]}
+                        )
                     self.ws[grvt_endpoint_type] = await websockets.connect(
                         uri=self.api_url[grvt_endpoint_type],
                         extra_headers=extra_headers,
@@ -236,14 +246,20 @@ class GrvtCcxtWS(GrvtCcxtPro):
                         f"{self._clsname} _resubscribe {grvt_endpoint_type=}"
                         f" {versioned_stream=}/{selector=}"
                     )
-                    await self._subscribe_to_stream(grvt_endpoint_type, versioned_stream, selector)
+                    await self._subscribe_to_stream(
+                        grvt_endpoint_type, versioned_stream, selector
+                    )
         else:
             self.logger.warning(f"{self._clsname} _resubscribe - No connection.")
 
     # **************** PUBLIC API CALLS
-    def is_stream_subscribed(self, grvt_endpoint_type: GrvtWSEndpointType, stream: str) -> bool:
+    def is_stream_subscribed(
+        self, grvt_endpoint_type: GrvtWSEndpointType, stream: str
+    ) -> bool:
         versioned_stream = self.get_versioned_stream(stream)
-        return self.subscribed_streams.get(grvt_endpoint_type, {}).get(versioned_stream, False)
+        return self.subscribed_streams.get(grvt_endpoint_type, {}).get(
+            versioned_stream, False
+        )
 
     def _check_susbcribed_stream(
         self, grvt_endpoint_type: GrvtWSEndpointType, message: dict
@@ -255,7 +271,9 @@ class GrvtCcxtWS(GrvtCcxtPro):
             stream_subscribed = message.get("result", {}).get("stream", "")
         if stream_subscribed:
             if not self.subscribed_streams[grvt_endpoint_type].get(stream_subscribed):
-                self.logger.info(f"{self._clsname} subscribed to stream:{stream_subscribed}")
+                self.logger.info(
+                    f"{self._clsname} subscribed to stream:{stream_subscribed}"
+                )
                 self.subscribed_streams[grvt_endpoint_type][stream_subscribed] = True
 
     async def _read_messages(self, grvt_endpoint_type: GrvtWSEndpointType):
@@ -278,11 +296,16 @@ class GrvtCcxtWS(GrvtCcxtPro):
                         if selector is None:
                             self.logger.warning(f"{FN} missing selector in {message=}")
                         if stream_subscribed and selector:
-                            callback = self.callbacks[grvt_endpoint_type].get(
-                                stream_subscribed, {}).get(selector, None)
+                            callback = (
+                                self.callbacks[grvt_endpoint_type]
+                                .get(stream_subscribed, {})
+                                .get(selector, None)
+                            )
                             if callback:
                                 await callback(message)
-                                stream: str = self.get_non_versioned_stream(stream_subscribed)
+                                stream: str = self.get_non_versioned_stream(
+                                    stream_subscribed
+                                )
                                 self._last_message[stream] = message
                             else:
                                 self.logger.warning(
@@ -311,13 +334,17 @@ class GrvtCcxtWS(GrvtCcxtPro):
                     websockets.exceptions.ConnectionClosedError,
                     websockets.exceptions.ConnectionClosedOK,
                 ):
-                    self.logger.exception(f"{FN} connection closed {traceback.format_exc()}")
+                    self.logger.exception(
+                        f"{FN} connection closed {traceback.format_exc()}"
+                    )
                     await self._reconnect(grvt_endpoint_type)
                 except asyncio.TimeoutError:  # noqa: UP041
                     self.logger.debug(f"{FN} Timeout {WS_READ_TIMEOUT} secs")
                     pass
                 except Exception:
-                    self.logger.exception(f"{FN} connection failed {traceback.format_exc()}")
+                    self.logger.exception(
+                        f"{FN} connection failed {traceback.format_exc()}"
+                    )
                     await asyncio.sleep(1)
             else:
                 self.logger.info(f"{FN} connection not open")
@@ -422,7 +449,9 @@ class GrvtCcxtWS(GrvtCcxtPro):
             self.logger.info(f"{FN} Connection not open. Will subscribe on connect.")
 
     def get_versioned_stream(self, stream: str) -> str:
-        return stream if self.api_ws_version == "v0" else f"{self.api_ws_version}.{stream}"
+        return (
+            stream if self.api_ws_version == "v0" else f"{self.api_ws_version}.{stream}"
+        )
 
     def get_non_versioned_stream(self, versioned_stream: str) -> str:
         if self.api_ws_version == "v0":
@@ -474,7 +503,9 @@ class GrvtCcxtWS(GrvtCcxtPro):
         if stream not in self._last_message:
             self._last_message[stream] = {}
 
-    def jsonrpc_wrap_payload(self, payload: dict, method: str, version: str = "v1") -> dict:
+    def jsonrpc_wrap_payload(
+        self, payload: dict, method: str, version: str = "v1"
+    ) -> dict:
         """
         Wrap the payload in JSON-RPC format.
         """
@@ -486,7 +517,9 @@ class GrvtCcxtWS(GrvtCcxtPro):
             "id": self._request_id,
         }
 
-    async def send_rpc_message(self, end_point_type: GrvtWSEndpointType, message: dict) -> None:
+    async def send_rpc_message(
+        self, end_point_type: GrvtWSEndpointType, message: dict
+    ) -> None:
         """
         Send a message to the server.
         """
@@ -508,7 +541,9 @@ class GrvtCcxtWS(GrvtCcxtPro):
         FN = f"{self._clsname} rpc_create_order"
         if not self.is_endpoint_connected(GrvtWSEndpointType.TRADE_DATA_RPC_FULL):
             raise GrvtInvalidOrder("Trade data connection not available.")
-        order = self._get_order_with_validations(symbol, order_type, side, amount, price, params)
+        order = self._get_order_with_validations(
+            symbol, order_type, side, amount, price, params
+        )
         self.logger.info(f"{FN} {order=}")
         payload = get_order_rpc_payload(order, self._private_key, self.env, self.markets)
         self._request_id += 1
@@ -544,7 +579,9 @@ class GrvtCcxtWS(GrvtCcxtPro):
         # FN = f"{self._clsname} rpc_cancel_all_orders"
         payload: dict = self._get_payload_cancel_all_orders(params)
         jsonrpc_payload = self.jsonrpc_wrap_payload(payload, method="cancel_all_orders")
-        await self.send_rpc_message(GrvtWSEndpointType.TRADE_DATA_RPC_FULL, jsonrpc_payload)
+        await self.send_rpc_message(
+            GrvtWSEndpointType.TRADE_DATA_RPC_FULL, jsonrpc_payload
+        )
         return jsonrpc_payload
 
     async def rpc_cancel_order(
@@ -582,7 +619,9 @@ class GrvtCcxtWS(GrvtCcxtPro):
         else:
             raise GrvtInvalidOrder(f"{FN} requires either order_id or client_order_id")
         jsonrpc_payload = self.jsonrpc_wrap_payload(payload, method="cancel_order")
-        await self.send_rpc_message(GrvtWSEndpointType.TRADE_DATA_RPC_FULL, jsonrpc_payload)
+        await self.send_rpc_message(
+            GrvtWSEndpointType.TRADE_DATA_RPC_FULL, jsonrpc_payload
+        )
         return jsonrpc_payload
 
     async def rpc_fetch_open_orders(
@@ -609,7 +648,9 @@ class GrvtCcxtWS(GrvtCcxtPro):
         # Prepare request payload
         payload = self._get_payload_fetch_open_orders(symbol=None, params=params)
         jsonrpc_payload = self.jsonrpc_wrap_payload(payload, method="open_orders")
-        await self.send_rpc_message(GrvtWSEndpointType.TRADE_DATA_RPC_FULL, jsonrpc_payload)
+        await self.send_rpc_message(
+            GrvtWSEndpointType.TRADE_DATA_RPC_FULL, jsonrpc_payload
+        )
         return jsonrpc_payload
 
     async def rpc_fetch_order(
@@ -643,7 +684,11 @@ class GrvtCcxtWS(GrvtCcxtPro):
         elif "client_order_id" in params:
             payload["client_order_id"] = str(params["client_order_id"])
         else:
-            raise GrvtInvalidOrder(f"{FN} requires either order_id or params['client_order_id']")
+            raise GrvtInvalidOrder(
+                f"{FN} requires either order_id or params['client_order_id']"
+            )
         jsonrpc_payload = self.jsonrpc_wrap_payload(payload, method="order")
-        await self.send_rpc_message(GrvtWSEndpointType.TRADE_DATA_RPC_FULL, jsonrpc_payload)
+        await self.send_rpc_message(
+            GrvtWSEndpointType.TRADE_DATA_RPC_FULL, jsonrpc_payload
+        )
         return jsonrpc_payload
