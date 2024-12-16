@@ -9,7 +9,7 @@ authors = [
 ]
 readme = { file = "README.md", content-type = "text/markdown" }
 dependencies = [
-    "aiohttp>=3.10.5",
+    "aiohttp>=3.10.11",
     "backports-weakref>=1.0.post1",
     "dacite>=1.8.1",
     "dataclasses-json>=0.6.7",
