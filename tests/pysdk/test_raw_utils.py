@@ -76,7 +76,7 @@ def get_test_transfer(
     ):
         return None
 
-    private_key = keys.PrivateKey(bytes.fromhex(api.config.private_key))
+    private_key = keys.PrivateKey(str.encode(api.config.private_key))
     public_key = private_key.public_key
     funding_account_address = public_key.to_checksum_address()
 
