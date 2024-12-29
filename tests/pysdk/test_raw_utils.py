@@ -3,11 +3,8 @@ import os
 import random
 import time
 
-from eth_keys import keys
-from eth_utils import to_checksum_address
-
 from pysdk import grvt_raw_types
-from pysdk.grvt_raw_base import GrvtApiConfig
+from pysdk.grvt_raw_base import GrvtError, GrvtApiConfig
 from pysdk.grvt_raw_env import GrvtEnv
 from pysdk.grvt_raw_signing import sign_order, sign_transfer
 from pysdk.grvt_raw_sync import GrvtRawSync
@@ -76,9 +73,14 @@ def get_test_transfer(
     ):
         return None
 
-    private_key = keys.PrivateKey(str.encode(api.config.private_key))
-    public_key = private_key.public_key
-    funding_account_address = public_key.to_checksum_address()
+    resp = api.funding_account_summary_v1(grvt_raw_types.EmptyRequest())
+
+    if isinstance(resp, GrvtError):
+        raise ValueError(f"Received error: {resp}")
+    if resp.result is None:
+        raise ValueError("Expected funding_account_summary_v1 response to be non-null")
+    
+    funding_account_address = resp.result.main_account_id
 
     return sign_transfer(
         grvt_raw_types.Transfer(
