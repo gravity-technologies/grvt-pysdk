@@ -93,12 +93,17 @@ def test_sign_order_table():
   "version": "0",
   "chainId": 326
 }""",
+            # Per EIP-191: https://eips.ethereum.org/EIPS/eip-191
             "expected_signable_message": """
 {
   "version": "01",
   "header": "1254f97f8495f704630a238cbcd898a4b8ab20d77bb93e17049d3445f4f81f16",
   "body": "41650c08ab6e720f899307d7c2b4381a10c1301888375cec2dfefd6a583859eb"
 }""",
+            # EIP-712 signable message format: https://eips.ethereum.org/EIPS/eip-712
+            # Pre-image of the signed message's message hash
+            # encode(domainSeparator : 𝔹²⁵⁶, message : 𝕊) = "\x19"‖ version ‖ domainSeparator ‖ hashStruct(message)
+            "digest_input": "0x19011254f97f8495f704630a238cbcd898a4b8ab20d77bb93e17049d3445f4f81f1641650c08ab6e720f899307d7c2b4381a10c1301888375cec2dfefd6a583859eb",
             "expected_signed_message": """
 {
   "message_hash": "03cb7ca7b353969ab2c00ff92fd472f81f59a84d28fa1aa39128176f21062982",
@@ -161,6 +166,7 @@ def test_sign_order_table():
   "header": "1254f97f8495f704630a238cbcd898a4b8ab20d77bb93e17049d3445f4f81f16",
   "body": "e85ffec169d4ebd4b8057e5fbd31ed31d4511b2f2299bbce0adab6beb5fe2814"
 }""",
+            "digest_input": "0x19011254f97f8495f704630a238cbcd898a4b8ab20d77bb93e17049d3445f4f81f16e85ffec169d4ebd4b8057e5fbd31ed31d4511b2f2299bbce0adab6beb5fe2814",
             "expected_signed_message": """
 {
   "message_hash": "2d0a437f7d64523386974c2a729d69604f8e2a7f0684b7de923845d8b175ab69",
@@ -223,6 +229,7 @@ def test_sign_order_table():
   "header": "1254f97f8495f704630a238cbcd898a4b8ab20d77bb93e17049d3445f4f81f16",
   "body": "e85ffec169d4ebd4b8057e5fbd31ed31d4511b2f2299bbce0adab6beb5fe2814"
 }""",
+            "digest_input": "0x19011254f97f8495f704630a238cbcd898a4b8ab20d77bb93e17049d3445f4f81f16e85ffec169d4ebd4b8057e5fbd31ed31d4511b2f2299bbce0adab6beb5fe2814",
             "expected_signed_message": """
 {
   "message_hash": "2d0a437f7d64523386974c2a729d69604f8e2a7f0684b7de923845d8b175ab69",
@@ -285,6 +292,7 @@ def test_sign_order_table():
   "header": "1254f97f8495f704630a238cbcd898a4b8ab20d77bb93e17049d3445f4f81f16",
   "body": "e85ffec169d4ebd4b8057e5fbd31ed31d4511b2f2299bbce0adab6beb5fe2814"
 }""",
+            "digest_input": "0x19011254f97f8495f704630a238cbcd898a4b8ab20d77bb93e17049d3445f4f81f16e85ffec169d4ebd4b8057e5fbd31ed31d4511b2f2299bbce0adab6beb5fe2814",
             "expected_signed_message": """
 {
   "message_hash": "2d0a437f7d64523386974c2a729d69604f8e2a7f0684b7de923845d8b175ab69",
@@ -355,6 +363,13 @@ def test_sign_order_table():
             },
             indent=2,
         )
+        # EIP-712 signable message format: https://eips.ethereum.org/EIPS/eip-712
+        signed_message_hash_preimage = (
+            "0x19"
+            + signable_message.version.hex()
+            + signable_message.header.hex()
+            + signable_message.body.hex()
+        )
 
         # Strip whitespace for comparison
         assert (
@@ -383,6 +398,16 @@ Wanted:
 {tc['expected_signable_message'].strip()}
 Got:
 {signable_message_json.strip()}
+"""
+        assert (
+            signed_message_hash_preimage.strip() == tc["digest_input"].strip()
+        ), f"""
+Test '{tc['name']}' failed: digest_input mismatch.
+Wanted:
+{tc["digest_input"].strip()
+}
+Got:
+{signed_message_hash_preimage.strip()}
 """
         assert (
             signed_message_json.strip() == tc["expected_signed_message"].strip()
@@ -437,12 +462,17 @@ def test_sign_transfer_table():
   "version": "0",
   "chainId": 1
 }""",
+            # Per EIP-191: https://eips.ethereum.org/EIPS/eip-191
             "expected_signable_message": """
 {
   "version": "01",
   "header": "950ca409f14e4f89a10e63790c40b5dc9c5fab89944e8c98112dece5b08415f6",
   "body": "8dfbfc161ca14b60b318aec118c0f77137ab6d5c0d6f4aa283a75995ec842a9f"
 }""",
+            # EIP-712 signable message format: https://eips.ethereum.org/EIPS/eip-712
+            # Pre-image of the signed message's message hash
+            # encode(domainSeparator : 𝔹²⁵⁶, message : 𝕊) = "\x19"‖ version ‖ domainSeparator ‖ hashStruct(message)
+            "digest_input": "0x1901950ca409f14e4f89a10e63790c40b5dc9c5fab89944e8c98112dece5b08415f68dfbfc161ca14b60b318aec118c0f77137ab6d5c0d6f4aa283a75995ec842a9f",
             "expected_signed_message": """
 {
   "message_hash": "f237c6e8ceaf8f75c35537c26a5810f5029fe3fa0179d636cfa75dba0eeaecda",
@@ -488,6 +518,7 @@ def test_sign_transfer_table():
   "header": "950ca409f14e4f89a10e63790c40b5dc9c5fab89944e8c98112dece5b08415f6",
   "body": "efc25031927cbee99a4b8c408d427168218312cb5fcbc2ef0644a25c411e9cd6"
 }""",
+            "digest_input": "0x1901950ca409f14e4f89a10e63790c40b5dc9c5fab89944e8c98112dece5b08415f6efc25031927cbee99a4b8c408d427168218312cb5fcbc2ef0644a25c411e9cd6",
             "expected_signed_message": """
 {
   "message_hash": "e9a82979035693538d20cbd16a231379d68b2484f065a64b5ac962a0ef45ed2c",
@@ -533,6 +564,7 @@ def test_sign_transfer_table():
   "header": "950ca409f14e4f89a10e63790c40b5dc9c5fab89944e8c98112dece5b08415f6",
   "body": "325bbcdd0af37fd856ab19d5a34f04c98b4b9125fd924a41d149290d85cf5d1a"
 }""",
+            "digest_input": "0x1901950ca409f14e4f89a10e63790c40b5dc9c5fab89944e8c98112dece5b08415f6325bbcdd0af37fd856ab19d5a34f04c98b4b9125fd924a41d149290d85cf5d1a",
             "expected_signed_message": """
 {
   "message_hash": "05a4682aaaffda9347f7f577623dc86be873d75680250d94f30e27fb450b0597",
@@ -578,6 +610,7 @@ def test_sign_transfer_table():
   "header": "950ca409f14e4f89a10e63790c40b5dc9c5fab89944e8c98112dece5b08415f6",
   "body": "d20efa4f5ca3d7cd996d0a7be827a788fdea40ad9dc3f7d64f909ec3df2f0f1c"
 }""",
+            "digest_input": "0x1901950ca409f14e4f89a10e63790c40b5dc9c5fab89944e8c98112dece5b08415f6d20efa4f5ca3d7cd996d0a7be827a788fdea40ad9dc3f7d64f909ec3df2f0f1c",
             "expected_signed_message": """
 {
   "message_hash": "57de810bfd4c46796b923242eba5fba199c69ec6159fd7f0bae13d20e6b2e32f",
@@ -623,6 +656,7 @@ def test_sign_transfer_table():
   "header": "950ca409f14e4f89a10e63790c40b5dc9c5fab89944e8c98112dece5b08415f6",
   "body": "c92edbd85a6756bbc1d472694218135800c5c34cecd62dfecf8b79696fb30a5a"
 }""",
+            "digest_input": "0x1901950ca409f14e4f89a10e63790c40b5dc9c5fab89944e8c98112dece5b08415f6c92edbd85a6756bbc1d472694218135800c5c34cecd62dfecf8b79696fb30a5a",
             "expected_signed_message": """
 {
   "message_hash": "aa540bb37dc69583724239e2ee089f9863760b1f5dd3707f63254f5f9045a36b",
@@ -668,6 +702,7 @@ def test_sign_transfer_table():
   "header": "950ca409f14e4f89a10e63790c40b5dc9c5fab89944e8c98112dece5b08415f6",
   "body": "5660d6d82b43a7bd01c7bee9379478b27e2c7774d9e9aebd69ea163c523f8730"
 }""",
+            "digest_input": "0x1901950ca409f14e4f89a10e63790c40b5dc9c5fab89944e8c98112dece5b08415f65660d6d82b43a7bd01c7bee9379478b27e2c7774d9e9aebd69ea163c523f8730",
             "expected_signed_message": """
 {
   "message_hash": "2a02bf2a7772d74f176d75f987e984dd253837aba1faed4b0a65ba5a3038ce06",
@@ -717,6 +752,13 @@ def test_sign_transfer_table():
             },
             indent=2,
         )
+        # EIP-712 signable message format: https://eips.ethereum.org/EIPS/eip-712
+        signed_message_hash_preimage = (
+            "0x19"
+            + signable_message.version.hex()
+            + signable_message.header.hex()
+            + signable_message.body.hex()
+        )
 
         # Strip whitespace for comparison
         assert (
@@ -745,6 +787,16 @@ Wanted:
 {tc['expected_signable_message'].strip()}
 Got:
 {signable_message_json.strip()}
+"""
+        assert (
+            signed_message_hash_preimage.strip() == tc["digest_input"].strip()
+        ), f"""
+Test '{tc['name']}' failed: digest_input mismatch.
+Wanted:
+{tc["digest_input"].strip()
+}
+Got:
+{signed_message_hash_preimage.strip()}
 """
         assert (
             signed_message_json.strip() == tc["expected_signed_message"].strip()
