@@ -1,6 +1,6 @@
 from enum import Enum
 from decimal import Decimal
-from typing import Any
+from typing import Any, Optional
 
 from eth_account import Account
 from eth_account.messages import encode_typed_data
@@ -48,6 +48,16 @@ def get_EIP712_domain_data(env: GrvtEnv) -> dict[str, str | int]:
         "name": "GRVT Exchange",
         "version": "0",
         "chainId": CHAIN_IDS[env],
+    }
+
+
+def get_EIP712_transfer_domain_data(
+    env: GrvtEnv, chainId: int | None
+) -> dict[str, str | int]:
+    return {
+        "name": "GRVT Exchange",
+        "version": "0",
+        "chainId": chainId or CHAIN_IDS[env],
     }
 
 
@@ -155,16 +165,29 @@ def sign_transfer(
     transfer: Transfer,
     config: GrvtApiConfig,
     account: Account,
-    chainId: int = None,
+    chainId: int | None = None,
 ) -> Transfer:
     if config.private_key is None:
         raise ValueError("Private key is not set")
 
-    domain = get_EIP712_domain_data(config.env)
-    if chainId:
-        domain["chainId"] = chainId
+    domain = get_EIP712_transfer_domain_data(config.env, chainId)
 
-    message_data = {
+    message_data = build_EIP712_transfer_message_data(transfer)
+    signable_message = encode_typed_data(
+        domain, EIP712_TRANSFER_MESSAGE_TYPE, message_data
+    )
+    signed_message = account.sign_message(signable_message)
+
+    transfer.signature.r = "0x" + signed_message.r.to_bytes(32, byteorder="big").hex()
+    transfer.signature.s = "0x" + signed_message.s.to_bytes(32, byteorder="big").hex()
+    transfer.signature.v = signed_message.v
+    transfer.signature.signer = str(account.address)
+
+    return transfer
+
+
+def build_EIP712_transfer_message_data(transfer: Transfer):
+    return {
         "fromAccount": transfer.from_account_id,
         "fromSubAccount": transfer.from_sub_account_id,
         "toAccount": transfer.to_account_id,
@@ -176,12 +199,3 @@ def sign_transfer(
         "nonce": transfer.signature.nonce,
         "expiration": transfer.signature.expiration,
     }
-    signature = encode_typed_data(domain, EIP712_TRANSFER_MESSAGE_TYPE, message_data)
-    signed_message = account.sign_message(signature)
-
-    transfer.signature.r = "0x" + signed_message.r.to_bytes(32, byteorder="big").hex()
-    transfer.signature.s = "0x" + signed_message.s.to_bytes(32, byteorder="big").hex()
-    transfer.signature.v = signed_message.v
-    transfer.signature.signer = str(account.address)
-
-    return transfer
