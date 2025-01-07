@@ -1,5 +1,6 @@
 from enum import Enum
 from decimal import Decimal
+from typing import Any
 
 from eth_account import Account
 from eth_account.messages import encode_typed_data
@@ -49,6 +50,7 @@ def get_EIP712_domain_data(env: GrvtEnv) -> dict[str, str | int]:
         "chainId": CHAIN_IDS[env],
     }
 
+
 #####################
 # Sign Order #
 #####################
@@ -72,6 +74,7 @@ EIP712_ORDER_MESSAGE_TYPE = {
     ],
 }
 
+
 def sign_order(
     order: Order,
     config: GrvtApiConfig,
@@ -81,6 +84,25 @@ def sign_order(
     if config.private_key is None:
         raise ValueError("Private key is not set")
 
+    message_data = build_EIP712_order_message_data(order, instruments)
+
+    domain_data = get_EIP712_domain_data(config.env)
+    signable_message = encode_typed_data(
+        domain_data, EIP712_ORDER_MESSAGE_TYPE, message_data
+    )
+    signed_message = account.sign_message(signable_message)
+
+    order.signature.s = "0x" + signed_message.s.to_bytes(32, byteorder="big").hex()
+    order.signature.r = "0x" + signed_message.r.to_bytes(32, byteorder="big").hex()
+    order.signature.v = signed_message.v
+    order.signature.signer = str(account.address)
+
+    return order
+
+
+def build_EIP712_order_message_data(
+    order: Order, instruments: dict[str, Instrument]
+) -> dict[str, Any]:
     legs = []
     for leg in order.legs:
         instrument = instruments[leg.instrument]
@@ -99,7 +121,7 @@ def sign_order(
                 "isBuyingContract": leg.is_buying_asset,
             }
         )
-    message_data = {
+    return {
         "subAccountID": order.sub_account_id,
         "isMarket": order.is_market or False,
         "timeInForce": TIME_IN_FORCE_TO_SIGN_TIME_IN_FORCE[order.time_in_force].value,
@@ -109,19 +131,7 @@ def sign_order(
         "nonce": order.signature.nonce,
         "expiration": order.signature.expiration,
     }
-    domain_data = get_EIP712_domain_data(config.env)
-    signature = encode_typed_data(
-        domain_data, EIP712_ORDER_MESSAGE_TYPE, message_data)
-    signed_message = account.sign_message(signature)
 
-    order.signature.s = "0x" + \
-        signed_message.s.to_bytes(32, byteorder='big').hex()
-    order.signature.r = "0x" + \
-        signed_message.r.to_bytes(32, byteorder='big').hex()
-    order.signature.v = signed_message.v
-    order.signature.signer = str(account.address)
-
-    return order
 
 #####################
 # Sign Transfer #
@@ -139,6 +149,7 @@ EIP712_TRANSFER_MESSAGE_TYPE = {
         {"name": "expiration", "type": "int64"},
     ],
 }
+
 
 def sign_transfer(
     transfer: Transfer,
@@ -159,15 +170,17 @@ def sign_transfer(
         "toAccount": transfer.to_account_id,
         "toSubAccount": transfer.to_sub_account_id,
         "tokenCurrency": GrvtCurrency[transfer.currency.value].value,
-        "numTokens": int(Decimal(transfer.num_tokens) * Decimal(1e6)), # USDT has 6 decimals
+        "numTokens": int(
+            Decimal(transfer.num_tokens) * Decimal(1e6)
+        ),  # USDT has 6 decimals
         "nonce": transfer.signature.nonce,
         "expiration": transfer.signature.expiration,
     }
     signature = encode_typed_data(domain, EIP712_TRANSFER_MESSAGE_TYPE, message_data)
     signed_message = account.sign_message(signature)
 
-    transfer.signature.r = "0x" + signed_message.r.to_bytes(32, byteorder='big').hex()
-    transfer.signature.s = "0x" + signed_message.s.to_bytes(32, byteorder='big').hex()
+    transfer.signature.r = "0x" + signed_message.r.to_bytes(32, byteorder="big").hex()
+    transfer.signature.s = "0x" + signed_message.s.to_bytes(32, byteorder="big").hex()
     transfer.signature.v = signed_message.v
     transfer.signature.signer = str(account.address)
 
