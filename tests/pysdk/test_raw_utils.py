@@ -25,6 +25,15 @@ def get_config() -> GrvtApiConfig:
     return conf
 
 
+def get_main_account_id(api: GrvtRawSync) -> str:
+    resp = api.funding_account_summary_v1(grvt_raw_types.EmptyRequest())
+    if isinstance(resp, GrvtError):
+        raise ValueError(f"Received error: {resp}")
+    if resp.result is None:
+        raise ValueError("Expected funding_account_summary_v1 response to be non-null")
+    return resp.result.main_account_id
+
+
 def get_test_order(
     api: GrvtRawSync, instruments: dict[str, grvt_raw_types.Instrument]
 ) -> grvt_raw_types.Order | None:
@@ -71,14 +80,7 @@ def get_test_transfer(api: GrvtRawSync) -> grvt_raw_types.Transfer | None:
     ):
         return None
 
-    resp = api.funding_account_summary_v1(grvt_raw_types.EmptyRequest())
-
-    if isinstance(resp, GrvtError):
-        raise ValueError(f"Received error: {resp}")
-    if resp.result is None:
-        raise ValueError("Expected funding_account_summary_v1 response to be non-null")
-    
-    funding_account_address = resp.result.main_account_id
+    funding_account_address = get_main_account_id(api)
 
     return sign_transfer(
         grvt_raw_types.Transfer(
@@ -111,13 +113,12 @@ def get_test_withdrawal(api: GrvtRawSync) -> grvt_raw_types.Withdrawal | None:
     ):
         return None
 
-    private_key = keys.PrivateKey(bytes.fromhex(api.config.private_key))
-    public_key = private_key.public_key
-    funding_account_address = public_key.to_checksum_address()
+    funding_account_address = get_main_account_id(api)
+    
     return sign_withdrawal(
         grvt_raw_types.Withdrawal(
             from_account_id=funding_account_address,
-            to_eth_address="",
+            to_eth_address="0xed3FF6F4E84a64556e8F7d149dC3533f0c7D9c49", # Just a test address
             currency=grvt_raw_types.Currency.USDT,
             num_tokens="1",
             signature=grvt_raw_types.Signature(

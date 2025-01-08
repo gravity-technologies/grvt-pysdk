@@ -2,7 +2,7 @@ from pysdk import grvt_raw_types
 from pysdk.grvt_raw_base import GrvtError
 from pysdk.grvt_raw_sync import GrvtRawSync
 
-from test_raw_utils import get_config, get_test_order, get_test_transfer
+from test_raw_utils import get_config, get_test_order, get_test_transfer, get_test_withdrawal
 
 
 def test_get_all_instruments() -> None:
@@ -86,3 +86,26 @@ def test_transfer_with_signing() -> None:
         raise ValueError(f"Received error: {resp}")
     if resp.result is None:
         raise ValueError("Expected transfer response to be non-null")
+
+
+def test_withdrawal_with_signing() -> None:
+    api = GrvtRawSync(config=get_config())
+    withdrawal = get_test_withdrawal(api)
+    
+    if withdrawal is None:
+        return None  # Skip test if configs are not set
+
+    resp = api.withdrawal_v1(
+        grvt_raw_types.ApiWithdrawalRequest(
+            withdrawal.from_account_id,
+            withdrawal.to_eth_address,
+            withdrawal.currency,
+            withdrawal.num_tokens,
+            withdrawal.signature,
+        )
+    )
+
+    if isinstance(resp, GrvtError):
+        raise ValueError(f"Received error: {resp}")
+    if resp.result is None:
+        raise ValueError("Expected withdrawal response to be non-null")
