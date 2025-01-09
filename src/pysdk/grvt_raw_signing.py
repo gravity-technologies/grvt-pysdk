@@ -7,7 +7,7 @@ from eth_account.messages import encode_typed_data
 
 from .grvt_ccxt_utils import GrvtCurrency
 from .grvt_raw_base import GrvtApiConfig, GrvtEnv
-from .grvt_raw_types import Instrument, Order, Transfer, TimeInForce
+from .grvt_raw_types import Instrument, Order, Transfer, Withdrawal, TimeInForce
 
 #########################
 # INSTRUMENT CONVERSION #
@@ -43,17 +43,7 @@ CHAIN_IDS = {
 }
 
 
-def get_EIP712_domain_data(env: GrvtEnv) -> dict[str, str | int]:
-    return {
-        "name": "GRVT Exchange",
-        "version": "0",
-        "chainId": CHAIN_IDS[env],
-    }
-
-
-def get_EIP712_transfer_domain_data(
-    env: GrvtEnv, chainId: int | None
-) -> dict[str, str | int]:
+def get_EIP712_domain_data(env: GrvtEnv, chainId: int | None) -> dict[str, str | int]:
     return {
         "name": "GRVT Exchange",
         "version": "0",
@@ -161,6 +151,21 @@ EIP712_TRANSFER_MESSAGE_TYPE = {
 }
 
 
+def build_EIP712_transfer_message_data(transfer: Transfer):
+    return {
+        "fromAccount": transfer.from_account_id,
+        "fromSubAccount": transfer.from_sub_account_id,
+        "toAccount": transfer.to_account_id,
+        "toSubAccount": transfer.to_sub_account_id,
+        "tokenCurrency": GrvtCurrency[transfer.currency.value].value,
+        "numTokens": int(
+            Decimal(transfer.num_tokens) * Decimal(1e6)
+        ),  # USDT has 6 decimals
+        "nonce": transfer.signature.nonce,
+        "expiration": transfer.signature.expiration,
+    }
+
+
 def sign_transfer(
     transfer: Transfer,
     config: GrvtApiConfig,
@@ -170,7 +175,7 @@ def sign_transfer(
     if config.private_key is None:
         raise ValueError("Private key is not set")
 
-    domain = get_EIP712_transfer_domain_data(config.env, chainId)
+    domain = get_EIP712_domain_data(config.env, chainId)
 
     message_data = build_EIP712_transfer_message_data(transfer)
     signable_message = encode_typed_data(
@@ -186,16 +191,55 @@ def sign_transfer(
     return transfer
 
 
-def build_EIP712_transfer_message_data(transfer: Transfer):
+#####################
+# Sign Withdrawal #
+#####################
+
+EIP712_WITHDRAWAL_MESSAGE_TYPE = {
+    "Withdrawal": [
+        { "name": 'fromAccount', "type": 'address' },
+        { "name": 'toEthAddress', "type": 'address' },
+        { "name": 'tokenCurrency', "type": 'uint8' },
+        { "name": 'numTokens', "type": 'uint64' },
+        { "name": 'nonce', "type": 'uint32' },
+        { "name": 'expiration', "type": 'int64' }
+    ],
+}
+
+
+def build_EIP712_withdrawal_message_data(withdrawal: Withdrawal):
     return {
-        "fromAccount": transfer.from_account_id,
-        "fromSubAccount": transfer.from_sub_account_id,
-        "toAccount": transfer.to_account_id,
-        "toSubAccount": transfer.to_sub_account_id,
-        "tokenCurrency": GrvtCurrency[transfer.currency.value].value,
+        "fromAccount": withdrawal.from_account_id,
+        "toEthAddress": withdrawal.to_eth_address,
+        "tokenCurrency": GrvtCurrency[withdrawal.currency.value].value,
         "numTokens": int(
-            Decimal(transfer.num_tokens) * Decimal(1e6)
+            Decimal(withdrawal.num_tokens) * Decimal(1e6)
         ),  # USDT has 6 decimals
-        "nonce": transfer.signature.nonce,
-        "expiration": transfer.signature.expiration,
+        "nonce": withdrawal.signature.nonce,
+        "expiration": withdrawal.signature.expiration,
     }
+
+
+def sign_withdrawal(
+    withdrawal: Withdrawal,
+    config: GrvtApiConfig,
+    account: Account,
+    chainId: int | None = None,
+) -> Withdrawal:
+    if config.private_key is None:
+        raise ValueError("Private key is not set")
+
+    domain = get_EIP712_domain_data(config.env, chainId)
+
+    message_data = build_EIP712_withdrawal_message_data(withdrawal)
+    signable_message = encode_typed_data(
+        domain, EIP712_WITHDRAWAL_MESSAGE_TYPE, message_data
+    )
+    signed_message = account.sign_message(signable_message)
+
+    withdrawal.signature.r = "0x" + signed_message.r.to_bytes(32, byteorder="big").hex()
+    withdrawal.signature.s = "0x" + signed_message.s.to_bytes(32, byteorder="big").hex()
+    withdrawal.signature.v = signed_message.v
+    withdrawal.signature.signer = str(account.address)
+
+    return withdrawal
