@@ -19,6 +19,7 @@ from pysdk.grvt_raw_types import (
     TimeInForce,
     InstrumentSettlementPeriod,
     Transfer,
+    TransferType,
 )
 
 
@@ -245,6 +246,8 @@ def test_sign_transfer_table():
                 signature=Signature(
                     signer="", r="", s="", v=0, expiration=expiry, nonce=nonce
                 ),
+                transfer_type=TransferType.STANDARD,
+                transfer_metadata="",
             ),
             "want_r": "0x21c7d7a8e225cb146c80dc79bbe818f915536817f1343e974cfdbe2bfc952cf1",
             "want_s": "0x6de83999555f6236e5a56c86876defe00b4776c428ab5a4d7f997d290baaea10",
@@ -263,6 +266,8 @@ def test_sign_transfer_table():
                 signature=Signature(
                     signer="", r="", s="", v=0, expiration=expiry, nonce=nonce
                 ),
+                transfer_type=TransferType.STANDARD,
+                transfer_metadata="",
             ),
             "want_r": "0xe0a9c66d8d11c3a9ae3624e150cbbdf85d542722cac5255cad4e50af5ac1ddcb",
             "want_s": "0x06769e5284352ead5735b8b11f9e9510d024bbb889a828889db4cb04132b52aa",
@@ -281,6 +286,8 @@ def test_sign_transfer_table():
                 signature=Signature(
                     signer="", r="", s="", v=0, expiration=expiry, nonce=nonce
                 ),
+                transfer_type=TransferType.STANDARD,
+                transfer_metadata="",
             ),
             "want_r": "0xc1214ee17dbc14f183297b9dd3f93120b16e633691817ee26045451bc629101c",
             "want_s": "0x2de27d226a3d3188742629ab222d430d7989d6ea3e6a86bc259606e371123df3",
@@ -299,6 +306,8 @@ def test_sign_transfer_table():
                 signature=Signature(
                     signer="", r="", s="", v=0, expiration=expiry, nonce=nonce
                 ),
+                transfer_type=TransferType.STANDARD,
+                transfer_metadata="",
             ),
             "want_r": "0xb9b80dfd4b0d53e64b6dd1067d7d936c79a8c3966175bcefb2021cc71d08116f",
             "want_s": "0x3cbe955c9f56e41f70c658e02df07873e77d347aa5c422943b87fdfd94293ae6",
@@ -317,6 +326,8 @@ def test_sign_transfer_table():
                 signature=Signature(
                     signer="", r="", s="", v=0, expiration=expiry, nonce=nonce
                 ),
+                transfer_type=TransferType.STANDARD,
+                transfer_metadata="",
             ),
             "want_r": "0x185ad129ca0de3584fcd91f6df0c25d8065411041db117c50dabd057249a1a43",
             "want_s": "0x58b1979c1f8c65970578bc2756f17a0b5c7352c27007811800dcd8966351647d",
@@ -335,6 +346,8 @@ def test_sign_transfer_table():
                 signature=Signature(
                     signer="", r="", s="", v=0, expiration=expiry, nonce=nonce
                 ),
+                transfer_type=TransferType.STANDARD,
+                transfer_metadata="",
             ),
             "want_r": "0xbbdd4726fef5cddb6eeb5fac07ed95702673293133d66481777a6a3ee82adc12",
             "want_s": "0x0ad3592ea3ebf428b260c56723386383253481bc188d9aeb87d9b21b85069821",

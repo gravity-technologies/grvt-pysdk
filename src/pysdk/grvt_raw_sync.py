@@ -265,3 +265,21 @@ class GrvtRawSync(GrvtRawSyncBase):
         if resp.get("code"):
             return GrvtError(**resp)
         return from_dict(types.ApiSocializedLossStatusResponse, resp, Config(cast=[Enum]))
+
+    def get_all_initial_leverage_v1(
+        self, req: types.ApiGetAllInitialLeverageRequest
+    ) -> types.ApiGetAllInitialLeverageResponse | GrvtError:
+        resp = self._post(True, self.td_rpc + "/full/v1/get_all_initial_leverage", req)
+        if resp.get("code"):
+            return GrvtError(**resp)
+        return from_dict(
+            types.ApiGetAllInitialLeverageResponse, resp, Config(cast=[Enum])
+        )
+
+    def set_initial_leverage_v1(
+        self, req: types.ApiSetInitialLeverageRequest
+    ) -> types.ApiSetInitialLeverageResponse | GrvtError:
+        resp = self._post(True, self.td_rpc + "/full/v1/set_initial_leverage", req)
+        if resp.get("code"):
+            return GrvtError(**resp)
+        return from_dict(types.ApiSetInitialLeverageResponse, resp, Config(cast=[Enum]))

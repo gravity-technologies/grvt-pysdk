@@ -2,7 +2,7 @@ from pysdk import grvt_raw_types
 from pysdk.grvt_raw_base import GrvtError
 from pysdk.grvt_raw_sync import GrvtRawSync
 
-from test_raw_utils import get_config, get_test_order, get_test_transfer, get_test_withdrawal
+from .test_raw_utils import get_config, get_test_order, get_test_transfer, get_test_withdrawal
 
 
 def test_get_all_instruments() -> None:
