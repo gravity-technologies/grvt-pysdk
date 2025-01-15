@@ -86,7 +86,7 @@ def sign_order(
 
     message_data = build_EIP712_order_message_data(order, instruments)
 
-    domain_data = get_EIP712_domain_data(config.env)
+    domain_data = get_EIP712_domain_data(config.env, CHAIN_IDS[config.env])
     signable_message = encode_typed_data(
         domain_data, EIP712_ORDER_MESSAGE_TYPE, message_data
     )
