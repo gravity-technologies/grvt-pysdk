@@ -76,6 +76,24 @@ class Currency(Enum):
     ETH = "ETH"
     # the BTC token
     BTC = "BTC"
+    # the SOL token
+    SOL = "SOL"
+    # the ARB token
+    ARB = "ARB"
+    # the BNB token
+    BNB = "BNB"
+    # the ZK token
+    ZK = "ZK"
+    # the POL token
+    POL = "POL"
+    # the OP token
+    OP = "OP"
+    # the ATOM token
+    ATOM = "ATOM"
+    # the 1000PEPE token
+    KPEPE = "KPEPE"
+    # the TON token
+    TON = "TON"
 
 
 class InstrumentSettlementPeriod(Enum):
@@ -188,6 +206,8 @@ class SubAccountTradeInterval(Enum):
     SAT_1_MO = "SAT_1_MO"
     # 1 day
     SAT_1_D = "SAT_1_D"
+    # 1 hour
+    SAT_1_H = "SAT_1_H"
 
 
 class TimeInForce(Enum):
@@ -207,6 +227,15 @@ class TimeInForce(Enum):
     IMMEDIATE_OR_CANCEL = "IMMEDIATE_OR_CANCEL"
     # FOK - Both AoN and IoC. Either fill the full order when hitting the orderbook, or cancel it
     FILL_OR_KILL = "FILL_OR_KILL"
+
+
+class TransferType(Enum):
+    # Standard transfer that has nothing to do with bridging
+    STANDARD = "STANDARD"
+    # Fast Arb Deposit Metadata type
+    FAST_ARB_DEPOSIT = "FAST_ARB_DEPOSIT"
+    # Fast Arb Withdrawal Metadata type
+    FAST_ARB_WITHDRAWAL = "FAST_ARB_WITHDRAWAL"
 
 
 class Venue(Enum):
@@ -276,6 +305,8 @@ class Positions:
     roi: str
     # The index price of the quote currency. (reported in `USD`)
     quote_index_price: str
+    # The estimated liquidation price
+    est_liquidation_price: str
 
 
 @dataclass
@@ -593,6 +624,46 @@ class ApiListAggregatedAccountSummaryRequest:
 class ApiListAggregatedAccountSummaryResponse:
     # The list of aggregated account summaries of requested main accounts
     account_summaries: list[ApiAggregatedAccountSummaryResponse]
+
+
+@dataclass
+class ApiSetInitialLeverageRequest:
+    # The sub account ID to set the leverage for
+    sub_account_id: str
+    # The instrument to set the leverage for
+    instrument: str
+    # The leverage to set for the sub account
+    leverage: str
+
+
+@dataclass
+class ApiSetInitialLeverageResponse:
+    # Whether the leverage was set successfully
+    success: bool
+
+
+@dataclass
+class ApiGetAllInitialLeverageRequest:
+    # The sub account ID to get the leverage for
+    sub_account_id: str
+
+
+@dataclass
+class InitialLeverageResult:
+    # The instrument to get the leverage for
+    instrument: str
+    # The initial leverage of the sub account
+    leverage: str
+    # The min leverage this sub account can set
+    min_leverage: str
+    # The max leverage this sub account can set
+    max_leverage: str
+
+
+@dataclass
+class ApiGetAllInitialLeverageResponse:
+    # The initial leverage of the sub account
+    results: list[InitialLeverageResult]
 
 
 @dataclass
@@ -1709,6 +1780,8 @@ class ApiPreDepositCheckRequest:
 class ApiPreDepositCheckResponse:
     # Max Deposit Limit reported for the Bridge Account reported in the currency balance
     max_deposit_limit: str
+    # The currency you hold the deposit in
+    currency: Currency
 
 
 @dataclass
@@ -1829,6 +1902,10 @@ class ApiFindEcosystemEpochMetricResponse:
     total: int
     # The time when the ecosystem points were last calculated
     last_calculated_at: str
+    # Direct invite count without relying on epochs
+    total_direct_invite_count: int
+    # Indirect invite count without relying on epochs
+    total_indirect_invite_count: int
 
 
 @dataclass
@@ -1883,6 +1960,20 @@ class FlatReferral:
 class ApiGetListFlatReferralResponse:
     # The list of flat referrals
     flat_referrals: list[FlatReferral]
+
+
+@dataclass
+class ApiQueryFlatReferralStatRequest:
+    # The off chain account id to get referral stats
+    account_id: str
+
+
+@dataclass
+class ApiQueryFlatReferralStatResponse:
+    # Direct invite count
+    direct_invite_count: int
+    # Indirect invite count
+    indirect_invite_count: int
 
 
 @dataclass
@@ -2035,8 +2126,6 @@ class ApiSubAccountTradeAggregationRequest:
     interval: SubAccountTradeInterval
     # The list of sub account ids to query
     sub_account_i_ds: list[str]
-    # The sub account id to query greater than
-    sub_account_id_greater_than: str
     # Optional. The starting time in unix nanoseconds of a specific interval to query
     start_interval: str
     # Filter on the maker of the trade
@@ -2264,6 +2353,10 @@ class Transfer:
     num_tokens: str
     # The signature of the transfer
     signature: Signature
+    # The type of transfer
+    transfer_type: TransferType
+    # The metadata of the transfer
+    transfer_metadata: str
 
 
 @dataclass
@@ -2380,7 +2473,12 @@ class ApiTransferRequest:
     <li>Between SubAccounts within your Main Account</li>
     <li>Between your MainAccount and your SubAccounts</li>
     <li>To other MainAccounts that you have previously allowlisted</li>
-    </ul>
+    </ul><b>Fast Withdrawal Funding Address</b>
+    For fast withdrawals, funds must be sent to the designated funding account address. Please ensure you use the correct address based on the environment:
+    <b>Production Environment Address:</b>
+    <em>[To be updated, not ready yet]</em>
+    This address should be specified as the <code>to_account_id</code> in your API requests for transferring funds using the transfer API. Ensure accurate input to avoid loss of funds or use the UI.
+
     """
 
     # The main account to transfer from
@@ -2397,6 +2495,10 @@ class ApiTransferRequest:
     num_tokens: str
     # The signature of the transfer
     signature: Signature
+    # The type of transfer
+    transfer_type: TransferType
+    # The metadata of the transfer
+    transfer_metadata: str
 
 
 @dataclass
@@ -2489,6 +2591,10 @@ class TransferHistory:
     signature: Signature
     # The timestamp of the transfer in unix nanoseconds
     event_time: str
+    # The type of transfer
+    transfer_type: TransferType
+    # The metadata of the transfer
+    transfer_metadata: str
 
 
 @dataclass
