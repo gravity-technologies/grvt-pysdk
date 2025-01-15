@@ -13,7 +13,6 @@ from pysdk.grvt_raw_signing import (
     build_EIP712_order_message_data,
     build_EIP712_transfer_message_data,
     get_EIP712_domain_data,
-    get_EIP712_transfer_domain_data,
     sign_order,
 )
 from pysdk.grvt_raw_types import (
@@ -725,7 +724,7 @@ def test_sign_transfer_table():
 
     for tc in test_cases:
         message_data = build_EIP712_transfer_message_data(tc["transfer"])
-        domain_data = get_EIP712_transfer_domain_data(config.env, chainId)
+        domain_data = get_EIP712_domain_data(config.env, chainId)
         signable_message = encode_typed_data(
             domain_data, EIP712_TRANSFER_MESSAGE_TYPE, message_data
         )
