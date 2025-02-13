@@ -94,6 +94,54 @@ class Currency(Enum):
     KPEPE = "KPEPE"
     # the TON token
     TON = "TON"
+    # the XRP token
+    XRP = "XRP"
+    # the XLM token
+    XLM = "XLM"
+    # the WLD token
+    WLD = "WLD"
+    # the WIF token
+    WIF = "WIF"
+    # the VIRTUAL token
+    VIRTUAL = "VIRTUAL"
+    # the TRUMP token
+    TRUMP = "TRUMP"
+    # the SUI token
+    SUI = "SUI"
+    # the 1000SHIB token
+    KSHIB = "KSHIB"
+    # the POPCAT token
+    POPCAT = "POPCAT"
+    # the PENGU token
+    PENGU = "PENGU"
+    # the LINK token
+    LINK = "LINK"
+    # the 1000BONK token
+    KBONK = "KBONK"
+    # the JUP token
+    JUP = "JUP"
+    # the FARTCOIN token
+    FARTCOIN = "FARTCOIN"
+    # the ENA token
+    ENA = "ENA"
+    # the DOGE token
+    DOGE = "DOGE"
+    # the AIXBT token
+    AIXBT = "AIXBT"
+    # the AI16Z token
+    AI_16_Z = "AI_16_Z"
+    # the ADA token
+    ADA = "ADA"
+    # the AAVE token
+    AAVE = "AAVE"
+    # the BERA token
+    BERA = "BERA"
+    # the VINE token
+    VINE = "VINE"
+    # the PENDLE token
+    PENDLE = "PENDLE"
+    # the UXLINK token
+    UXLINK = "UXLINK"
 
 
 class InstrumentSettlementPeriod(Enum):
