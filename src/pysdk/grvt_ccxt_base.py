@@ -141,7 +141,7 @@ class GrvtCcxtBase:
         params: dict = {},
     ) -> dict:
         """
-        prepares payload for fetch_order_history() method.<br>.
+        Prepares payload for fetch_order_history() method.<br>.
 
         Args:
             params: (dict) with possible keys as:.<br>
@@ -167,7 +167,7 @@ class GrvtCcxtBase:
             payload["base"] = [params.get("base")]
         if params.get("quote"):
             payload["quote"] = [params.get("quote")]
-        payload["limit"] = params.get("limit", 20)
+        payload["limit"] = params.get("limit", 1_000)
         payload["is_active"] = params.get("is_active", True)
         return payload
 
@@ -179,7 +179,7 @@ class GrvtCcxtBase:
         params: dict = {},
     ) -> dict:
         """
-        prepares payload for fetch_my_trades() method.<br>.
+        Prepares payload for fetch_my_trades() method.<br>.
 
         Args:
             symbol: get trades for this symbol only.<br>
@@ -226,7 +226,7 @@ class GrvtCcxtBase:
         params: dict = {},
     ) -> dict:
         """
-        prepares payload for fetch_trades() method.<br>.
+        Prepares payload for fetch_trades() method.<br>.
 
         Args:
             symbol: get trades for this symbol only.<br>
@@ -259,7 +259,7 @@ class GrvtCcxtBase:
 
     def _get_payload_fetch_account_history(self, params: dict = {}) -> dict:
         """
-        prepares payload for fetch_my_trades() method.<br>.
+        Prepares payload for fetch_my_trades() method.<br>.
 
         Args:
             params: dictionary with parameters. Valid keys:<br>
@@ -284,7 +284,7 @@ class GrvtCcxtBase:
 
     def _get_payload_fetch_positions(self, symbols: list[str] = [], params={}) -> dict:
         """
-        prepares payload for fetch_positions() method.<br>.
+        Prepares payload for fetch_positions() method.<br>.
 
         Args:
             symbols: list(str) get positions for these symbols only.<br>
@@ -321,7 +321,7 @@ class GrvtCcxtBase:
         params: dict,
     ) -> dict:
         """
-        prepares payload for fetch_order_history() method.<br>.
+        Prepares payload for fetch_order_history() method.<br>.
 
         Args:
             params: (dict) with possible keys as:.<br>
@@ -358,7 +358,7 @@ class GrvtCcxtBase:
         params: dict = {},
     ) -> dict:
         """
-        prepares payload for fetch_order_history() method.<br>.
+        Prepares payload for fetch_order_history() method.<br>.
 
         Args:
             params: (dict) with possible keys as:.<br>
@@ -396,7 +396,7 @@ class GrvtCcxtBase:
         params={},
     ) -> dict:
         """
-        prepares payload for fetch_ohlcv() method.<br>.
+        Prepares payload for fetch_ohlcv() method.<br>.
 
         Args:
             symbol: The instrument name.<br>
