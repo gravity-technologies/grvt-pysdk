@@ -129,7 +129,7 @@ class Currency(Enum):
     # the AIXBT token
     AIXBT = "AIXBT"
     # the AI16Z token
-    AI_16_Z = "AI_16_Z"
+    AI16Z = "AI16Z"
     # the ADA token
     ADA = "ADA"
     # the AAVE token
