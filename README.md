@@ -51,6 +51,7 @@ GRVT Python SDK library provides Python classes and utility methods for easy acc
 
 ### Environments
 
+- `prod` - Production environment.
 - `testnet` - Testnet environment.
 - `staging` - Development Integration environment.
 - `dev` - Development environment.
