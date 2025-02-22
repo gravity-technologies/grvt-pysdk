@@ -231,6 +231,6 @@ if __name__ == "__main__":
             sig, lambda: asyncio.create_task(shutdown(loop, test_api))
         )
     loop.run_until_complete(asyncio.sleep(5))
-    loop.run_until_complete(send_rpc_messages(test_api))
+    # loop.run_until_complete(send_rpc_messages(test_api))
     loop.run_forever()
     loop.close()
