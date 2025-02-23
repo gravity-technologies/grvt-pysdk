@@ -152,6 +152,32 @@ class GrvtRawAsync(GrvtRawAsyncBase):
             return GrvtError(**resp)
         return from_dict(types.ApiPreOrderCheckResponse, resp, Config(cast=[Enum]))
 
+    async def cancel_trigger_order_v1(
+        self, req: types.ApiCancelOrderRequest
+    ) -> types.AckResponse | GrvtError:
+        resp = await self._post(True, self.td_rpc + "/full/v1/cancel_trigger_order", req)
+        if resp.get("code"):
+            return GrvtError(**resp)
+        return from_dict(types.AckResponse, resp, Config(cast=[Enum]))
+
+    async def cancel_all_trigger_orders_v1(
+        self, req: types.ApiCancelAllOrdersRequest
+    ) -> types.AckResponse | GrvtError:
+        resp = await self._post(
+            True, self.td_rpc + "/full/v1/cancel_all_trigger_orders", req
+        )
+        if resp.get("code"):
+            return GrvtError(**resp)
+        return from_dict(types.AckResponse, resp, Config(cast=[Enum]))
+
+    async def dedust_position_v1(
+        self, req: types.ApiDedustPositionRequest
+    ) -> types.ApiDedustPositionResponse | GrvtError:
+        resp = await self._post(True, self.td_rpc + "/full/v1/dedust_position", req)
+        if resp.get("code"):
+            return GrvtError(**resp)
+        return from_dict(types.ApiDedustPositionResponse, resp, Config(cast=[Enum]))
+
     async def fill_history_v1(
         self, req: types.ApiFillHistoryRequest
     ) -> types.ApiFillHistoryResponse | GrvtError:
@@ -297,3 +323,11 @@ class GrvtRawAsync(GrvtRawAsyncBase):
         if resp.get("code"):
             return GrvtError(**resp)
         return from_dict(types.ApiSetInitialLeverageResponse, resp, Config(cast=[Enum]))
+
+    async def cancel_on_disconnect_v1(
+        self, req: types.ApiCancelOnDisconnectRequest
+    ) -> types.AckResponse | GrvtError:
+        resp = await self._post(True, self.td_rpc + "/full/v1/cancel_on_disconnect", req)
+        if resp.get("code"):
+            return GrvtError(**resp)
+        return from_dict(types.AckResponse, resp, Config(cast=[Enum]))
