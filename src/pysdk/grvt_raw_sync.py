@@ -64,7 +64,9 @@ class GrvtRawSync(GrvtRawSyncBase):
             return GrvtError(**resp)
         return from_dict(types.ApiOrderbookLevelsResponse, resp, Config(cast=[Enum]))
 
-    def trade_v1(self, req: types.ApiTradeRequest) -> types.ApiTradeResponse | GrvtError:
+    def trade_v1(
+        self, req: types.ApiTradeRequest
+    ) -> types.ApiTradeResponse | GrvtError:
         resp = self._post(False, self.md_rpc + "/full/v1/trade", req)
         if resp.get("code"):
             return GrvtError(**resp)
@@ -150,6 +152,14 @@ class GrvtRawSync(GrvtRawSyncBase):
             return GrvtError(**resp)
         return from_dict(types.ApiPreOrderCheckResponse, resp, Config(cast=[Enum]))
 
+    def cancel_on_disconnect_v1(
+        self, req: types.ApiCancelOnDisconnectRequest
+    ) -> types.AckResponse | GrvtError:
+        resp = self._post(True, self.td_rpc + "/full/v1/cancel_on_disconnect", req)
+        if resp.get("code"):
+            return GrvtError(**resp)
+        return from_dict(types.AckResponse, resp, Config(cast=[Enum]))
+
     def fill_history_v1(
         self, req: types.ApiFillHistoryRequest
     ) -> types.ApiFillHistoryResponse | GrvtError:
@@ -184,7 +194,9 @@ class GrvtRawSync(GrvtRawSyncBase):
             return GrvtError(**resp)
         return from_dict(types.ApiDepositHistoryResponse, resp, Config(cast=[Enum]))
 
-    def transfer_v1(self, req: types.ApiTransferRequest) -> types.AckResponse | GrvtError:
+    def transfer_v1(
+        self, req: types.ApiTransferRequest
+    ) -> types.AckResponse | GrvtError:
         resp = self._post(True, self.td_rpc + "/full/v1/transfer", req)
         if resp.get("code"):
             return GrvtError(**resp)
@@ -241,7 +253,9 @@ class GrvtRawSync(GrvtRawSyncBase):
     def aggregated_account_summary_v1(
         self, req: types.EmptyRequest
     ) -> types.ApiAggregatedAccountSummaryResponse | GrvtError:
-        resp = self._post(True, self.td_rpc + "/full/v1/aggregated_account_summary", req)
+        resp = self._post(
+            True, self.td_rpc + "/full/v1/aggregated_account_summary", req
+        )
         if resp.get("code"):
             return GrvtError(**resp)
         return from_dict(
@@ -264,7 +278,9 @@ class GrvtRawSync(GrvtRawSyncBase):
         resp = self._post(True, self.td_rpc + "/full/v1/socialized_loss_status", req)
         if resp.get("code"):
             return GrvtError(**resp)
-        return from_dict(types.ApiSocializedLossStatusResponse, resp, Config(cast=[Enum]))
+        return from_dict(
+            types.ApiSocializedLossStatusResponse, resp, Config(cast=[Enum])
+        )
 
     def get_all_initial_leverage_v1(
         self, req: types.ApiGetAllInitialLeverageRequest

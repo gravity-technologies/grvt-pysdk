@@ -15,6 +15,11 @@ class BridgeType(Enum):
     XY = "XY"
 
 
+class CancelStatus(Enum):
+    # Cancellation has expired because corresponding order had not arrived within the defined time-to-live window.
+    EXPIRED = "EXPIRED"
+
+
 class CandlestickInterval(Enum):
     # 1 minute
     CI_1_M = "CI_1_M"
@@ -144,6 +149,33 @@ class Currency(Enum):
     UXLINK = "UXLINK"
 
 
+class EpochBadgeType(Enum):
+    # Champion
+    CHAMPION = "CHAMPION"
+    # Legend
+    LEGEND = "LEGEND"
+    # Veteran
+    VETERAN = "VETERAN"
+    # Elite
+    ELITE = "ELITE"
+    # Master
+    MASTER = "MASTER"
+    # Expert
+    EXPERT = "EXPERT"
+    # Warrior
+    WARRIOR = "WARRIOR"
+    # Sergeant
+    SERGEANT = "SERGEANT"
+    # Ranger
+    RANGER = "RANGER"
+    # Challenger
+    CHALLENGER = "CHALLENGER"
+    # Apprentice
+    APPRENTICE = "APPRENTICE"
+    # Rookie
+    ROOKIE = "ROOKIE"
+
+
 class InstrumentSettlementPeriod(Enum):
     # Instrument settles through perpetual funding cycles
     PERPETUAL = "PERPETUAL"
@@ -234,6 +266,8 @@ class OrderRejectReason(Enum):
     EXCEED_MAX_SIGNATURE_EXPIRATION = "EXCEED_MAX_SIGNATURE_EXPIRATION"
     # the market order has a limit price set
     MARKET_ORDER_WITH_LIMIT_PRICE = "MARKET_ORDER_WITH_LIMIT_PRICE"
+    # client cancel on disconnect triggered
+    CLIENT_CANCEL_ON_DISCONNECT_TRIGGERED = "CLIENT_CANCEL_ON_DISCONNECT_TRIGGERED"
 
 
 class OrderStatus(Enum):
@@ -247,6 +281,21 @@ class OrderStatus(Enum):
     REJECTED = "REJECTED"
     # Order is cancelled by the user using one of the supported APIs (See OrderRejectReason). Before an order is open, it cannot be cancelled.
     CANCELLED = "CANCELLED"
+
+
+class RewardEpochStatus(Enum):
+    # Past
+    PAST = "PAST"
+    # Current
+    CURRENT = "CURRENT"
+    # Future
+    FUTURE = "FUTURE"
+
+
+class RewardProgramType(Enum):
+    ECOSYSTEM = "ECOSYSTEM"
+    TRADER = "TRADER"
+    LP = "LP"
 
 
 class SubAccountTradeInterval(Enum):
@@ -1651,6 +1700,16 @@ class ApiCancelOrderRequest:
     order_id: str | None = None
     # Cancel the order with this `client_order_id`
     client_order_id: str | None = None
+    """
+    Specifies the time-to-live (in milliseconds) for this cancellation.
+    During this period, any order creation with a matching `client_order_id` will also be cancelled.
+    This mechanism helps mitigate time-of-flight issues where cancellations might arrive before the corresponding orders.
+    Hence, cancellation by `order_id` ignores this field as the exchange can only assign `order_id`s to already-processed order creations.
+    The duration cannot be negative, is rounded down to the nearest 100ms (e.g., `670` -> `600`, `30` -> `0`) and capped at 5 seconds (i.e., `5000`).
+    Value of `0` or omission disables the TTL mechanism, so only orders already existing in matcher state at request time will be searched.
+
+    """
+    time_to_live_ms: str | None = None
 
 
 @dataclass
@@ -1833,6 +1892,36 @@ class ApiPreDepositCheckResponse:
 
 
 @dataclass
+class ApiCancelOnDisconnectRequest:
+    """
+    Auto-Cancel All Open Orders when the countdown time hits zero.
+
+    Market Maker inputs a countdown time parameter in milliseconds (e.g. 120000 for 120s) rounded down to the smallest second follows the following logic:
+      - Market Maker initially entered a value between 0 -> 1000, which is rounded to 0: will result in termination of their COD
+      - Market Maker initially entered a value between 1001 -> 300_000, which is rounded to the nearest second: will result in refresh of their COD
+      - Market Maker initially entered a value bigger than 300_000, which will result in error (upper bound)
+    Market Maker will send a heartbeat message by calling the endpoint at specific intervals (ex. every 30 seconds) to the server to refresh the count down.
+
+    If the server does not receive a heartbeat message within the countdown time, it will cancel all open orders for the specified Sub Account ID.
+    """
+
+    # The subaccount ID cancelling the orders for
+    sub_account_id: str
+    """
+    Countdown time in milliseconds (ex. 120000 for 120s).
+
+    0 to disable the timer.
+
+    Does not accept negative values.
+
+    Minimum acceptable value is 1,000.
+
+    Maximum acceptable value is 300,000
+    """
+    countdown_time: str | None = None
+
+
+@dataclass
 class ApiGetUserEcosystemPointRequest:
     # The off chain account id
     account_id: str
@@ -1880,6 +1969,14 @@ class ApiGetEcosystemLeaderboardRequest:
     calculate_from: str
     # The number of accounts to return
     limit: int
+
+
+@dataclass
+class ApiGetVerifiedEcosystemLeaderboardRequest:
+    # Start time of the epoch
+    calculate_from: str
+    # Completed KYC before this time
+    completed_kyc_before: str
 
 
 @dataclass
@@ -1975,6 +2072,112 @@ class ApiFindEcosystemLeaderboardResponse:
 
 
 @dataclass
+class QueryEpochBadgeRequest:
+    # The off chain account id to get referral stats
+    account_id: str | None = None
+    # The numerical epoch index
+    epoch: int | None = None
+    # The type of the reward program
+    type: RewardProgramType | None = None
+    # The limit to query for. Defaults to 500; Max 1000
+    limit: int | None = None
+    # The cursor to indicate when to start the query from
+    cursor: str | None = None
+
+
+@dataclass
+class EpochBadge:
+    # The off chain account id
+    account_id: str
+    # The account ID
+    main_account_id: str
+    # The type of the reward program
+    type: RewardProgramType
+    # The epoch number
+    epoch: int
+    # The start time of the epoch
+    epoch_start_time: str
+    # The end time of the epoch
+    epoch_end_time: str
+    # The type of the badge
+    badge: EpochBadgeType
+    # The distributed badges
+    distributed_badges: list[EpochBadgeType]
+    # Total point
+    total_point: str
+    # Rank
+    rank: int
+    # The time when the badge was claimed, or the epoch end time if the user has already completed the KYC process
+    claimed_at: str
+
+
+@dataclass
+class QueryEpochBadgeResponse:
+    # The list of epoch badges
+    result: list[EpochBadge]
+    # The cursor to indicate when to start the query from
+    next: str
+
+
+@dataclass
+class QueryEpochBadgePointDistributionRequest:
+    # The type of the reward program
+    type: RewardProgramType
+    # The numerical epoch index
+    epoch: int | None = None
+
+
+@dataclass
+class EpochBadgePointDistribution:
+    # The type of the badge
+    badge: EpochBadgeType
+    # The epoch number
+    epoch: int
+    # The type of the reward program
+    type: RewardProgramType
+    # The minimum point to get the badge
+    min_point: str
+    # The maximum point to get the badge
+    max_point: str
+    # The minimum rank to get the badge
+    min_rank: int
+    # The maximum rank to get the badge
+    max_rank: int
+    # The total point to get the badge
+    total_point: str
+    # The number of users to get the badge
+    count: int
+
+
+@dataclass
+class QueryEpochBadgePointDistributionResponse:
+    # The list of epoch badges
+    result: list[EpochBadgePointDistribution]
+
+
+@dataclass
+class ApiGetListEpochBadgeResponse:
+    # The list of epoch badges
+    result: list[EpochBadge]
+
+
+@dataclass
+class GetClaimableEcosystemBadgeResponse:
+    # The epoch badge
+    badge: EpochBadge
+    # Whether the badge is claimable
+    is_claimable: bool
+    # The time when the badge is claimable
+    claimable_until: str
+
+
+@dataclass
+class ClaimEcosystemBadgeResponse:
+    # The epoch badge
+    badge: EpochBadge
+
+
+@dataclass
 class ApiGetListFlatReferralRequest:
     # The off chain referrer account id to get all flat referrals
     referral_id: str
@@ -2002,6 +2205,12 @@ class FlatReferral:
     referrer_main_account_id: str
     # The account is a business account or not
     is_business: bool
+    # The account is KYC verified or not
+    is_kyc_completed: bool
+    # The KYC completed time
+    kyc_completed_at: str
+    # The KYC type, can be 'individual' or 'business'
+    kyc_type: str
 
 
 @dataclass
@@ -2104,14 +2313,14 @@ class ApiGetLatestLPSnapshotResponse:
 
 @dataclass
 class ApiGetLPLeaderboardRequest:
-    # Start time of the epoch - phase
-    start_interval: str
     # The number of accounts to return
     limit: int
     # The kind filter to apply
     kind: Kind
     # The base filter to apply
     base: Currency
+    # The epoch to filter
+    epoch: int | None = None
 
 
 @dataclass
@@ -2122,8 +2331,8 @@ class ApiGetLPLeaderboardResponse:
 
 @dataclass
 class ApiGetLPPointRequest:
-    # Optional. Start time of the epoch - phase
-    start_interval: str | None = None
+    # The epoch to filter
+    epoch: int | None = None
     # Optional. The kind filter to apply
     kind: Kind | None = None
     # Optional. The base filter to apply
@@ -2164,6 +2373,26 @@ class ApiGetLPInfoResponse:
     ask_fast_market_multiplier: int
     # Bid fast market multiplier
     bid_fast_market_multiplier: int
+
+
+@dataclass
+class RewardEpochInfo:
+    # The epoch number
+    epoch: int
+    # The start time of the epoch
+    epoch_start_time: str
+    # The end time of the epoch
+    epoch_end_time: str
+    # The status of the epoch
+    status: RewardEpochStatus
+
+
+@dataclass
+class ApiGetListRewardEpochResponse:
+    # The list of epoch for ecosystem reward
+    ecosystem_epochs: list[RewardEpochInfo]
+    # The list of epoch for trader reward and lp reward
+    trading_epochs: list[RewardEpochInfo]
 
 
 @dataclass
@@ -2386,7 +2615,9 @@ class WSTransferFeedSelectorV1:
 
 
 @dataclass
-class Transfer:
+class TransferHistory:
+    # The transaction ID of the transfer
+    tx_id: str
     # The account to transfer from
     from_account_id: str
     # The subaccount to transfer from (0 if transferring from main account)
@@ -2401,6 +2632,8 @@ class Transfer:
     num_tokens: str
     # The signature of the transfer
     signature: Signature
+    # The timestamp of the transfer in unix nanoseconds
+    event_time: str
     # The type of transfer
     transfer_type: TransferType
     # The metadata of the transfer
@@ -2415,8 +2648,8 @@ class WSTransferFeedDataV1:
     selector: str
     # A running sequence number that determines global message order within the specific stream
     sequence_number: str
-    # The Transfer object
-    feed: Transfer
+    # The transfer history matching the requested filters
+    feed: TransferHistory
 
 
 @dataclass
@@ -2489,6 +2722,49 @@ class WSWithdrawalFeedDataV1:
     sequence_number: str
     # The Withdrawal object
     feed: Withdrawal
+
+
+@dataclass
+class CancelStatusFeed:
+    # The subaccount ID that requested the cancellation
+    sub_account_id: str
+    # A unique identifier for the active order within a subaccount, specified by the client
+    client_order_id: str
+    # A unique 128-bit identifier for the order, deterministically generated within the GRVT backend
+    order_id: str
+    # The user-provided reason for cancelling the order
+    reason: OrderRejectReason
+    # Status of the cancellation attempt
+    cancel_status: CancelStatus
+    # [Filled by GRVT Backend] Time at which the cancellation status was updated by GRVT in unix nanoseconds
+    update_time: str | None = None
+
+
+@dataclass
+class WSCancelFeedDataV1:
+    # Stream name
+    stream: str
+    # Primary selector
+    selector: str
+    # A running sequence number that determines global message order within the specific stream
+    sequence_number: str
+    # Data relating to the status of the cancellation attempt
+    feed: CancelStatusFeed
+
+
+@dataclass
+class WSCancelFeedSelectorV1:
+    """
+    Subscribes to a feed of time-to-live expiry events for order cancellations requested by a given subaccount.
+    **This stream presently only provides expiry updates for cancel-order requests set with a valid TTL value**.
+    Successful order cancellations will reflect as updates published to the [order-state stream](https://api-docs.grvt.io/trading_streams/#order-state).
+    _A future release will expand the functionality of this stream to provide more general status updates on order cancellation requests._
+    Each Order can be uniquely identified by its `client_order_id`.
+
+    """
+
+    # The subaccount ID to filter by
+    sub_account_id: str
 
 
 @dataclass
@@ -2617,32 +2893,8 @@ class ApiTransferHistoryRequest:
     limit: int | None = None
     # The cursor to indicate when to start the next query from
     cursor: str | None = None
-
-
-@dataclass
-class TransferHistory:
-    # The transaction ID of the transfer
-    tx_id: str
-    # The account to transfer from
-    from_account_id: str
-    # The subaccount to transfer from (0 if transferring from main account)
-    from_sub_account_id: str
-    # The account to deposit into
-    to_account_id: str
-    # The subaccount to transfer to (0 if transferring to main account)
-    to_sub_account_id: str
-    # The token currency to transfer
-    currency: Currency
-    # The number of tokens to transfer
-    num_tokens: str
-    # The signature of the transfer
-    signature: Signature
-    # The timestamp of the transfer in unix nanoseconds
-    event_time: str
-    # The type of transfer
-    transfer_type: TransferType
-    # The metadata of the transfer
-    transfer_metadata: str
+    # The transaction ID to query for
+    tx_id: str | None = None
 
 
 @dataclass
