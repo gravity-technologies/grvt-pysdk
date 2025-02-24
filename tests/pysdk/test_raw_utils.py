@@ -3,8 +3,8 @@ import os
 import random
 import time
 
-from pysdk import grvt_raw_types
-from pysdk.grvt_raw_base import GrvtError, GrvtApiConfig
+from pysdk import grvt_fixed_types, grvt_raw_types
+from pysdk.grvt_raw_base import GrvtApiConfig, GrvtError
 from pysdk.grvt_raw_env import GrvtEnv
 from pysdk.grvt_raw_signing import sign_order, sign_transfer, sign_withdrawal
 from pysdk.grvt_raw_sync import GrvtRawSync
@@ -61,7 +61,9 @@ def get_test_order(
             r="",  # Populated by sign_order
             s="",  # Populated by sign_order
             v=0,  # Populated by sign_order
-            expiration=str(time.time_ns() + 20 * 24 * 60 * 60 * 1_000_000_000),  # 20 days
+            expiration=str(
+                time.time_ns() + 20 * 24 * 60 * 60 * 1_000_000_000
+            ),  # 20 days
             nonce=random.randint(0, 2**32 - 1),
         ),
         metadata=grvt_raw_types.OrderMetadata(
@@ -71,7 +73,7 @@ def get_test_order(
     return sign_order(order, api.config, api.account, instruments)
 
 
-def get_test_transfer(api: GrvtRawSync) -> grvt_raw_types.Transfer | None:
+def get_test_transfer(api: GrvtRawSync) -> grvt_fixed_types.Transfer | None:
     # Skip test if configs are not set
     if (
         api.config.trading_account_id is None
@@ -95,7 +97,9 @@ def get_test_transfer(api: GrvtRawSync) -> grvt_raw_types.Transfer | None:
                 r="",
                 s="",
                 v=0,
-                expiration=str(time.time_ns() + 20 * 24 * 60 * 60 * 1_000_000_000),  # 20 days
+                expiration=str(
+                    time.time_ns() + 20 * 24 * 60 * 60 * 1_000_000_000
+                ),  # 20 days
                 nonce=random.randint(0, 2**32 - 1),
             ),
         ),
@@ -114,11 +118,11 @@ def get_test_withdrawal(api: GrvtRawSync) -> grvt_raw_types.Withdrawal | None:
         return None
 
     funding_account_address = get_main_account_id(api)
-    
+
     return sign_withdrawal(
         grvt_raw_types.Withdrawal(
             from_account_id=funding_account_address,
-            to_eth_address="0xed3FF6F4E84a64556e8F7d149dC3533f0c7D9c49", # Just a test address
+            to_eth_address="0xed3FF6F4E84a64556e8F7d149dC3533f0c7D9c49",  # Just a test address
             currency=grvt_raw_types.Currency.USDT,
             num_tokens="1",
             signature=grvt_raw_types.Signature(
@@ -126,7 +130,9 @@ def get_test_withdrawal(api: GrvtRawSync) -> grvt_raw_types.Withdrawal | None:
                 r="",
                 s="",
                 v=0,
-                expiration=str(time.time_ns() + 20 * 24 * 60 * 60 * 1_000_000_000),  # 20 days
+                expiration=str(
+                    time.time_ns() + 20 * 24 * 60 * 60 * 1_000_000_000
+                ),  # 20 days
                 nonce=random.randint(0, 2**32 - 1),
             ),
         ),
