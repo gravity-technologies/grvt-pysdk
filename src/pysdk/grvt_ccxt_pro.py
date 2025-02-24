@@ -212,7 +212,7 @@ class GrvtCcxtPro(GrvtCcxtBase):
         params: dict = {},
     ) -> bool:
         """
-        ccxt compliant signature BUT lacks symbol
+        Ccxt compliant signature BUT lacks symbol
         Cancel all orders for a sub-account.
         params: dictionary with parameters. Valid keys:<br>
                 `kind` (str): instrument kind. Valid values: 'PERPETUAL'.<br>
@@ -240,7 +240,7 @@ class GrvtCcxtPro(GrvtCcxtBase):
         params: dict = {},
     ) -> bool:
         """
-        ccxt compliant signature
+        Ccxt compliant signature
         Cancel specific order for the account.<br>
         Private call requires authorization.<br>
         See [Cancel order](https://api-docs.grvt.io/trading_api/#cancel-order)
@@ -249,7 +249,9 @@ class GrvtCcxtPro(GrvtCcxtBase):
         Args:
             id (str): exchange assigned order ID<br>
             symbol (str): trading symbol<br>
-            params: client_order_id (str): client assigned order ID<br>
+            params: 
+                * client_order_id (str): client assigned order ID<br>
+                * time_to_live_ms (str): lifetime of cancel requiest in millisecs<br>
         Returns:
             True if cancel request was acked by exchange. False otherwise.<br>
         """
@@ -265,6 +267,9 @@ class GrvtCcxtPro(GrvtCcxtBase):
             payload["client_order_id"] = str(params["client_order_id"])
         else:
             raise GrvtInvalidOrder(f"{FN} requires either order_id or client_order_id")
+        if "time_to_live_ms" in params:
+            payload["time_to_live_ms"] = str(params["time_to_live_ms"])
+
         # Send cancel request
         path = get_grvt_endpoint(self.env, "CANCEL_ORDER")
         self.logger.info(
@@ -287,7 +292,7 @@ class GrvtCcxtPro(GrvtCcxtBase):
         params: dict = {},
     ) -> list[dict]:
         """
-        ccxt compliant signature
+        Ccxt compliant signature
         Fetch open orders for the account.<br>
         Private call requires authorization.<br>
         See [Open orders](https://api-docs.grvt.io/trading_api/#open-orders)
@@ -327,7 +332,7 @@ class GrvtCcxtPro(GrvtCcxtBase):
         params: dict = {},
     ) -> dict:
         """
-        ccxt compliant signature
+        Ccxt compliant signature
         Private call requires authorization.<br>
         See [Get Order](https://api-docs.grvt.io/trading_api/#get-order)
             for details.<br>.
@@ -360,7 +365,7 @@ class GrvtCcxtPro(GrvtCcxtBase):
 
     async def fetch_order_history(self, params: dict = {}) -> dict:
         """
-        ccxt compliant signature, HISTORICAL data.<br>
+        Ccxt compliant signature, HISTORICAL data.<br>
         Get Order history of orders by kind/base/quote.<br>
         Private call requires authorization.<br>
         See [Order History](https://api-docs.grvt.io/trading_api/#order-history)
@@ -444,7 +449,7 @@ class GrvtCcxtPro(GrvtCcxtBase):
 
     async def fetch_positions(self, symbols: list[str] = [], params={}) -> list[dict]:
         """
-        ccxt compliant signature
+        Ccxt compliant signature
         Fetch positions for the account.<br>
         Private call requires authorization.<br>
         See [Positions](https://api-docs.grvt.io/trading_api/#positions)
@@ -475,7 +480,7 @@ class GrvtCcxtPro(GrvtCcxtBase):
         params: dict = {},
     ) -> dict:
         """
-        ccxt compliant signature, HISTORICAL data.<br>
+        Ccxt compliant signature, HISTORICAL data.<br>
         Fetch past trades for the account.<br>
         Private call requires authorization.<br>
         See [Private Trade History](https://api-docs.grvt.io/trading_api/#private-trade-history)
