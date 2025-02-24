@@ -47,7 +47,7 @@
 
 ## What's in the library
 
-GRVT Python SDK library provides Python classes and utility methods for easy access to GRVT trading environments.
+GRVT Python SDK library provides Python classes and utility methods for easy access to GRVT API endpoints across all environments.
 
 ### Environments
 
