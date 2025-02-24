@@ -1,27 +1,25 @@
 import logging
-import pytest
 import traceback
 from pprint import pprint
 
 from eth_account import Account
 
-from pysdk.grvt_raw_signing import sign_order, sign_transfer
+from pysdk.grvt_fixed_types import Transfer
 from pysdk.grvt_raw_base import GrvtApiConfig
 from pysdk.grvt_raw_env import GrvtEnv
+from pysdk.grvt_raw_signing import sign_order, sign_transfer
 from pysdk.grvt_raw_types import (
     Currency,
+    Instrument,
+    InstrumentSettlementPeriod,
     Kind,
     Order,
-    OrderMetadata,
     OrderLeg,
+    OrderMetadata,
     Signature,
-    Instrument,
     TimeInForce,
-    InstrumentSettlementPeriod,
-    Transfer,
     TransferType,
 )
-
 
 # Setup logger
 logging.basicConfig()

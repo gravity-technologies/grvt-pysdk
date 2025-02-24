@@ -152,6 +152,16 @@ class GrvtRawAsync(GrvtRawAsyncBase):
             return GrvtError(**resp)
         return from_dict(types.ApiPreOrderCheckResponse, resp, Config(cast=[Enum]))
 
+    async def cancel_on_disconnect_v1(
+        self, req: types.ApiCancelOnDisconnectRequest
+    ) -> types.AckResponse | GrvtError:
+        resp = await self._post(
+            True, self.td_rpc + "/full/v1/cancel_on_disconnect", req
+        )
+        if resp.get("code"):
+            return GrvtError(**resp)
+        return from_dict(types.AckResponse, resp, Config(cast=[Enum]))
+
     async def fill_history_v1(
         self, req: types.ApiFillHistoryRequest
     ) -> types.ApiFillHistoryResponse | GrvtError:
@@ -276,7 +286,9 @@ class GrvtRawAsync(GrvtRawAsyncBase):
         )
         if resp.get("code"):
             return GrvtError(**resp)
-        return from_dict(types.ApiSocializedLossStatusResponse, resp, Config(cast=[Enum]))
+        return from_dict(
+            types.ApiSocializedLossStatusResponse, resp, Config(cast=[Enum])
+        )
 
     async def get_all_initial_leverage_v1(
         self, req: types.ApiGetAllInitialLeverageRequest
@@ -293,7 +305,9 @@ class GrvtRawAsync(GrvtRawAsyncBase):
     async def set_initial_leverage_v1(
         self, req: types.ApiSetInitialLeverageRequest
     ) -> types.ApiSetInitialLeverageResponse | GrvtError:
-        resp = await self._post(True, self.td_rpc + "/full/v1/set_initial_leverage", req)
+        resp = await self._post(
+            True, self.td_rpc + "/full/v1/set_initial_leverage", req
+        )
         if resp.get("code"):
             return GrvtError(**resp)
         return from_dict(types.ApiSetInitialLeverageResponse, resp, Config(cast=[Enum]))

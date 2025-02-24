@@ -7,7 +7,8 @@ from eth_account.messages import encode_typed_data
 
 from .grvt_ccxt_utils import GrvtCurrency
 from .grvt_raw_base import GrvtApiConfig, GrvtEnv
-from .grvt_raw_types import Instrument, Order, Transfer, Withdrawal, TimeInForce
+from .grvt_raw_types import Instrument, Order, Withdrawal, TimeInForce
+from .grvt_fixed_types import Transfer
 
 #########################
 # INSTRUMENT CONVERSION #
@@ -197,12 +198,12 @@ def sign_transfer(
 
 EIP712_WITHDRAWAL_MESSAGE_TYPE = {
     "Withdrawal": [
-        { "name": 'fromAccount', "type": 'address' },
-        { "name": 'toEthAddress', "type": 'address' },
-        { "name": 'tokenCurrency', "type": 'uint8' },
-        { "name": 'numTokens', "type": 'uint64' },
-        { "name": 'nonce', "type": 'uint32' },
-        { "name": 'expiration', "type": 'int64' }
+        {"name": "fromAccount", "type": "address"},
+        {"name": "toEthAddress", "type": "address"},
+        {"name": "tokenCurrency", "type": "uint8"},
+        {"name": "numTokens", "type": "uint64"},
+        {"name": "nonce", "type": "uint32"},
+        {"name": "expiration", "type": "int64"},
     ],
 }
 
