@@ -1,6 +1,7 @@
 import asyncio
 import os
 import traceback
+from decimal import Decimal
 
 from pysdk.grvt_ccxt_env import GrvtEnv
 from pysdk.grvt_ccxt_logging_selector import logger
@@ -112,6 +113,19 @@ async def send_fetch_order(api: GrvtCcxtPro):
     )
     logger.info(f"result of fetch_order: {order_status=}")
 
+async def send_mkt_order(
+    api: GrvtCcxtPro, symbol: str, side: str, amount: Decimal, client_order_id: int
+) -> dict:
+    send_order_response = await api.create_order(
+        symbol=symbol,
+        order_type="market",
+        side=side,
+        amount=amount,
+        params={"client_order_id": client_order_id},
+    )
+    logger.info(f"send mkt order: {send_order_response=} {client_order_id=}")
+    return send_order_response
+
 
 async def check_cancel_check_orders(api: GrvtCcxtPro):
     logger.info("check_cancel_check_orders: START")
@@ -132,19 +146,27 @@ async def fetch_my_trades(api: GrvtCcxtPro):
     logger.info(f"my_trades: {my_trades=}")
 
 
-async def send_cancel_order(api: GrvtCcxtPro):
-    logger.info("send_cancel_order: START")
-    order_response = await send_order(api, side="sell", client_order_id=rand_uint32())
+async def cancel_send_order(api: GrvtCcxtPro):
+    FN = "cancel_send_order"
+    logger.info(f"{FN}: START")
+    client_order_id: int = rand_uint32()
+    logger.info(f"{FN} cancel order by {client_order_id=}")
+    result = await api.cancel_order(
+        params={"client_order_id": client_order_id, "time_to_live_ms": "1000"}
+    )
+    logger.info(f"{FN} cancel_order: {result=}")
+    order_response = await send_mkt_order(
+        api,
+        symbol="BTC_USDT_Perp",
+        side="sell",
+        amount=Decimal("0.01"),
+        client_order_id=client_order_id,
+    )
     if order_response:
         # Get status
-        client_order_id = order_response.get("metadata", {}).get("client_order_id")
-        logger.info(f"fetch_order by {client_order_id=}")
+        logger.info(f"{FN} fetch_order by {client_order_id=}")
         order_status = await api.fetch_order(params={"client_order_id": client_order_id})
-        logger.info(f"{order_status=}")
-        # Cancel
-        await asyncio.sleep(5)
-        logger.info(f"cancel order by id: {client_order_id=}")
-        await api.cancel_order(params={"client_order_id": client_order_id})
+        logger.info(f"{FN} {order_status=}")
 
 
 async def print_markets(api: GrvtCcxtPro):
@@ -200,12 +222,12 @@ async def grvt_ccxt_pro():
     await test_api.load_markets()
     await asyncio.sleep(2)
     function_list = [
-        fetch_all_markets,
-        print_markets,
-        print_instruments,
-        print_account_summary,
-        print_account_history,
-        print_positions,
+        # fetch_all_markets,
+        # print_markets,
+        # print_instruments,
+        # print_account_summary,
+        # print_account_history,
+        # print_positions,
         # Order / Trade history
         fetch_my_trades,
         fetch_order_history,
@@ -215,7 +237,7 @@ async def grvt_ccxt_pro():
         fetch_my_trades,
         fetch_order_history,
         print_positions,
-        send_cancel_order,
+        cancel_send_order,
         get_open_orders,
         send_fetch_order,
         get_open_orders,

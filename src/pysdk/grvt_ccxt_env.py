@@ -110,6 +110,7 @@ GRVT_WS_STREAMS = {
     # ******* Trade Data ********
     "order": GrvtWSEndpointType.TRADE_DATA,
     "state": GrvtWSEndpointType.TRADE_DATA,
+    "cancel": GrvtWSEndpointType.TRADE_DATA,
     "position": GrvtWSEndpointType.TRADE_DATA,
     "fill": GrvtWSEndpointType.TRADE_DATA,
     "transfer": GrvtWSEndpointType.TRADE_DATA,

@@ -567,7 +567,7 @@ class GrvtCcxtWS(GrvtCcxtPro):
         params: dict = {},
     ) -> bool:
         """
-        ccxt compliant signature BUT lacks symbol
+        Ccxt compliant signature BUT lacks symbol
         Cancel all orders for a sub-account.
         params: dictionary with parameters. Valid keys:<br>
                 `kind` (str): instrument kind. Valid values: 'PERPETUAL'.<br>
@@ -591,7 +591,7 @@ class GrvtCcxtWS(GrvtCcxtPro):
         params: dict = {},
     ) -> dict:
         """
-        ccxt compliant signature
+        Ccxt compliant signature
         Cancel specific order for the account by sending JsonRpc call on WebSocket.<br>
         Private call requires authorization.<br>
         See [Cancel order](https://api-docs.grvt.io/trading_api/#cancel-order)
@@ -600,7 +600,9 @@ class GrvtCcxtWS(GrvtCcxtPro):
         Args:
             id (str): exchange assigned order ID<br>
             symbol (str): trading symbol<br>
-            params: client_order_id (str): client assigned order ID<br>
+            params: 
+                * client_order_id (str): client assigned order ID<br>
+                * time_to_live_ms (str): lifetime of cancel requiest in millisecs<br>
         Returns:
             payload used to cancel order.<br>
         """
@@ -618,6 +620,9 @@ class GrvtCcxtWS(GrvtCcxtPro):
             payload["client_order_id"] = str(params["client_order_id"])
         else:
             raise GrvtInvalidOrder(f"{FN} requires either order_id or client_order_id")
+        if "time_to_live_ms" in params:
+            payload["time_to_live_ms"] = str(params["time_to_live_ms"])
+        # Send cancel requiest
         jsonrpc_payload = self.jsonrpc_wrap_payload(payload, method="cancel_order")
         await self.send_rpc_message(
             GrvtWSEndpointType.TRADE_DATA_RPC_FULL, jsonrpc_payload
@@ -660,7 +665,7 @@ class GrvtCcxtWS(GrvtCcxtPro):
         params: dict = {},
     ) -> dict:
         """
-        ccxt compliant signature.<br>
+        Ccxt compliant signature.<br>
         Private call requires authorization.<br>
         See [Get Order](https://api-docs.grvt.io/trading_api/#get-order)
             for details.<br>.
@@ -674,7 +679,7 @@ class GrvtCcxtWS(GrvtCcxtPro):
         Returns:
             payload used to fetch order.<br>
         """
-        FN = f"{self._clsname} rpc_cancel_order"
+        FN = f"{self._clsname} rpc_fetch_order"
         self._check_account_auth()
         payload = {
             "sub_account_id": str(self._trading_account_id),

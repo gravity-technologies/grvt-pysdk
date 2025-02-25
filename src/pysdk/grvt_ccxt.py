@@ -179,7 +179,7 @@ class GrvtCcxt(GrvtCcxtBase):
         params: dict = {},
     ) -> bool:
         """
-        ccxt compliant signature BUT lacks symbol
+        Ccxt compliant signature BUT lacks symbol
         Cancel all orders for a sub-account.
         params: dictionary with parameters. Valid keys:<br>
                 `kind` (str): instrument kind. Valid values: 'PERPETUAL'.<br>
@@ -207,7 +207,7 @@ class GrvtCcxt(GrvtCcxtBase):
         params: dict | None = {},
     ) -> bool:
         """
-        ccxt compliant signature
+        Ccxt compliant signature
         Cancel specific order for the account.<br>
         Private call requires authorization.<br>
         See [Cancel order](https://api-docs.grvt.io/trading_api/#cancel-order)
@@ -216,7 +216,9 @@ class GrvtCcxt(GrvtCcxtBase):
         Args:
             id (str): exchange assigned order ID<br>
             symbol (str): trading symbol<br>
-            params: client_order_id (str): client assigned order ID<br>
+            params: 
+                * client_order_id (str): client assigned order ID<br>
+                * time_to_live_ms (str): lifetime of cancel requiest in millisecs<br>
         Returns:
             True if cancel request was acked by exchange. False otherwise.<br>
         """
@@ -231,6 +233,9 @@ class GrvtCcxt(GrvtCcxtBase):
             payload["client_order_id"] = str(params["client_order_id"])
         else:
             raise GrvtInvalidOrder(f"{FN} requires either order_id or client_order_id")
+
+        if "time_to_live_ms" in params:
+            payload["time_to_live_ms"] = str(params["time_to_live_ms"])
 
         path = get_grvt_endpoint(self.env, "CANCEL_ORDER")
         self.logger.info(
@@ -253,7 +258,7 @@ class GrvtCcxt(GrvtCcxtBase):
         params: dict = {},
     ) -> list[dict]:
         """
-        ccxt compliant signature
+        Ccxt compliant signature
         Fetch open orders for the account.<br>
         Private call requires authorization.<br>
         See [Open orders](https://api-docs.grvt.io/trading_api/#open-orders)
@@ -293,7 +298,7 @@ class GrvtCcxt(GrvtCcxtBase):
         params: dict = {},
     ) -> dict:
         """
-        ccxt compliant signature
+        Ccxt compliant signature
         Get Order status by order_id or client_order_id
         Private call requires authorization.<br>
         See [Open orders](https://api-docs.grvt.io/trading_api/#open-orders)
@@ -324,7 +329,7 @@ class GrvtCcxt(GrvtCcxtBase):
 
     def fetch_order_history(self, params: dict = {}) -> dict:
         """
-        ccxt compliant signature, HISTORICAL data.<br>
+        Ccxt compliant signature, HISTORICAL data.<br>
         Get Order status by order_id or client_order_id
         Private call requires authorization.<br>
         See [Order History](https://api-docs.grvt.io/trading_api/#order-history)
@@ -408,7 +413,7 @@ class GrvtCcxt(GrvtCcxtBase):
 
     def fetch_positions(self, symbols: list[str] = [], params={}):
         """
-        ccxt compliant signature
+        Ccxt compliant signature
         Fetch positions for the account.<br>
         Private call requires authorization.<br>
         See [Positions](https://api-docs.grvt.io/trading_api/#positions)
@@ -439,7 +444,7 @@ class GrvtCcxt(GrvtCcxtBase):
         params: dict = {},
     ) -> dict:
         """
-        ccxt compliant signature, HISTORICAL data.<br>
+        Ccxt compliant signature, HISTORICAL data.<br>
         Fetch past trades for the account.<br>
         Private call requires authorization.<br>
         See [Private Trade History](https://api-docs.grvt.io/trading_api/#private-trade-history)
@@ -500,7 +505,7 @@ class GrvtCcxt(GrvtCcxtBase):
         params: dict = {},
     ) -> list[dict]:
         """
-        ccxt-compliant signature
+        Ccxt compliant signature
         Retrieve the list of all instruments of matching kind, base and quote
                 supported by the exchange.
 
@@ -559,7 +564,7 @@ class GrvtCcxt(GrvtCcxtBase):
 
     def fetch_ticker(self, symbol: str, params: dict = {}) -> dict:
         """
-        ccxt-compliant signature
+        Ccxt compliant signature
         Retrieve the ticker of a given symbol.
         :param symbol: The instrument name.
         :return: The ticker dictionary of the instrument.
@@ -595,7 +600,7 @@ class GrvtCcxt(GrvtCcxtBase):
 
     def fetch_order_book(self, symbol: str, limit: int = 10, params={}) -> dict:
         """
-        ccxt-compliant signature
+        Ccxt compliant signature
         Retrieve the order book of a given symbol.
         :param symbol: The instrument name.
         :return: The order book dictionary of the instrument.
@@ -639,7 +644,7 @@ class GrvtCcxt(GrvtCcxtBase):
         params: dict = {},
     ) -> list:
         """
-        ccxt-compliant signature, HISTORICAL data.<br>
+        Ccxt compliant signature, HISTORICAL data.<br>
         Retrieve trade history of a given instrument.
         :param symbol: The instrument name.
         :return: The list of trades.
@@ -666,7 +671,7 @@ class GrvtCcxt(GrvtCcxtBase):
         params: dict = {},
     ) -> list:
         """
-        ccxt-compliant signature, HISTORICAL data.<br>
+        Ccxt compliant signature, HISTORICAL data.<br>
         Retrieve the funding rates history of a given instrument.<br>
         Args:
             symbol: The instrument name.<br>
@@ -707,7 +712,7 @@ class GrvtCcxt(GrvtCcxtBase):
         params={},
     ) -> list:
         """
-        ccxt-compliant signature, HISTORICAL data.
+        Ccxt compliant signature, HISTORICAL data.
 
         Retrieve the ohlc history of a given instrument.
 

@@ -103,6 +103,11 @@ async def subscribe(loop) -> GrvtCcxtWS:
                 "instrument": "BTC_USDT_Perp",
             },
         ),
+        "cancel": (
+            callback_general,
+            GrvtWSEndpointType.TRADE_DATA_RPC_FULL,
+            {},
+        ),
         "state": (
             callback_general,
             GrvtWSEndpointType.TRADE_DATA_RPC_FULL,
@@ -131,10 +136,13 @@ async def subscribe(loop) -> GrvtCcxtWS:
     return test_api
 
 
-async def rpc_create_order(test_api: GrvtCcxtWS, side: str, price: str) -> str:
+async def rpc_create_order(
+    test_api: GrvtCcxtWS, side: str, price: str, client_order_id: str = ""
+) -> str:
     if test_api and test_api._private_key:
         # Send order
-        client_order_id = str(rand_uint32())
+        if not client_order_id:
+            client_order_id = str(rand_uint32())
         payload = await test_api.rpc_create_order(
             symbol="BTC_USDT_Perp",
             order_type="limit",
@@ -148,6 +156,29 @@ async def rpc_create_order(test_api: GrvtCcxtWS, side: str, price: str) -> str:
             },
         )
         logger.info(f"rpc_create_order: {payload=}")
+        return client_order_id
+    return ""
+
+
+async def rpc_create_mkt_order(
+    test_api: GrvtCcxtWS, symbol: str, side: str, client_order_id: str = ""
+) -> str:
+    FN = "rpc_create_mkt_order"
+    if test_api and test_api._private_key:
+        # Send order
+        if not client_order_id:
+            client_order_id = str(rand_uint32())
+        payload = await test_api.rpc_create_order(
+            symbol=symbol,
+            order_type="market",
+            side=side,
+            amount=0.001,
+            params={
+                "client_order_id": client_order_id,
+                "time_in_force": "GOOD_TILL_TIME",
+            },
+        )
+        logger.info(f"{FN}: {payload=}")
         return client_order_id
     return ""
 
@@ -170,14 +201,15 @@ async def rpc_fetch_open_orders(test_api: GrvtCcxtWS) -> None:
         logger.info(f"rpc_fetch_open_orders: {payload=}")
 
 
-async def rpc_cancel_order(test_api: GrvtCcxtWS, client_order_id: str) -> None:
+async def rpc_cancel_order(
+    test_api: GrvtCcxtWS, client_order_id: str, time_to_live_ms: str = ""
+) -> None:
     if test_api and test_api._private_key:
         # Send order
-        payload = await test_api.rpc_cancel_order(
-            params={
-                "client_order_id": client_order_id,
-            },
-        )
+        params: dict = {"client_order_id": client_order_id}
+        if time_to_live_ms:
+            params["time_to_live_ms"] = time_to_live_ms
+        payload = await test_api.rpc_cancel_order(params=params)
         logger.info(f"rpc_cancel_order: {payload=}")
 
 
@@ -185,11 +217,27 @@ async def rpc_cancel_all_orders(test_api: GrvtCcxtWS) -> None:
     if test_api and test_api._private_key:
         # Send order
         payload = await test_api.rpc_cancel_all_orders()
-        logger.info(f"rpc_cancel_order: {payload=}")
+        logger.info(f"rpc_cancel_all_orders: {payload=}")
 
 
-async def send_rpc_messages(test_api: GrvtCcxtWS) -> None:
-    """Sends test RPC messages for send/fetch/cancel orders."""
+async def cancel_send_rpc_order(test_api: GrvtCcxtWS) -> None:
+    FN = "cancel_send_rpc_order"
+    """Cancels order then sends an order to be canceled."""
+    if test_api and test_api._private_key:
+        cloid = str(rand_uint32())
+        logger.info(f"{FN} {cloid=}")
+        await rpc_cancel_order(test_api, cloid, time_to_live_ms="0")
+        await asyncio.sleep(1)
+        await rpc_cancel_order(test_api, cloid, time_to_live_ms="5000")
+        await asyncio.sleep(0.01)
+        await rpc_create_mkt_order(
+            test_api, symbol="BTC_USDT_Perp", side="buy", client_order_id=cloid
+        )
+        await asyncio.sleep(0.01)
+        await rpc_fetch_order(test_api, cloid)
+
+
+async def send_check_cancel_rpc_order(test_api: GrvtCcxtWS) -> None:
     if test_api and test_api._private_key:
         # Send order
         cloid = await rpc_create_order(test_api, side="buy", price="60000")
@@ -204,6 +252,12 @@ async def send_rpc_messages(test_api: GrvtCcxtWS) -> None:
             await rpc_fetch_order(test_api, cloid)
             await asyncio.sleep(5)
             await rpc_cancel_all_orders(test_api)
+
+
+async def send_rpc_messages(test_api: GrvtCcxtWS) -> None:
+    """Sends test RPC messages for send/fetch/cancel orders."""
+    # await send_check_cancel_rpc_order(test_api)
+    await cancel_send_rpc_order(test_api)
 
 
 async def shutdown(loop, test_api: GrvtCcxtWS) -> None:

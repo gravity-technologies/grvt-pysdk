@@ -1,6 +1,6 @@
 import os
-import time
 import traceback
+from decimal import Decimal
 
 from pysdk.grvt_ccxt import GrvtCcxt
 from pysdk.grvt_ccxt_env import GrvtEnv
@@ -34,7 +34,9 @@ def cancel_orders(api: GrvtCcxt, open_orders: list) -> int:
         if client_order_id:
             # Cancel
             logger.info(f"{FN} cancel order by id:{order_dict['order_id']}")
-            success = api.cancel_order(id=order_dict["order_id"])
+            success = api.cancel_order(
+                id=order_dict["order_id"], params={"time_to_live_ms": "1000"}
+            )
             order_count += int(success)
         else:
             logger.warning(f"{FN} client_order_id not found in {order_dict=}")
@@ -58,9 +60,9 @@ def print_instruments(api: GrvtCcxt):
         instrument = market["instrument"]
         logger.info(f"fetch_market: {instrument=}, {api.fetch_market(instrument)}")
         logger.info(
-            f"fetch_mini_ticker: {instrument=}, " f"{api.fetch_mini_ticker(instrument)}"
+            f"fetch_mini_ticker: {instrument=}, {api.fetch_mini_ticker(instrument)}"
         )
-        logger.info(f"fetch_ticker: {instrument=}, " f"{api.fetch_ticker(instrument)}")
+        logger.info(f"fetch_ticker: {instrument=}, {api.fetch_ticker(instrument)}")
         logger.info(
             f"fetch_order_book {instrument=}, "
             f"{api.fetch_order_book(instrument, limit=10)}"
@@ -70,7 +72,7 @@ def print_instruments(api: GrvtCcxt):
             f"{api.fetch_recent_trades(instrument, limit=5)}"
         )
         logger.info(
-            f"fetch_trades {instrument=}, " f"{api.fetch_trades(instrument, limit=5)}"
+            f"fetch_trades {instrument=}, {api.fetch_trades(instrument, limit=5)}"
         )
         logger.info(
             f"fetch_funding_rate_history {instrument=}, "
@@ -94,6 +96,20 @@ def send_order(api: GrvtCcxt, side: str, client_order_id: int) -> dict:
         params={"client_order_id": client_order_id},
     )
     logger.info(f"send order: {send_order_response=} {client_order_id=}")
+    return send_order_response
+
+
+def send_mkt_order(
+    api: GrvtCcxt, symbol: str, side: str, amount: Decimal, client_order_id: int
+) -> dict:
+    send_order_response = api.create_order(
+        symbol=symbol,
+        order_type="market",
+        side=side,
+        amount=amount,
+        params={"client_order_id": client_order_id},
+    )
+    logger.info(f"send mkt order: {send_order_response=} {client_order_id=}")
     return send_order_response
 
 
@@ -128,22 +144,29 @@ def fetch_my_trades(api: GrvtCcxt):
     logger.info(f"my_trades: {my_trades=}")
 
 
-def send_cancel_order(api: GrvtCcxt):
-    logger.info("send_cancel_order: START")
-    order_response = send_order(api, side="sell", client_order_id=rand_uint32())
+def cancel_send_order(api: GrvtCcxt):
+    FN = "cancel_send_order"
+    logger.info(f"{FN}: START")
+    client_order_id: int = rand_uint32()
+    logger.info(f"{FN} cancel order by {client_order_id=}")
+    result = api.cancel_order(
+        params={"client_order_id": client_order_id, "time_to_live_ms": "1000"}
+    )
+    logger.info(f"{FN} cancel_order: {result=}")
+    order_response = send_mkt_order(
+        api,
+        symbol="BTC_USDT_Perp",
+        side="sell",
+        amount=Decimal("0.01"),
+        client_order_id=client_order_id,
+    )
     if order_response:
         # Get status
-        client_order_id = order_response.get("metadata", {}).get("client_order_id")
-        logger.info(f"fetch_order by {client_order_id=}")
+        logger.info(f"{FN} fetch_order by {client_order_id=}")
         order_status = api.fetch_order(params={"client_order_id": client_order_id})
-        logger.info(f"{order_status=}")
-        # Cancel
-        time.sleep(10)
-        logger.info(f"cancel order by {client_order_id=}")
-        success = api.cancel_order(params={"client_order_id": client_order_id})
-        logger.info(f"cancel_order: {success=}")
+        logger.info(f"{FN} {order_status=}")
     else:
-        logger.warning("send_cancel_order: order_response is None")
+        logger.warning(f"{FN}: order_response is None")
 
 
 def print_markets(api: GrvtCcxt):
@@ -213,7 +236,7 @@ def test_grvt_ccxt():
         fetch_my_trades,
         print_positions,
         check_cancel_check_orders,
-        send_cancel_order,
+        cancel_send_order,
         get_open_orders,
         send_fetch_order,
         get_open_orders,
