@@ -15,9 +15,20 @@ class BridgeType(Enum):
     XY = "XY"
 
 
+class BrokerTag(Enum):
+    # CoinRoutes
+    COIN_ROUTES = "COIN_ROUTES"
+    # Alertatron
+    ALERTATRON = "ALERTATRON"
+    # Origami
+    ORIGAMI = "ORIGAMI"
+
+
 class CancelStatus(Enum):
     # Cancellation has expired because corresponding order had not arrived within the defined time-to-live window.
     EXPIRED = "EXPIRED"
+    # This cancellation request was dropped because its TTL window overlaps with another cancellation request for the same order.
+    DROPPED_DUPLICATE = "DROPPED_DUPLICATE"
 
 
 class CandlestickInterval(Enum):
@@ -268,6 +279,8 @@ class OrderRejectReason(Enum):
     MARKET_ORDER_WITH_LIMIT_PRICE = "MARKET_ORDER_WITH_LIMIT_PRICE"
     # client cancel on disconnect triggered
     CLIENT_CANCEL_ON_DISCONNECT_TRIGGERED = "CLIENT_CANCEL_ON_DISCONNECT_TRIGGERED"
+    # the OCO counter part order was triggered
+    OCO_COUNTER_PART_TRIGGERED = "OCO_COUNTER_PART_TRIGGERED"
 
 
 class OrderStatus(Enum):
@@ -333,6 +346,40 @@ class TransferType(Enum):
     FAST_ARB_DEPOSIT = "FAST_ARB_DEPOSIT"
     # Fast Arb Withdrawal Metadata type
     FAST_ARB_WITHDRAWAL = "FAST_ARB_WITHDRAWAL"
+
+
+class TriggerBy(Enum):
+    """
+    Defines the price type that activates a Take Profit (TP) or Stop Loss (SL) order.
+
+    Trigger orders are executed when the selected price type reaches the specified trigger price.Different price types ensure flexibility in executing strategies based on market conditions.
+
+
+    """
+
+    # no trigger condition
+    UNSPECIFIED = "UNSPECIFIED"
+    # INDEX - Order is activated when the index price reaches the trigger price
+    INDEX = "INDEX"
+    # LAST - Order is activated when the last trade price reaches the trigger price
+    LAST = "LAST"
+
+
+class TriggerType(Enum):
+    """
+    Defines the type of trigger order used in trading, such as Take Profit or Stop Loss.
+
+    Trigger orders allow execution based on pre-defined price conditions rather than immediate market conditions.
+
+
+    """
+
+    # Not a trigger order. The order executes normally without any trigger conditions.
+    UNSPECIFIED = "UNSPECIFIED"
+    # Take Profit Order - Executes when the price reaches a specified level to secure profits.
+    TAKE_PROFIT = "TAKE_PROFIT"
+    # Stop Loss Order - Executes when the price reaches a specified level to limit losses.
+    STOP_LOSS = "STOP_LOSS"
 
 
 class Venue(Enum):
@@ -492,6 +539,8 @@ class Fill:
     client_order_id: str
     # The address (public key) of the wallet signing the payload
     signer: str
+    # Specifies the broker who brokered the order
+    broker: BrokerTag | None = None
 
 
 @dataclass
@@ -1257,6 +1306,8 @@ class WSSubscribeParams:
     stream: str
     # The list of feeds to subscribe to
     selectors: list[str]
+    # Whether to use the global sequence number for the stream
+    use_global_sequence_number: bool | None = None
 
 
 @dataclass
@@ -1276,6 +1327,8 @@ class WSSubscribeResult:
     num_snapshots: list[int]
     # The first sequence number to expect for each subscribed feed. Returned in same order as `subs`
     first_sequence_number: list[str]
+    # The sequence number of the most recent message in the stream. Next received sequence number must be larger than this one. Returned in same order as `subs`
+    latest_sequence_number: list[str]
 
 
 @dataclass
@@ -1284,6 +1337,8 @@ class WSUnsubscribeParams:
     stream: str
     # The list of feeds to unsubscribe from
     selectors: list[str]
+    # Whether to use the global sequence number for the stream
+    use_global_sequence_number: bool | None = None
 
 
 @dataclass
@@ -1336,6 +1391,8 @@ class WSSubscribeResponseV1Legacy:
     num_snapshots: list[int]
     # The first sequence number to expect for each subscribed feed. Returned in same order as `subs`
     first_sequence_number: list[str]
+    # The sequence number of the most recent message in the stream. Next received sequence number must be larger than this one. Returned in same order as `subs`
+    latest_sequence_number: list[str]
     """
     Optional Field which is used to match the response by the client.
     If not passed, this field will not be returned
@@ -1382,6 +1439,8 @@ class WSOrderbookLevelsFeedDataV1:
     sequence_number: str
     # An orderbook levels object matching the request filter
     feed: OrderbookLevels
+    # The previous sequence number that determines global message order within the specific stream
+    prev_sequence_number: str
 
 
 @dataclass
@@ -1415,6 +1474,8 @@ class WSMiniTickerFeedDataV1:
     sequence_number: str
     # A mini ticker matching the request filter
     feed: MiniTicker
+    # The previous sequence number that determines global message order within the specific stream
+    prev_sequence_number: str
 
 
 @dataclass
@@ -1448,6 +1509,8 @@ class WSTickerFeedDataV1:
     sequence_number: str
     # A ticker matching the request filter
     feed: Ticker
+    # The previous sequence number that determines global message order within the specific stream
+    prev_sequence_number: str
 
 
 @dataclass
@@ -1474,6 +1537,8 @@ class WSTradeFeedDataV1:
     sequence_number: str
     # A public trade matching the request filter
     feed: Trade
+    # The previous sequence number that determines global message order within the specific stream
+    prev_sequence_number: str
 
 
 @dataclass
@@ -1501,6 +1566,8 @@ class WSCandlestickFeedDataV1:
     sequence_number: str
     # A candlestick entry matching the request filters
     feed: Candlestick
+    # The previous sequence number that determines global message order within the specific stream
+    prev_sequence_number: str
 
 
 @dataclass
@@ -1583,6 +1650,44 @@ class Signature:
 
 
 @dataclass
+class TPSLOrderMetadata:
+    """
+    Contains metadata for Take Profit (TP) and Stop Loss (SL) trigger orders.
+
+    ### Fields:
+    - **triggerBy**: Defines the price type that activates the order (e.g., index price).
+    - **triggerPrice**: The price at which the order is triggered, expressed in `9` decimal precision.
+
+
+    """
+
+    # Defines the price type that activates a Take Profit (TP) or Stop Loss (SL) order
+    trigger_by: TriggerBy
+    # The Trigger Price of the order, expressed in `9` decimals.
+    trigger_price: str
+
+
+@dataclass
+class TriggerOrderMetadata:
+    """
+    Contains metadata related to trigger orders, such as Take Profit (TP) or Stop Loss (SL).
+
+    Trigger orders are used to automatically execute an order when a predefined price condition is met, allowing traders to implement risk management strategies.
+
+
+    """
+
+    # Type of the trigger order. eg: Take Profit, Stop Loss, etc
+    trigger_type: TriggerType
+    """
+    Contains metadata for Take Profit (TP) and Stop Loss (SL) trigger orders.
+
+
+    """
+    tpsl: TPSLOrderMetadata
+
+
+@dataclass
 class OrderMetadata:
     """
     Metadata fields are used to support Backend only operations. These operations are not trustless by nature.
@@ -1601,8 +1706,12 @@ class OrderMetadata:
     When GRVT Backend receives an order with an overlapping clientOrderID, we will reject the order with rejectReason set to overlappingClientOrderId
     """
     client_order_id: str
+    # Trigger fields are used to support any type of trigger order such as TP/SL
+    trigger: TriggerOrderMetadata | None = None
     # [Filled by GRVT Backend] Time at which the order was received by GRVT in unix nanoseconds
     create_time: str | None = None
+    # Specifies the broker who brokered the order
+    broker: BrokerTag | None = None
 
 
 @dataclass
@@ -1702,11 +1811,12 @@ class ApiCancelOrderRequest:
     client_order_id: str | None = None
     """
     Specifies the time-to-live (in milliseconds) for this cancellation.
-    During this period, any order creation with a matching `client_order_id` will also be cancelled.
+    During this period, any order creation with a matching `client_order_id` will be cancelled and not be added to the GRVT matching engine.
     This mechanism helps mitigate time-of-flight issues where cancellations might arrive before the corresponding orders.
     Hence, cancellation by `order_id` ignores this field as the exchange can only assign `order_id`s to already-processed order creations.
-    The duration cannot be negative, is rounded down to the nearest 100ms (e.g., `670` -> `600`, `30` -> `0`) and capped at 5 seconds (i.e., `5000`).
-    Value of `0` or omission disables the TTL mechanism, so only orders already existing in matcher state at request time will be searched.
+    The duration cannot be negative, is rounded down to the nearest 100ms (e.g., `'670'` -> `'600'`, `'30'` -> `'0'`) and capped at 5 seconds (i.e., `'5000'`).
+    Value of `'0'` or omission results in the default time-to-live value being applied.
+    If the caller requests multiple successive cancellations for a given order, such that the time-to-live windows overlap, only the first request will be considered.
 
     """
     time_to_live_ms: str | None = None
@@ -1892,6 +2002,42 @@ class ApiPreDepositCheckResponse:
 
 
 @dataclass
+class ApiDedustPositionRequest:
+    # The order to create
+    order: Order
+
+
+@dataclass
+class ApiDedustPositionResponse:
+    # The created order
+    result: Order
+
+
+@dataclass
+class ApiCreateBulkOrdersRequest:
+    """
+    Create multiple orders simultaneously for this trading account.
+
+    This endpoint supports the following order scenarios:
+    - One-Cancels-Other (OCO) orders combining TP/SL
+    - One-Sends-Other (OSO) orders
+
+    Usage:
+    - For OCO (TP/SL pair): Send exactly 2 orders in the same request - one Take Profit and one Stop Loss order
+    - For OSO: Send exactly one main order and one contingent order (TP and/or SL)
+    """
+
+    # The orders to create
+    orders: list[Order]
+
+
+@dataclass
+class ApiCreateBulkOrdersResponse:
+    # The created orders in same order as requested
+    result: list[Order]
+
+
+@dataclass
 class ApiCancelOnDisconnectRequest:
     """
     Auto-Cancel All Open Orders when the countdown time hits zero.
@@ -1919,6 +2065,45 @@ class ApiCancelOnDisconnectRequest:
     Maximum acceptable value is 300,000
     """
     countdown_time: str | None = None
+
+
+@dataclass
+class ApiGetOrderGroupRequest:
+    """
+    Retrieves the grouping of non-cancelled, non-filled client orders for a given subaccount when the grouping exist.
+
+    helping to identify TP/SL pairs or other order relationships within the account.
+    """
+
+    # The subaccount ID for which the order groups should be retrieved.
+    sub_account_id: str
+
+
+@dataclass
+class ClientOrderIDsByGroup:
+    """
+    Grouping for the client order id and their associated groups.
+
+    This is used to define TP/SL pairs or other order groupings after loading the list of Open Orders.
+    """
+
+    # The group this order belongs to. It can be used to define TP/SL pairs or other order groupings
+    group_id: str
+    # List of client order IDs in the group
+    client_order_id: list[str]
+    # The sub account ID that these orders belong to
+    sub_account_id: str
+
+
+@dataclass
+class ApiGetOrderGroupResponse:
+    """
+    A list of client orders grouped by their associated order group.
+    Each entry in the list contains a `groupID` and the corresponding `clientOrderID`s
+    that belong to that group.
+    """
+
+    result: list[ClientOrderIDsByGroup]
 
 
 @dataclass
@@ -1955,6 +2140,10 @@ class EcosystemPoint:
     calculate_to: str
     # The rank of the account in the ecosystem
     rank: int
+    # The epoch number of the ecosystem point
+    epoch: int
+    # Brokered trading volume
+    brokered_trading_volume: str
 
 
 @dataclass
@@ -2069,6 +2258,42 @@ class EcosystemLeaderboardUser:
 class ApiFindEcosystemLeaderboardResponse:
     # The list of ecosystem leaderboard users
     users: list[EcosystemLeaderboardUser]
+
+
+@dataclass
+class QueryFindEpochRequest:
+    # The time to query the epoch
+    time: str | None = None
+    # The epoch number
+    epoch: int | None = None
+
+
+@dataclass
+class Epoch:
+    # The epoch number
+    epoch: int
+    # The start time of the epoch
+    start_time: str
+    # The end time of the epoch
+    end_time: str
+
+
+@dataclass
+class QueryFindEpochResponse:
+    # The epoch
+    epoch: Epoch
+
+
+@dataclass
+class QueryGetListEpochRequest:
+    # The limit to query for
+    limit: int | None = None
+
+
+@dataclass
+class QueryGetListEpochResponse:
+    # The list of epochs
+    result: list[Epoch]
 
 
 @dataclass
@@ -2409,6 +2634,8 @@ class ApiSubAccountTradeAggregationRequest:
     is_maker: bool
     # Filter on the taker of the trade
     is_taker: bool
+    # Whether to group trades by signer per sub account
+    group_by_signer: bool
     # Optional. Start time in unix nanoseconds
     start_time: str | None = None
     # Optional. End time in unix nanoseconds
@@ -2429,6 +2656,8 @@ class SubAccountTradeAggregation:
     num_traded: str
     # Total positive fee paid by user
     positive_fee: str
+    # The signer of the trade
+    signer: str
 
 
 @dataclass
@@ -2508,6 +2737,8 @@ class WSOrderFeedDataV1:
     sequence_number: str
     # The order object being created or updated
     feed: Order
+    # The previous sequence number that determines global message order within the specific stream
+    prev_sequence_number: str
 
 
 @dataclass
@@ -2546,6 +2777,8 @@ class WSOrderStateFeedDataV1:
     sequence_number: str
     # The Order State Feed
     feed: OrderStateFeed
+    # The previous sequence number that determines global message order within the specific stream
+    prev_sequence_number: str
 
 
 @dataclass
@@ -2572,6 +2805,8 @@ class WSPositionsFeedDataV1:
     sequence_number: str
     # A Position being created or updated matching the request filter
     feed: Positions
+    # The previous sequence number that determines global message order within the specific stream
+    prev_sequence_number: str
 
 
 @dataclass
@@ -2598,6 +2833,8 @@ class WSFillFeedDataV1:
     sequence_number: str
     # A private trade matching the request filter
     feed: Fill
+    # The previous sequence number that determines global message order within the specific stream
+    prev_sequence_number: str
 
 
 @dataclass
@@ -2650,6 +2887,8 @@ class WSTransferFeedDataV1:
     sequence_number: str
     # The transfer history matching the requested filters
     feed: TransferHistory
+    # The previous sequence number that determines global message order within the specific stream
+    prev_sequence_number: str
 
 
 @dataclass
@@ -2685,6 +2924,8 @@ class WSDepositFeedDataV1:
     sequence_number: str
     # The Deposit object
     feed: Deposit
+    # The previous sequence number that determines global message order within the specific stream
+    prev_sequence_number: str
 
 
 @dataclass
@@ -2722,6 +2963,8 @@ class WSWithdrawalFeedDataV1:
     sequence_number: str
     # The Withdrawal object
     feed: Withdrawal
+    # The previous sequence number that determines global message order within the specific stream
+    prev_sequence_number: str
 
 
 @dataclass
@@ -2750,6 +2993,8 @@ class WSCancelFeedDataV1:
     sequence_number: str
     # Data relating to the status of the cancellation attempt
     feed: CancelStatusFeed
+    # The previous sequence number that determines global message order within the specific stream
+    prev_sequence_number: str
 
 
 @dataclass
@@ -2765,6 +3010,31 @@ class WSCancelFeedSelectorV1:
 
     # The subaccount ID to filter by
     sub_account_id: str
+
+
+@dataclass
+class WSOrderGroupFeedSelectorV1:
+    """
+    Subscribes to a feed of order group to get updated when a new group is created for the subAccount specified.
+
+    """
+
+    # The subaccount ID to filter by
+    sub_account_id: str
+
+
+@dataclass
+class WSOrderGroupFeedDataV1:
+    # Stream name
+    stream: str
+    # Primary selector
+    selector: str
+    # A running sequence number that determines global message order within the specific stream
+    sequence_number: str
+    # The order object being created or updated
+    feed: ClientOrderIDsByGroup
+    # The previous sequence number that determines global message order within the specific stream
+    prev_sequence_number: str
 
 
 @dataclass
