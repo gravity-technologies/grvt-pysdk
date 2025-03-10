@@ -152,15 +152,37 @@ class GrvtRawAsync(GrvtRawAsyncBase):
             return GrvtError(**resp)
         return from_dict(types.ApiPreOrderCheckResponse, resp, Config(cast=[Enum]))
 
+    async def dedust_position_v1(
+        self, req: types.ApiDedustPositionRequest
+    ) -> types.ApiDedustPositionResponse | GrvtError:
+        resp = await self._post(True, self.td_rpc + "/full/v1/dedust_position", req)
+        if resp.get("code"):
+            return GrvtError(**resp)
+        return from_dict(types.ApiDedustPositionResponse, resp, Config(cast=[Enum]))
+
     async def cancel_on_disconnect_v1(
         self, req: types.ApiCancelOnDisconnectRequest
     ) -> types.AckResponse | GrvtError:
-        resp = await self._post(
-            True, self.td_rpc + "/full/v1/cancel_on_disconnect", req
-        )
+        resp = await self._post(True, self.td_rpc + "/full/v1/cancel_on_disconnect", req)
         if resp.get("code"):
             return GrvtError(**resp)
         return from_dict(types.AckResponse, resp, Config(cast=[Enum]))
+
+    async def create_bulk_orders_v1(
+        self, req: types.ApiCreateBulkOrdersRequest
+    ) -> types.ApiCreateBulkOrdersResponse | GrvtError:
+        resp = await self._post(True, self.td_rpc + "/full/v1/create_bulk_orders", req)
+        if resp.get("code"):
+            return GrvtError(**resp)
+        return from_dict(types.ApiCreateBulkOrdersResponse, resp, Config(cast=[Enum]))
+
+    async def get_order_group_v1(
+        self, req: types.ApiGetOrderGroupRequest
+    ) -> types.ApiGetOrderGroupResponse | GrvtError:
+        resp = await self._post(True, self.td_rpc + "/full/v1/order_group", req)
+        if resp.get("code"):
+            return GrvtError(**resp)
+        return from_dict(types.ApiGetOrderGroupResponse, resp, Config(cast=[Enum]))
 
     async def fill_history_v1(
         self, req: types.ApiFillHistoryRequest
@@ -286,9 +308,7 @@ class GrvtRawAsync(GrvtRawAsyncBase):
         )
         if resp.get("code"):
             return GrvtError(**resp)
-        return from_dict(
-            types.ApiSocializedLossStatusResponse, resp, Config(cast=[Enum])
-        )
+        return from_dict(types.ApiSocializedLossStatusResponse, resp, Config(cast=[Enum]))
 
     async def get_all_initial_leverage_v1(
         self, req: types.ApiGetAllInitialLeverageRequest
@@ -305,9 +325,7 @@ class GrvtRawAsync(GrvtRawAsyncBase):
     async def set_initial_leverage_v1(
         self, req: types.ApiSetInitialLeverageRequest
     ) -> types.ApiSetInitialLeverageResponse | GrvtError:
-        resp = await self._post(
-            True, self.td_rpc + "/full/v1/set_initial_leverage", req
-        )
+        resp = await self._post(True, self.td_rpc + "/full/v1/set_initial_leverage", req)
         if resp.get("code"):
             return GrvtError(**resp)
         return from_dict(types.ApiSetInitialLeverageResponse, resp, Config(cast=[Enum]))
