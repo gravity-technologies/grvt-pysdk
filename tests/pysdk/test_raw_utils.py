@@ -73,6 +73,21 @@ def get_test_order(
     return sign_order(order, api.config, api.account, instruments)
 
 
+def get_test_tpsl_order(
+    api: GrvtRawSync, instruments: dict[str, grvt_raw_types.Instrument]
+) -> grvt_raw_types.Order | None:
+    order = get_test_order(api, instruments)
+    if order:
+        order.metadata.trigger = grvt_raw_types.TriggerOrderMetadata(
+            trigger_type=grvt_raw_types.TriggerType.TAKE_PROFIT,
+            tpsl=grvt_raw_types.TPSLOrderMetadata(
+                trigger_by=grvt_raw_types.TriggerBy.LAST,
+                trigger_price="64000",
+            ),
+        )
+    return order
+
+
 def get_test_transfer(api: GrvtRawSync) -> grvt_fixed_types.Transfer | None:
     # Skip test if configs are not set
     if (

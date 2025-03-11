@@ -2,14 +2,18 @@ from pysdk import grvt_raw_types
 from pysdk.grvt_raw_base import GrvtError
 from pysdk.grvt_raw_sync import GrvtRawSync
 
-from .test_raw_utils import get_config, get_test_order, get_test_transfer, get_test_withdrawal
+from .test_raw_utils import (
+    get_config,
+    get_test_order,
+    get_test_tpsl_order,
+    get_test_transfer,
+    get_test_withdrawal,
+)
 
 
 def test_get_all_instruments() -> None:
     api = GrvtRawSync(config=get_config())
-    resp = api.get_all_instruments_v1(
-        grvt_raw_types.ApiGetAllInstrumentsRequest(is_active=True)
-    )
+    resp = api.get_all_instruments_v1(grvt_raw_types.ApiGetAllInstrumentsRequest(is_active=True))
     if isinstance(resp, GrvtError):
         raise ValueError(f"Received error: {resp}")
     if resp.result is None:
@@ -63,6 +67,26 @@ def test_create_order_with_signing() -> None:
         raise ValueError("Expected order to be non-null")
 
 
+def test_create_tpsl_order_with_signing() -> None:
+    api = GrvtRawSync(config=get_config())
+
+    inst_resp = api.get_all_instruments_v1(
+        grvt_raw_types.ApiGetAllInstrumentsRequest(is_active=True)
+    )
+    if isinstance(inst_resp, GrvtError):
+        raise ValueError(f"Received error: {inst_resp}")
+
+    order = get_test_tpsl_order(api, {inst.instrument: inst for inst in inst_resp.result})
+    if order is None:
+        return None  # Skip test if configs are not set
+    resp = api.create_order_v1(grvt_raw_types.ApiCreateOrderRequest(order=order))
+
+    if isinstance(resp, GrvtError):
+        raise ValueError(f"Received error: {resp}")
+    if resp.result is None:
+        raise ValueError("Expected order to be non-null")
+
+
 def test_transfer_with_signing() -> None:
     api = GrvtRawSync(config=get_config())
     transfer = get_test_transfer(api)
@@ -91,7 +115,7 @@ def test_transfer_with_signing() -> None:
 def test_withdrawal_with_signing() -> None:
     api = GrvtRawSync(config=get_config())
     withdrawal = get_test_withdrawal(api)
-    
+
     if withdrawal is None:
         return None  # Skip test if configs are not set
 
