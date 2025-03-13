@@ -18,12 +18,6 @@ class BridgeType(Enum):
 class BrokerTag(Enum):
     # Unspecified
     UNSPECIFIED = "UNSPECIFIED"
-    # CoinRoutes
-    COIN_ROUTES = "COIN_ROUTES"
-    # Alertatron
-    ALERTATRON = "ALERTATRON"
-    # Origami
-    ORIGAMI = "ORIGAMI"
 
 
 class CancelStatus(Enum):
