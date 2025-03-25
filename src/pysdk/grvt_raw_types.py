@@ -154,6 +154,10 @@ class Currency(Enum):
     PENDLE = "PENDLE"
     # the UXLINK token
     UXLINK = "UXLINK"
+    # the KAITO token
+    KAITO = "KAITO"
+    # the IP token
+    IP = "IP"
 
 
 class EpochBadgeType(Enum):
