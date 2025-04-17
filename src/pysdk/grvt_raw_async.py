@@ -96,6 +96,14 @@ class GrvtRawAsync(GrvtRawAsyncBase):
             return GrvtError(**resp)
         return from_dict(types.ApiFundingRateResponse, resp, Config(cast=[Enum]))
 
+    async def drop_client_ws(
+        self, req: types.ApiDropClientWsRequest
+    ) -> types.ApiDropClientWsResponse | GrvtError:
+        resp = await self._post(True, self.td_rpc + "/full/v1/drop_client_ws", req)
+        if resp.get("code"):
+            return GrvtError(**resp)
+        return from_dict(types.ApiDropClientWsResponse, resp, Config(cast=[Enum]))
+
     async def create_order_v1(
         self, req: types.ApiCreateOrderRequest
     ) -> types.ApiCreateOrderResponse | GrvtError:
@@ -329,3 +337,21 @@ class GrvtRawAsync(GrvtRawAsyncBase):
         if resp.get("code"):
             return GrvtError(**resp)
         return from_dict(types.ApiSetInitialLeverageResponse, resp, Config(cast=[Enum]))
+
+    async def get_margin_tiers_v1(
+        self, req: types.EmptyRequest
+    ) -> types.ApiGetMarginTiersResponse | GrvtError:
+        resp = await self._post(True, self.td_rpc + "/full/v1/get_margin_tiers", req)
+        if resp.get("code"):
+            return GrvtError(**resp)
+        return from_dict(types.ApiGetMarginTiersResponse, resp, Config(cast=[Enum]))
+
+    async def query_trading_performance_v1(
+        self, req: types.ApiQueryTradingPerformanceRequest
+    ) -> types.ApiQueryTradingPerformanceResponse | GrvtError:
+        resp = await self._post(True, self.td_rpc + "/full/v1/trading_performance", req)
+        if resp.get("code"):
+            return GrvtError(**resp)
+        return from_dict(
+            types.ApiQueryTradingPerformanceResponse, resp, Config(cast=[Enum])
+        )
