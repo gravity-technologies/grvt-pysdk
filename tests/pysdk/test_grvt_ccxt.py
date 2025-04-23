@@ -55,7 +55,7 @@ def print_instruments(api: GrvtCcxt):
     logger.info("print_instruments: START")
     if not api.markets:
         return
-    for market in api.markets.values()[:3]:
+    for market in list(api.markets.values())[:3]:
         logger.info(f"{market=}")
         instrument = market["instrument"]
         logger.info(f"fetch_market: {instrument=}, {api.fetch_market(instrument)}")
