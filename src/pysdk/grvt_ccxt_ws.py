@@ -12,6 +12,7 @@ import logging
 import traceback
 from asyncio.events import AbstractEventLoop
 from collections.abc import Callable
+from decimal import Decimal
 
 import websockets
 
@@ -139,7 +140,7 @@ class GrvtCcxtWS(GrvtCcxtPro):
 
     async def connect_all_channels(self) -> None:
         """
-        connects to all channels that are possible to connect.
+        Connects to all channels that are possible to connect.
         If cookie is NOT available, it will NOT connect to GrvtWSEndpointType.TRADE_DATA
         For trading connection: run this method after cookie is available.
         """
@@ -266,7 +267,7 @@ class GrvtCcxtWS(GrvtCcxtPro):
     ) -> None:
         stream_subscribed: str = ""
         if "stream" in message:
-            stream_subscribed = message.get("stream")
+            stream_subscribed = message["stream"]
         elif "result" in message and "stream" in message["result"]:
             stream_subscribed = message.get("result", {}).get("stream", "")
         if stream_subscribed:
@@ -371,7 +372,7 @@ class GrvtCcxtWS(GrvtCcxtPro):
             self.logger.exception(f"{self._clsname} send failed {traceback.format_exc()}")
             await self._reconnect(end_point_type)
 
-    def _construct_selector(self, stream: str, params: dict | None) -> str:
+    def _construct_selector(self, stream: str, params: dict) -> str:
         feed: str = ""
         # ******** Market Data ********
         if stream.endswith(("mini.s", "mini.d", "ticker.s", "ticker.d")):
@@ -413,7 +414,7 @@ class GrvtCcxtWS(GrvtCcxtPro):
         stream: str,
         callback: Callable,
         ws_end_point_type: GrvtWSEndpointType | None = None,
-        params: dict | None = None,
+        params: dict = {},
     ) -> None:
         """
         Subscribe to a stream with optional parameters.
@@ -456,8 +457,7 @@ class GrvtCcxtWS(GrvtCcxtPro):
     def get_non_versioned_stream(self, versioned_stream: str) -> str:
         if self.api_ws_version == "v0":
             return versioned_stream
-        else:
-            return versioned_stream.split(".")[1]
+        return versioned_stream.split(".")[1]
 
     async def _subscribe_to_stream(
         self,
@@ -531,7 +531,7 @@ class GrvtCcxtWS(GrvtCcxtPro):
         symbol: str,
         order_type: GrvtOrderType,
         side: GrvtOrderSide,
-        amount: Num,
+        amount: float | Decimal | str | int,
         price: Num = None,
         params={},
     ) -> dict:
@@ -556,7 +556,7 @@ class GrvtCcxtWS(GrvtCcxtPro):
         self,
         symbol: str,
         side: GrvtOrderSide,
-        amount: Num,
+        amount: float | Decimal | str | int,
         price: Num,
         params={},
     ) -> dict:
@@ -565,7 +565,7 @@ class GrvtCcxtWS(GrvtCcxtPro):
     async def rpc_cancel_all_orders(
         self,
         params: dict = {},
-    ) -> bool:
+    ) -> dict:
         """
         Ccxt compliant signature BUT lacks symbol
         Cancel all orders for a sub-account.
@@ -578,7 +578,7 @@ class GrvtCcxtWS(GrvtCcxtPro):
         self._check_account_auth()
         # FN = f"{self._clsname} rpc_cancel_all_orders"
         payload: dict = self._get_payload_cancel_all_orders(params)
-        jsonrpc_payload = self.jsonrpc_wrap_payload(payload, method="cancel_all_orders")
+        jsonrpc_payload: dict = self.jsonrpc_wrap_payload(payload, method="cancel_all_orders")
         await self.send_rpc_message(
             GrvtWSEndpointType.TRADE_DATA_RPC_FULL, jsonrpc_payload
         )
@@ -632,7 +632,7 @@ class GrvtCcxtWS(GrvtCcxtPro):
     async def rpc_fetch_open_orders(
         self,
         params: dict = {},
-    ) -> list[dict]:
+    ) -> dict:
         """
         Fetch open orders for the account.<br>
         Private call requires authorization.<br>
@@ -651,8 +651,8 @@ class GrvtCcxtWS(GrvtCcxtPro):
         """
         self._check_account_auth()
         # Prepare request payload
-        payload = self._get_payload_fetch_open_orders(symbol=None, params=params)
-        jsonrpc_payload = self.jsonrpc_wrap_payload(payload, method="open_orders")
+        payload: dict = self._get_payload_fetch_open_orders(symbol=None, params=params)
+        jsonrpc_payload: dict = self.jsonrpc_wrap_payload(payload, method="open_orders")
         await self.send_rpc_message(
             GrvtWSEndpointType.TRADE_DATA_RPC_FULL, jsonrpc_payload
         )

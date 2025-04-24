@@ -8,7 +8,8 @@
 
 import json
 import logging
-from typing import Literal
+from decimal import Decimal
+from typing import Literal, Any
 
 import aiohttp
 
@@ -83,14 +84,14 @@ class GrvtCcxtPro(GrvtCcxtBase):
         """Refresh the session cookie."""
         if not self.should_refresh_cookie():
             return self._cookie
-        path = get_grvt_endpoint(self.env, "AUTH")
+        path: str = get_grvt_endpoint(self.env, "AUTH")
         self._cookie = await get_cookie_with_expiration_async(path, self._api_key)
         self._path_return_value_map[path] = self._cookie
         self.update_session_with_cookie()
         return self._cookie
 
     # PRIVATE API CALLS
-    async def _check_valid_symbol_async(self, symbol: str) -> None:
+    async def _check_valid_symbol_async(self, symbol: str) -> bool:
         # if not self.markets:
         #     self.markets = await self.load_markets()
         return super()._check_valid_symbol(symbol)
@@ -112,6 +113,7 @@ class GrvtCcxtPro(GrvtCcxtBase):
             headers={"Content-Type": "application/json"},
             timeout=5,
         ) as return_value:
+            return_text: str = ""
             try:
                 return_text = await return_value.text()
                 response = await return_value.json(content_type="application/json")
@@ -154,16 +156,16 @@ class GrvtCcxtPro(GrvtCcxtBase):
             f"{FN} Order created:"
             f"{response.get('result', {}).get('metadata', {}).get('client_order_id')}"
         )
-        return response.get("result")
+        return response.get("result", {})
 
     def _get_order_with_validations(
         self,
         symbol: str,
         order_type: GrvtOrderType,
         side: GrvtOrderSide,
-        amount: Num,
+        amount: float | Decimal | int | str,
         price: Num = None,
-        params={},
+        params: dict = {},
     ) -> GrvtOrder:
         self._check_account_auth()
         self._check_valid_symbol(symbol)
@@ -187,7 +189,7 @@ class GrvtCcxtPro(GrvtCcxtBase):
         symbol: str,
         order_type: GrvtOrderType,
         side: GrvtOrderSide,
-        amount: Num,
+        amount: float | Decimal | int | str,
         price: Num = None,
         params={},
     ) -> dict:
@@ -201,7 +203,7 @@ class GrvtCcxtPro(GrvtCcxtBase):
         self,
         symbol: str,
         side: GrvtOrderSide,
-        amount: Num,
+        amount: float | Decimal | int | str,
         price: Num = None,
         params={},
     ) -> dict:
@@ -328,7 +330,6 @@ class GrvtCcxtPro(GrvtCcxtBase):
     async def fetch_order(
         self,
         id: str | None = None,
-        symbol: str | None = None,
         params: dict = {},
     ) -> dict:
         """
@@ -518,7 +519,7 @@ class GrvtCcxtPro(GrvtCcxtBase):
         return response
 
     # **************** PUBLIC API CALLS
-    async def load_markets(self) -> dict:
+    async def load_markets(self) -> dict | None:
         self.logger.info("load_markets START")
         instruments = await self.fetch_markets(
             params={
@@ -662,7 +663,7 @@ class GrvtCcxtPro(GrvtCcxtBase):
         # 'is_taker_buyer': True, 'size': '24000000000', 'price': '2600000000000',
         # 'mark_price': '2591055564869', 'index_price': '2592459142472', 'interest_rate': 0,
         # 'forward_price': '0', 'trade_id': '729726', 'venue': 'ORDERBOOK'}
-        payload = {"instrument": symbol}
+        payload: dict[str, Any] = {"instrument": symbol}
         if limit:
             payload["limit"] = limit
         path = get_grvt_endpoint(self.env, "GET_TRADES")
@@ -675,7 +676,7 @@ class GrvtCcxtPro(GrvtCcxtBase):
         since: int | None = None,
         limit: int = 10,
         params: dict = {},
-    ) -> list:
+    ) -> dict:
         """
         ccxt-compliant signature, HISTORICAL data.<br>
         Retrieve trade history of a given instrument.
@@ -686,13 +687,13 @@ class GrvtCcxtPro(GrvtCcxtBase):
         # 'is_taker_buyer': True, 'size': '24000000000', 'price': '2600000000000',
         # 'mark_price': '2591055564869', 'index_price': '2592459142472', 'interest_rate': 0,
         # 'forward_price': '0', 'trade_id': '729726', 'venue': 'ORDERBOOK'}
-        payload = self._get_payload_fetch_trades(
+        payload: dict = self._get_payload_fetch_trades(
             symbol,
             since=since,
             limit=limit,
             params=params,
         )
-        path = get_grvt_endpoint(self.env, "GET_TRADE_HISTORY")
+        path: str = get_grvt_endpoint(self.env, "GET_TRADE_HISTORY")
         response: dict = await self._auth_and_post(path, payload=payload)
         return response
 
@@ -702,7 +703,7 @@ class GrvtCcxtPro(GrvtCcxtBase):
         since: int = 0,
         limit: int = 10,
         params: dict = {},
-    ) -> list:
+    ) -> dict:
         """
         ccxt-compliant signature, HISTORICAL data.<br>
         Retrieve the funding rates history of a given instrument.<br>
@@ -721,7 +722,7 @@ class GrvtCcxtPro(GrvtCcxtBase):
                 'funding_time' (int): funding time in nanoseconds.<br>
                 'mark_price' (float): mark price.<br>.
         """
-        payload = {"instrument": symbol}
+        payload: dict[str, Any] = {"instrument": symbol}
         if params.get("cursor"):
             payload["cursor"] = params["cursor"]
         else:
@@ -731,7 +732,7 @@ class GrvtCcxtPro(GrvtCcxtBase):
                 payload["end_time"] = params["end_time"]
             if limit:
                 payload["limit"] = limit
-        path = get_grvt_endpoint(self.env, "GET_FUNDING")
+        path: str = get_grvt_endpoint(self.env, "GET_FUNDING")
         response: dict = await self._auth_and_post(path, payload=payload)
         return response
 
@@ -742,7 +743,7 @@ class GrvtCcxtPro(GrvtCcxtBase):
         since: int = 0,
         limit: int = 10,
         params={},
-    ) -> list:
+    ) -> dict:
         """
         ccxt-compliant signature, HISTORICAL data.<br>
         Retrieve the ohlc history of a given instrument.<br>
@@ -776,9 +777,9 @@ class GrvtCcxtPro(GrvtCcxtBase):
                 `volume_q` - volume in quote(USDT).<br>
                 `trades` - number of trades.<br>.
         """
-        FN = f"{self._clsname} fetch_ohlcv"
-        payload = self._get_payload_fetch_ohlcv(symbol, timeframe, since, limit, params)
+        FN: str = f"{self._clsname} fetch_ohlcv"
+        payload: dict = self._get_payload_fetch_ohlcv(symbol, timeframe, since, limit, params)
         self.logger.info(f"{FN} {payload=}")
-        path = get_grvt_endpoint(self.env, "GET_CANDLESTICK")
+        path: str = get_grvt_endpoint(self.env, "GET_CANDLESTICK")
         response: dict = await self._auth_and_post(path, payload=payload)
         return response

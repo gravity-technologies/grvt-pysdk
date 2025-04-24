@@ -9,7 +9,7 @@
 import logging
 import time
 from decimal import Decimal
-from typing import get_args
+from typing import get_args, Any
 
 from .grvt_ccxt_env import GrvtEnv
 from .grvt_ccxt_types import (
@@ -45,18 +45,18 @@ class GrvtCcxtBase:
         parameters: dict = {},
     ):
         """Initialize the GrvtCcxtBase part."""
-        self.logger = logger or logging.getLogger(__name__)
+        self.logger: logging.Logger = logger or logging.getLogger(__name__)
         self.env: GrvtEnv = env
-        self._trading_account_id: str | None = parameters.get("trading_account_id")
-        self._private_key = parameters.get("private_key")
-        self._api_key = parameters.get("api_key")
+        self._trading_account_id: str = parameters.get("trading_account_id", "")
+        self._private_key: str = parameters.get("private_key", "")
+        self._api_key: str = parameters.get("api_key", "")
         self._path_return_value_map: dict = {}
         self._cookie: dict | None = None
         self.markets: dict | None = None
         self._clsname: str = type(self).__name__
         self.logger.info(f"GrvtCcxtBase: {self.env=}, {self._trading_account_id=}")
 
-    def get_trading_account_id(self) -> str | None:
+    def get_trading_account_id(self) -> str:
         """Returns the trading account id."""
         return self._trading_account_id
 
@@ -85,7 +85,7 @@ class GrvtCcxtBase:
 
     def get_endpoint_return_value(self, endpoint: str) -> dict:
         """Returns the return value for the endpoint."""
-        return self._path_return_value_map.get(endpoint)
+        return self._path_return_value_map.get(endpoint, {})
 
     def was_path_called(self, path: str) -> bool:
         """Returns True if the path was called."""
@@ -150,7 +150,7 @@ class GrvtCcxtBase:
                 `quote`: (str) - The quote currency filter. Defaults to all quote currencies.<br>
         Returns: a dictionary with a payload for Rest API call to cancel all orders.<br>
         """
-        payload = {"sub_account_id": str(self._trading_account_id)}
+        payload: dict[str, Any]= {"sub_account_id": str(self._trading_account_id)}
         if "kind" in params:
             payload["kind"] = [params["kind"]]
         if "base" in params:
@@ -197,7 +197,7 @@ class GrvtCcxtBase:
         Returns:
             a dictionary with a payload for Rest API call to fetch trades.<br>
         """
-        payload = {"sub_account_id": str(self._trading_account_id)}
+        payload: dict[str, Any] = {"sub_account_id": str(self._trading_account_id)}
         if params.get("cursor"):
             payload["cursor"] = params["cursor"]
         else:
@@ -243,7 +243,7 @@ class GrvtCcxtBase:
         Returns:
             a dictionary with a payload for Rest API call to fetch trades.<br>
         """
-        payload = {
+        payload: dict[str, Any] = {
             "sub_account_id": str(self._trading_account_id),
             "instrument": symbol,
         }
@@ -270,7 +270,7 @@ class GrvtCcxtBase:
         Returns:
             a dictionary with a payload for Rest API call to fetch account history.<br>
         """
-        payload = {"sub_account_id": str(self._trading_account_id)}
+        payload: dict[str, Any] = {"sub_account_id": str(self._trading_account_id)}
         if params.get("cursor"):
             payload["cursor"] = params["cursor"]
         else:
@@ -291,7 +291,7 @@ class GrvtCcxtBase:
 
         Returns: a dictionary with a payload for Rest API call to fetch positions.<br>
         """
-        payload = {"sub_account_id": str(self._trading_account_id)}
+        payload: dict[str, Any] = {"sub_account_id": str(self._trading_account_id)}
         if symbols:
             ks, us, qs = [], [], []
             for symbol in symbols:
@@ -334,7 +334,7 @@ class GrvtCcxtBase:
                 `cursor`: (str) The cursor to use for pagination. If nil, return the first page.<br>
         Returns: a dictionary with a payload for Rest API call to fetch order history.<br>
         """
-        payload = {"sub_account_id": str(self._trading_account_id)}
+        payload: dict[str, Any] = {"sub_account_id": str(self._trading_account_id)}
         if "limit" in params:
             payload["limit"] = params["limit"]
         if params.get("cursor"):
@@ -367,7 +367,7 @@ class GrvtCcxtBase:
                 `quote`: (str) - The quote currency filter. Defaults to all quote currencies.<br>
         Returns: a dictionary with a payload for Rest API call to fetch order history.<br>
         """
-        payload = {"sub_account_id": str(self._trading_account_id)}
+        payload: dict[str, Any] = {"sub_account_id": str(self._trading_account_id)}
         if symbol:
             try:
                 k, u, q = get_kuq_from_symbol(symbol)
@@ -419,7 +419,7 @@ class GrvtCcxtBase:
         interval: CandlestickInterval = ccxt_interval_to_grvt_candlestick_interval[
             timeframe
         ]
-        payload = {"instrument": symbol}
+        payload: dict[str, Any] = {"instrument": symbol}
         if params.get("cursor"):
             payload["cursor"] = params["cursor"]
         else:
