@@ -7,11 +7,12 @@ from pysdk.grvt_ccxt_env import GrvtEnv
 from pysdk.grvt_ccxt_logging_selector import logger
 from pysdk.grvt_ccxt_pro import GrvtCcxtPro
 from pysdk.grvt_ccxt_test_utils import validate_return_values
+from pysdk.grvt_ccxt_types import GrvtOrderSide
 from pysdk.grvt_ccxt_utils import rand_uint32
 
 
 # Utility functions , not called directly by the __main__ test routine
-async def get_open_orders(api: GrvtCcxtPro) -> int:
+async def get_open_orders(api: GrvtCcxtPro) -> list[dict]:
     open_orders = await api.fetch_open_orders(
         symbol="BTC_USDT_Perp",
         params={"kind": "PERPETUAL"},
@@ -20,8 +21,8 @@ async def get_open_orders(api: GrvtCcxtPro) -> int:
     return open_orders
 
 
-async def fetch_order_history(api: GrvtCcxtPro) -> int:
-    order_history = await api.fetch_order_history(
+async def fetch_order_history(api: GrvtCcxtPro) -> dict:
+    order_history: dict = await api.fetch_order_history(
         params={"kind": "PERPETUAL", "limit": 3},
     )
     logger.info(f"order_history: {order_history=}")
@@ -31,7 +32,7 @@ async def fetch_order_history(api: GrvtCcxtPro) -> int:
 async def cancel_orders(api: GrvtCcxtPro, open_orders: list) -> int:
     FN = "cancel_orders"
     logger.info(f"{FN} START")
-    order_count = 0
+    order_count: int = 0
     for order_dict in open_orders:
         client_order_id = order_dict["metadata"].get("client_order_id")
         if client_order_id:
@@ -88,7 +89,7 @@ async def print_instruments(api: GrvtCcxtPro):
             logger.info(f"fetch_ohlcv {type} {instrument=}, {ohlc}")
 
 
-async def send_order(api: GrvtCcxtPro, side: str, client_order_id: int) -> dict:
+async def send_order(api: GrvtCcxtPro, side: GrvtOrderSide, client_order_id: int) -> dict:
     price = 64_000 if side == "buy" else 65_000
     send_order_response = await api.create_order(
         symbol="BTC_USDT_Perp",
@@ -108,13 +109,12 @@ async def send_fetch_order(api: GrvtCcxtPro):
     _ = await send_order(api, side="buy", client_order_id=client_order_id)
     order_status = await api.fetch_order(
         id=None,
-        symbol="BTC_USDT_Perp",
         params={"client_order_id": client_order_id},
     )
     logger.info(f"result of fetch_order: {order_status=}")
 
 async def send_mkt_order(
-    api: GrvtCcxtPro, symbol: str, side: str, amount: Decimal, client_order_id: int
+    api: GrvtCcxtPro, symbol: str, side: GrvtOrderSide, amount: Decimal, client_order_id: int
 ) -> dict:
     send_order_response = await api.create_order(
         symbol=symbol,

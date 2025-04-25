@@ -15,11 +15,12 @@ from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 from http.cookies import SimpleCookie
+from typing import Any
 
 import aiohttp
 import requests
 from eth_account import Account
-from eth_account.messages import encode_typed_data
+from eth_account.messages import encode_typed_data, SignableMessage
 
 from .grvt_ccxt_env import CHAIN_IDS, GrvtEnv
 from .grvt_ccxt_types import (
@@ -78,9 +79,7 @@ def get_EIP712_domain_data(env: GrvtEnv) -> dict[str, str | int]:
     }
 
 
-def get_cookie_with_expiration(
-    path: str, api_key: str | None
-) -> dict[str, str | None] | None:
+def get_cookie_with_expiration(path: str, api_key: str | None) -> dict[str, str | float] | None:
     """
     Authenticates and retrieves the session cookie, its expiration time and grvt-account-id token.
     :return: The session cookie.
@@ -99,15 +98,13 @@ def get_cookie_with_expiration(
             )
             if return_value.ok:
                 cookie = SimpleCookie()
-                cookie.load(return_value.headers.get("Set-Cookie"))
-                cookie_value = cookie["gravity"].value
-                cookie_expiry = datetime.strptime(
+                cookie.load(return_value.headers.get("Set-Cookie", ""))
+                cookie_value: str = cookie["gravity"].value
+                cookie_expiry: datetime = datetime.strptime(
                     cookie["gravity"]["expires"],
                     "%a, %d %b %Y %H:%M:%S %Z",
                 )
-                grvt_account_id: str | None = return_value.headers.get(
-                    "X-Grvt-Account-Id"
-                )
+                grvt_account_id: str = return_value.headers.get("X-Grvt-Account-Id", "")
                 logging.info(
                     f"{FN} OK response {cookie_value=} {cookie_expiry=} {grvt_account_id=}"
                 )
@@ -127,7 +124,7 @@ def get_cookie_with_expiration(
 
 async def get_cookie_with_expiration_async(
     path: str, api_key: str | None
-) -> dict[str, str] | None:
+) -> dict[str, str | float] | None:
     """
     Authenticates and retrieves the session cookie, its expiration time and grvt-account-id token.
     :return: The session cookie.
@@ -143,15 +140,13 @@ async def get_cookie_with_expiration_async(
                     logging.info(f"{FN} {return_value=}")
                     if return_value.ok:
                         cookie = SimpleCookie()
-                        cookie.load(return_value.headers.get("Set-Cookie"))
-                        cookie_value = cookie["gravity"].value
-                        cookie_expiry = datetime.strptime(
+                        cookie.load(return_value.headers.get("Set-Cookie", ""))
+                        cookie_value: str = cookie["gravity"].value
+                        cookie_expiry: datetime = datetime.strptime(
                             cookie["gravity"]["expires"],
                             "%a, %d %b %Y %H:%M:%S %Z",
                         )
-                        grvt_account_id: str | None = return_value.headers.get(
-                            "X-Grvt-Account-Id"
-                        )
+                        grvt_account_id: str = return_value.headers.get("X-Grvt-Account-Id", "")
                         logging.info(
                             f"{FN} OK response {cookie_value=} {cookie_expiry=} {grvt_account_id=}"
                         )
@@ -189,15 +184,15 @@ def hexlify(data: bytes) -> str:
 
 
 class EnumEncoder(json.JSONEncoder):
-    def default(self, obj):
+    def default(self, o):
         """
         Custom JSON encoder for Enum types.
         :param obj: Object to serialize.
         :return: Serialized object.
         """
-        if isinstance(obj, Enum):
-            return obj.value
-        return super().default(obj)
+        if isinstance(o, Enum):
+            return o.value
+        return super().default(o)
 
 
 def get_kuq_from_symbol(symbol: str) -> tuple[str, str, str]:
@@ -331,8 +326,11 @@ class GrvtOrder:
 
 
 def get_signable_message(
-    order: GrvtOrder, env: GrvtEnv, instruments: list[dict]
-) -> bytes | None:
+    order: GrvtOrder, env: GrvtEnv, instruments: dict[str, Any] | None
+) -> SignableMessage | None:
+    if instruments is None:
+        logging.error("get_signable_message: instruments is None")
+        return None
     FN = f"get_signable_message {order=}"
     size_multiplier = BTC_ETH_SIZE_MULTIPLIER
     PRICE_MULTIPLIER = 1_000_000_000
@@ -373,9 +371,11 @@ def get_signable_message(
 
 
 def get_order_payload(
-    order: GrvtOrder, private_key: str, env: GrvtEnv, instruments: list[dict]
+    order: GrvtOrder, private_key: str, env: GrvtEnv, instruments: dict[str, Any] | None
 ) -> dict:
     signable_message = get_signable_message(order, env, instruments)
+    if signable_message is None:
+        raise ValueError("Failed to create signable message")
     signed_message = Account.sign_message(signable_message, private_key)
     order.signature.s = "0x" + signed_message.s.to_bytes(32, byteorder="big").hex()
     order.signature.r = "0x" + signed_message.r.to_bytes(32, byteorder="big").hex()
@@ -417,7 +417,7 @@ def get_order_rpc_payload(
     order: GrvtOrder,
     private_key: str,
     env: GrvtEnv,
-    instruments: list[dict],
+    instruments: dict[str, Any] | None,
     version: str = "v1",
 ) -> dict:
     order_payload = get_order_payload(order, private_key, env, instruments)
@@ -429,11 +429,11 @@ def get_order_rpc_payload(
 
 
 def get_grvt_order(
-    sub_account_id: int,
+    sub_account_id: str,
     symbol: str,
     order_type: GrvtOrderType,
     side: GrvtOrderSide,
-    amount: Num,
+    amount: float | Decimal | str | int,
     limit_price: Num,
     order_duration_secs: float = 5 * 60,
     params: dict = {},

@@ -1,4 +1,5 @@
 import os
+import time
 import traceback
 from decimal import Decimal
 
@@ -6,11 +7,12 @@ from pysdk.grvt_ccxt import GrvtCcxt
 from pysdk.grvt_ccxt_env import GrvtEnv
 from pysdk.grvt_ccxt_logging_selector import logger
 from pysdk.grvt_ccxt_test_utils import validate_return_values
+from pysdk.grvt_ccxt_types import GrvtOrderSide
 from pysdk.grvt_ccxt_utils import rand_uint32
 
 
-def get_open_orders(api: GrvtCcxt) -> int:
-    open_orders = api.fetch_open_orders(
+def get_open_orders(api: GrvtCcxt) -> list[dict]:
+    open_orders: list[dict] = api.fetch_open_orders(
         symbol="BTC_USDT_Perp",
         params={"kind": "PERPETUAL"},
     )
@@ -18,8 +20,8 @@ def get_open_orders(api: GrvtCcxt) -> int:
     return open_orders
 
 
-def fetch_order_history(api: GrvtCcxt) -> int:
-    order_history = api.fetch_order_history(
+def fetch_order_history(api: GrvtCcxt) -> dict:
+    order_history: dict = api.fetch_order_history(
         params={"kind": "PERPETUAL", "limit": 3},
     )
     logger.info(f"order_history: {order_history=}")
@@ -85,9 +87,9 @@ def print_instruments(api: GrvtCcxt):
             logger.info(f"fetch_ohlcv {type} {instrument=}, {ohlc}")
 
 
-def send_order(api: GrvtCcxt, side: str, client_order_id: int) -> dict:
-    price = 64_000 if side == "buy" else 65_000
-    send_order_response = api.create_order(
+def send_order(api: GrvtCcxt, side: GrvtOrderSide, client_order_id: int) -> dict:
+    price = 94_000 if side == "buy" else 95_000
+    send_order_response: dict = api.create_order(
         symbol="BTC_USDT_Perp",
         order_type="limit",
         side=side,
@@ -100,9 +102,9 @@ def send_order(api: GrvtCcxt, side: str, client_order_id: int) -> dict:
 
 
 def send_mkt_order(
-    api: GrvtCcxt, symbol: str, side: str, amount: Decimal, client_order_id: int
+    api: GrvtCcxt, symbol: str, side: GrvtOrderSide, amount: Decimal, client_order_id: int
 ) -> dict:
-    send_order_response = api.create_order(
+    send_order_response: dict = api.create_order(
         symbol=symbol,
         order_type="market",
         side=side,
@@ -117,9 +119,9 @@ def send_mkt_order(
 def send_fetch_order(api: GrvtCcxt):
     client_order_id = rand_uint32()
     _ = send_order(api, side="buy", client_order_id=client_order_id)
+    time.sleep(0.1)
     order_status = api.fetch_order(
         id=None,
-        symbol="BTC_USDT_Perp",
         params={"client_order_id": client_order_id},
     )
     logger.info(f"result of fetch_order: {order_status=}")
@@ -161,6 +163,28 @@ def cancel_send_order(api: GrvtCcxt):
         client_order_id=client_order_id,
     )
     if order_response:
+        time.sleep(0.1)
+        # Get status
+        logger.info(f"{FN} fetch_order by {client_order_id=}")
+        order_status = api.fetch_order(params={"client_order_id": client_order_id})
+        logger.info(f"{FN} {order_status=}")
+    else:
+        logger.warning(f"{FN}: order_response is None")
+
+
+def send_fetch_mkt_order(api: GrvtCcxt):
+    FN = "send_fetch_mkt_order"
+    logger.info(f"{FN}: START")
+    client_order_id: int = rand_uint32()
+    order_response = send_mkt_order(
+        api,
+        symbol="BTC_USDT_Perp",
+        side="sell",
+        amount=Decimal("0.01"),
+        client_order_id=client_order_id,
+    )
+    if order_response:
+        time.sleep(0.1)
         # Get status
         logger.info(f"{FN} fetch_order by {client_order_id=}")
         order_status = api.fetch_order(params={"client_order_id": client_order_id})
@@ -237,6 +261,7 @@ def test_grvt_ccxt():
         print_positions,
         check_cancel_check_orders,
         cancel_send_order,
+        send_fetch_mkt_order,
         get_open_orders,
         send_fetch_order,
         get_open_orders,

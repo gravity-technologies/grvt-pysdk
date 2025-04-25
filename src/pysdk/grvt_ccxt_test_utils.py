@@ -2,6 +2,7 @@ import logging
 
 from .grvt_ccxt import GrvtCcxt
 from .grvt_ccxt_env import get_all_grvt_endpoints
+from .grvt_ccxt_pro import GrvtCcxtPro
 
 
 def default_check(return_value: dict) -> str:
@@ -12,7 +13,7 @@ def default_check(return_value: dict) -> str:
     return "OK"
 
 
-def validate_return_values(api: GrvtCcxt, result_filename: str) -> None:
+def validate_return_values(api: GrvtCcxt | GrvtCcxtPro, result_filename: str) -> None:
     logging.info("validate_return_values: START")
     endpoint_check_map = {
         "GRAPHQL": default_check,
@@ -51,7 +52,14 @@ def validate_return_values(api: GrvtCcxt, result_filename: str) -> None:
         else:
             return_value = api.get_endpoint_return_value(endpoint)
             if short_name in endpoint_check_map:
-                check_result = endpoint_check_map.get(short_name)(return_value)
+                check_function = endpoint_check_map.get(short_name)
+                if not check_function or not callable(check_function):
+                    logging.error(
+                        f"validate_return_values: {short_name=} "
+                        f"not found in {endpoint_check_map.keys()=}"
+                    )
+                    continue
+                check_result = check_function(return_value)
                 logging.info(
                     f"validate_return_values: {short_name=}, {endpoint=}, {check_result=}"
                 )
