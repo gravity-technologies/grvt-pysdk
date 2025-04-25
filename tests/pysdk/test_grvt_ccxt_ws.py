@@ -257,7 +257,7 @@ async def send_check_cancel_rpc_order(test_api: GrvtCcxtWS) -> None:
 
 async def send_rpc_messages(test_api: GrvtCcxtWS) -> None:
     """Sends test RPC messages for send/fetch/cancel orders."""
-    # await send_check_cancel_rpc_order(test_api)
+    await send_check_cancel_rpc_order(test_api)
     await cancel_send_rpc_order(test_api)
 
 
@@ -286,6 +286,6 @@ if __name__ == "__main__":
             sig, lambda: asyncio.create_task(shutdown(loop, test_api))
         )
     loop.run_until_complete(asyncio.sleep(5))
-    # loop.run_until_complete(send_rpc_messages(test_api))
+    loop.run_until_complete(send_rpc_messages(test_api))
     loop.run_forever()
     loop.close()
