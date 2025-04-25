@@ -79,9 +79,7 @@ def get_EIP712_domain_data(env: GrvtEnv) -> dict[str, str | int]:
     }
 
 
-def get_cookie_with_expiration(
-    path: str, api_key: str | None
-) -> dict[str, Any] | None:
+def get_cookie_with_expiration(path: str, api_key: str | None) -> dict[str, str | float] | None:
     """
     Authenticates and retrieves the session cookie, its expiration time and grvt-account-id token.
     :return: The session cookie.
@@ -101,14 +99,12 @@ def get_cookie_with_expiration(
             if return_value.ok:
                 cookie = SimpleCookie()
                 cookie.load(return_value.headers.get("Set-Cookie", ""))
-                cookie_value = cookie["gravity"].value
-                cookie_expiry = datetime.strptime(
+                cookie_value: str = cookie["gravity"].value
+                cookie_expiry: datetime = datetime.strptime(
                     cookie["gravity"]["expires"],
                     "%a, %d %b %Y %H:%M:%S %Z",
                 )
-                grvt_account_id: str | None = return_value.headers.get(
-                    "X-Grvt-Account-Id"
-                )
+                grvt_account_id: str = return_value.headers.get("X-Grvt-Account-Id", "")
                 logging.info(
                     f"{FN} OK response {cookie_value=} {cookie_expiry=} {grvt_account_id=}"
                 )
@@ -128,7 +124,7 @@ def get_cookie_with_expiration(
 
 async def get_cookie_with_expiration_async(
     path: str, api_key: str | None
-) -> dict[str, Any] | None:
+) -> dict[str, str | float] | None:
     """
     Authenticates and retrieves the session cookie, its expiration time and grvt-account-id token.
     :return: The session cookie.
@@ -145,14 +141,12 @@ async def get_cookie_with_expiration_async(
                     if return_value.ok:
                         cookie = SimpleCookie()
                         cookie.load(return_value.headers.get("Set-Cookie", ""))
-                        cookie_value = cookie["gravity"].value
-                        cookie_expiry = datetime.strptime(
+                        cookie_value: str = cookie["gravity"].value
+                        cookie_expiry: datetime = datetime.strptime(
                             cookie["gravity"]["expires"],
                             "%a, %d %b %Y %H:%M:%S %Z",
                         )
-                        grvt_account_id: str | None = return_value.headers.get(
-                            "X-Grvt-Account-Id"
-                        )
+                        grvt_account_id: str = return_value.headers.get("X-Grvt-Account-Id", "")
                         logging.info(
                             f"{FN} OK response {cookie_value=} {cookie_expiry=} {grvt_account_id=}"
                         )
