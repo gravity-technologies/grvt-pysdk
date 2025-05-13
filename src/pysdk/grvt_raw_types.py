@@ -761,6 +761,16 @@ class ApiAggregatedAccountSummaryResponse:
 
 
 @dataclass
+class FundingAccountSummary:
+    # The main account ID of the account to which the summary belongs
+    main_account_id: str
+    # Total equity of the main account, denominated in USD
+    total_equity: str
+    # The list of spot assets owned by this main account, and their balances
+    spot_balances: list[SpotBalance]
+
+
+@dataclass
 class ApiFundingAccountSummaryResponse:
     # The funding account summary
     result: FundingAccountSummary
@@ -2109,6 +2119,32 @@ class WSTransferFeedSelectorV1:
 
 
 @dataclass
+class TransferHistory:
+    # The transaction ID of the transfer
+    tx_id: str
+    # The account to transfer from
+    from_account_id: str
+    # The subaccount to transfer from (0 if transferring from main account)
+    from_sub_account_id: str
+    # The account to deposit into
+    to_account_id: str
+    # The subaccount to transfer to (0 if transferring to main account)
+    to_sub_account_id: str
+    # The token currency to transfer
+    currency: Currency
+    # The number of tokens to transfer
+    num_tokens: str
+    # The signature of the transfer
+    signature: Signature
+    # The timestamp of the transfer in unix nanoseconds
+    event_time: str
+    # The type of transfer
+    transfer_type: TransferType
+    # The metadata of the transfer
+    transfer_metadata: str
+
+
+@dataclass
 class WSTransferFeedDataV1:
     # The websocket channel to which the response is sent
     stream: str
@@ -2448,6 +2484,24 @@ class ApiWithdrawalHistoryRequest:
     cursor: str | None = None
     # Main account ID being queried. By default, applies the requestor's main account ID.
     main_account_id: str | None = None
+
+
+@dataclass
+class WithdrawalHistory:
+    # The transaction ID of the withdrawal
+    tx_id: str
+    # The subaccount to withdraw from
+    from_account_id: str
+    # The ethereum address to withdraw to
+    to_eth_address: str
+    # The token currency to withdraw
+    currency: Currency
+    # The number of tokens to withdraw
+    num_tokens: str
+    # The signature of the withdrawal
+    signature: Signature
+    # The timestamp of the withdrawal in unix nanoseconds
+    event_time: str
 
 
 @dataclass
