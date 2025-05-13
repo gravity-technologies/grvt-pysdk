@@ -142,22 +142,6 @@ class GrvtRawSync(GrvtRawSyncBase):
             return GrvtError(**resp)
         return from_dict(types.ApiOrderHistoryResponse, resp, Config(cast=[Enum]))
 
-    def pre_order_check_v1(
-        self, req: types.ApiPreOrderCheckRequest
-    ) -> types.ApiPreOrderCheckResponse | GrvtError:
-        resp = self._post(True, self.td_rpc + "/full/v1/pre_order_check", req)
-        if resp.get("code"):
-            return GrvtError(**resp)
-        return from_dict(types.ApiPreOrderCheckResponse, resp, Config(cast=[Enum]))
-
-    def dedust_position_v1(
-        self, req: types.ApiDedustPositionRequest
-    ) -> types.ApiDedustPositionResponse | GrvtError:
-        resp = self._post(True, self.td_rpc + "/full/v1/dedust_position", req)
-        if resp.get("code"):
-            return GrvtError(**resp)
-        return from_dict(types.ApiDedustPositionResponse, resp, Config(cast=[Enum]))
-
     def cancel_on_disconnect_v1(
         self, req: types.ApiCancelOnDisconnectRequest
     ) -> types.AckResponse | GrvtError:
@@ -165,22 +149,6 @@ class GrvtRawSync(GrvtRawSyncBase):
         if resp.get("code"):
             return GrvtError(**resp)
         return from_dict(types.AckResponse, resp, Config(cast=[Enum]))
-
-    def create_bulk_orders_v1(
-        self, req: types.ApiCreateBulkOrdersRequest
-    ) -> types.ApiCreateBulkOrdersResponse | GrvtError:
-        resp = self._post(True, self.td_rpc + "/full/v1/create_bulk_orders", req)
-        if resp.get("code"):
-            return GrvtError(**resp)
-        return from_dict(types.ApiCreateBulkOrdersResponse, resp, Config(cast=[Enum]))
-
-    def get_order_group_v1(
-        self, req: types.ApiGetOrderGroupRequest
-    ) -> types.ApiGetOrderGroupResponse | GrvtError:
-        resp = self._post(True, self.td_rpc + "/full/v1/order_group", req)
-        if resp.get("code"):
-            return GrvtError(**resp)
-        return from_dict(types.ApiGetOrderGroupResponse, resp, Config(cast=[Enum]))
 
     def fill_history_v1(
         self, req: types.ApiFillHistoryRequest
@@ -216,11 +184,13 @@ class GrvtRawSync(GrvtRawSyncBase):
             return GrvtError(**resp)
         return from_dict(types.ApiDepositHistoryResponse, resp, Config(cast=[Enum]))
 
-    def transfer_v1(self, req: types.ApiTransferRequest) -> types.AckResponse | GrvtError:
+    def transfer_v1(
+        self, req: types.ApiTransferRequest
+    ) -> types.ApiTransferResponse | GrvtError:
         resp = self._post(True, self.td_rpc + "/full/v1/transfer", req)
         if resp.get("code"):
             return GrvtError(**resp)
-        return from_dict(types.AckResponse, resp, Config(cast=[Enum]))
+        return from_dict(types.ApiTransferResponse, resp, Config(cast=[Enum]))
 
     def transfer_history_v1(
         self, req: types.ApiTransferHistoryRequest
@@ -245,14 +215,6 @@ class GrvtRawSync(GrvtRawSyncBase):
         if resp.get("code"):
             return GrvtError(**resp)
         return from_dict(types.ApiWithdrawalHistoryResponse, resp, Config(cast=[Enum]))
-
-    def pre_deposit_check_v1(
-        self, req: types.ApiPreDepositCheckRequest
-    ) -> types.ApiPreDepositCheckResponse | GrvtError:
-        resp = self._post(True, self.td_rpc + "/full/v1/pre_deposit_check", req)
-        if resp.get("code"):
-            return GrvtError(**resp)
-        return from_dict(types.ApiPreDepositCheckResponse, resp, Config(cast=[Enum]))
 
     def sub_account_summary_v1(
         self, req: types.ApiSubAccountSummaryRequest
@@ -289,14 +251,6 @@ class GrvtRawSync(GrvtRawSyncBase):
         return from_dict(
             types.ApiFundingAccountSummaryResponse, resp, Config(cast=[Enum])
         )
-
-    def socialized_loss_status_v1(
-        self, req: types.EmptyRequest
-    ) -> types.ApiSocializedLossStatusResponse | GrvtError:
-        resp = self._post(True, self.td_rpc + "/full/v1/socialized_loss_status", req)
-        if resp.get("code"):
-            return GrvtError(**resp)
-        return from_dict(types.ApiSocializedLossStatusResponse, resp, Config(cast=[Enum]))
 
     def get_all_initial_leverage_v1(
         self, req: types.ApiGetAllInitialLeverageRequest
