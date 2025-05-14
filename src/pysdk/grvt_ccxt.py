@@ -383,7 +383,7 @@ class GrvtCcxt(GrvtCcxtBase):
             self.logger.info(f"{FN} No account summary for {path=} {payload=}")
         return sub_account
 
-    def fetch_account_history(self, params: dict = {}) -> dict:
+    def fetch_account_history(self, params: dict = {}, limit: int = 500) -> dict:
         """
         HISTORICAL data.<br>
         Get account history.<br>
@@ -392,6 +392,7 @@ class GrvtCcxt(GrvtCcxtBase):
             for details.<br>.
 
         Args:
+            limit: maximum number of account snapshots per page to fetch.<br>
             params: dictionary with parameters. Valid keys:<br>
                 `start_time` (int): fetch orders since this timestamp in nanoseconds.<br>
                 `end_time` (int): fetch orders until this timestamp in nanoseconds.<br>
@@ -405,7 +406,7 @@ class GrvtCcxt(GrvtCcxtBase):
         """
         self._check_account_auth()
         # Prepare request payload
-        payload = self._get_payload_fetch_account_history(params)
+        payload = self._get_payload_fetch_account_history(limit, params)
         # Post payload and parse the response
         path = get_grvt_endpoint(self.env, "GET_ACCOUNT_HISTORY")
         response: dict = self._auth_and_post(path, payload=payload)

@@ -8,7 +8,8 @@
 
 import json
 import logging
-from typing import Literal
+from decimal import Decimal
+from typing import Any, Literal
 
 import aiohttp
 
@@ -58,9 +59,7 @@ class GrvtCcxtPro(GrvtCcxtBase):
         """Initialize the GrvtCcxt instance."""
         super().__init__(env, logger, parameters)
         self._clsname: str = type(self).__name__
-        self._session = aiohttp.ClientSession(
-            headers={"Content-Type": "application/json"}
-        )
+        self._session = aiohttp.ClientSession(headers={"Content-Type": "application/json"})
         # Force sync call to get cookie here
         self._cookie = get_cookie_with_expiration(
             get_grvt_endpoint(self.env, "AUTH"), self._api_key
@@ -192,9 +191,7 @@ class GrvtCcxtPro(GrvtCcxtBase):
         params={},
     ) -> dict:
         """Ccxt compliant signature."""
-        order = self._get_order_with_validations(
-            symbol, order_type, side, amount, price, params
-        )
+        order = self._get_order_with_validations(symbol, order_type, side, amount, price, params)
         return await self._create_grvt_order(order)
 
     async def create_limit_order(
@@ -249,7 +246,7 @@ class GrvtCcxtPro(GrvtCcxtBase):
         Args:
             id (str): exchange assigned order ID<br>
             symbol (str): trading symbol<br>
-            params: 
+            params:
                 * client_order_id (str): client assigned order ID<br>
                 * time_to_live_ms (str): lifetime of cancel requiest in millisecs<br>
         Returns:
@@ -319,9 +316,7 @@ class GrvtCcxtPro(GrvtCcxtBase):
         open_orders: list = response.get("result", [])
         if symbol:
             open_orders = [
-                o
-                for o in open_orders
-                if o.get("legs") and o["legs"][0].get("instrument") == symbol
+                o for o in open_orders if o.get("legs") and o["legs"][0].get("instrument") == symbol
             ]
         return open_orders
 
@@ -356,9 +351,7 @@ class GrvtCcxtPro(GrvtCcxtBase):
         elif "client_order_id" in params:
             payload["client_order_id"] = str(params["client_order_id"])
         else:
-            raise GrvtInvalidOrder(
-                f"{FN} requires either order_id or params['client_order_id']"
-            )
+            raise GrvtInvalidOrder(f"{FN} requires either order_id or params['client_order_id']")
         path = get_grvt_endpoint(self.env, "GET_ORDER")
         response: dict = await self._auth_and_post(path, payload)
         return response
@@ -419,7 +412,7 @@ class GrvtCcxtPro(GrvtCcxtBase):
             self.logger.info(f"{FN} No account summary for {path=} {payload=}")
         return sub_account
 
-    async def fetch_account_history(self, params: dict = {}) -> dict:
+    async def fetch_account_history(self, params: dict = {}, limit: int = 500) -> dict:
         """
         HISTORICAL data.<br>
         Get account history.<br>
@@ -428,6 +421,7 @@ class GrvtCcxtPro(GrvtCcxtBase):
             for details.<br>.
 
         Args:
+            limit: maximum number of account snapshots per page to fetch.<br>
             params: dictionary with parameters. Valid keys:<br>
                 `start_time` (int): fetch orders since this timestamp in nanoseconds.<br>
                 `end_time` (int): fetch orders until this timestamp in nanoseconds.<br>
@@ -441,7 +435,7 @@ class GrvtCcxtPro(GrvtCcxtBase):
         """
         self._check_account_auth()
         # Prepare request payload
-        payload = self._get_payload_fetch_account_history(params)
+        payload = self._get_payload_fetch_account_history(limit, params)
         # Post payload and parse the response
         path = get_grvt_endpoint(self.env, "GET_ACCOUNT_HISTORY")
         response: dict = await self._auth_and_post(path, payload=payload)

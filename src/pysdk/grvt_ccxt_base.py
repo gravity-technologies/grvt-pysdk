@@ -257,11 +257,17 @@ class GrvtCcxtBase:
             payload["limit"] = limit | 20
         return payload
 
-    def _get_payload_fetch_account_history(self, params: dict = {}) -> dict:
+    def _get_payload_fetch_account_history(
+        self,
+        # since: int | None = None,
+        limit: int = 500,
+        params: dict = {},
+    ) -> dict:
         """
-        Prepares payload for fetch_my_trades() method.<br>.
+        Prepares payload for fetch_account_history() method.<br>.
 
         Args:
+            limit: maximum number of trades to fetch.<br>
             params: dictionary with parameters. Valid keys:<br>
                 `start_time` (int): fetch orders since this timestamp in nanoseconds.<br>
                 `end_time` (int): fetch orders until this timestamp in nanoseconds.<br>
@@ -280,6 +286,7 @@ class GrvtCcxtBase:
                 payload["start_time"] = start_time
             if end_time:
                 payload["end_time"] = end_time
+            payload["limit"] = limit | 500
         return payload
 
     def _get_payload_fetch_positions(self, symbols: list[str] = [], params={}) -> dict:
