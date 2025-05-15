@@ -7,12 +7,13 @@ from pysdk.grvt_ccxt_env import GrvtEnv
 from pysdk.grvt_ccxt_logging_selector import logger
 from pysdk.grvt_ccxt_pro import GrvtCcxtPro
 from pysdk.grvt_ccxt_test_utils import validate_return_values
+from pysdk.grvt_ccxt_types import GrvtOrderSide
 from pysdk.grvt_ccxt_utils import rand_uint32
 
 
 # Utility functions , not called directly by the __main__ test routine
-async def get_open_orders(api: GrvtCcxtPro) -> int:
-    open_orders = await api.fetch_open_orders(
+async def get_open_orders(api: GrvtCcxtPro) -> list:
+    open_orders: list = await api.fetch_open_orders(
         symbol="BTC_USDT_Perp",
         params={"kind": "PERPETUAL"},
     )
@@ -20,8 +21,8 @@ async def get_open_orders(api: GrvtCcxtPro) -> int:
     return open_orders
 
 
-async def fetch_order_history(api: GrvtCcxtPro) -> int:
-    order_history = await api.fetch_order_history(
+async def fetch_order_history(api: GrvtCcxtPro) -> dict:
+    order_history: dict = await api.fetch_order_history(
         params={"kind": "PERPETUAL", "limit": 3},
     )
     logger.info(f"order_history: {order_history=}")
@@ -56,27 +57,19 @@ async def print_instruments(api: GrvtCcxtPro):
     logger.info("print_instruments: START")
     if not api.markets:
         return
-    for market in api.markets.values():
+    for market in list(api.markets.values())[:3]:
         logger.info(f"{market=}")
         instrument = market["instrument"]
+        logger.info(f"fetch_mini_ticker: {instrument=}, {await api.fetch_mini_ticker(instrument)}")
+        logger.info(f"fetch_ticker: {instrument=}, {await api.fetch_ticker(instrument)}")
         logger.info(
-            f"fetch_mini_ticker: {instrument=}, {await api.fetch_mini_ticker(instrument)}"
-        )
-        logger.info(
-            f"fetch_ticker: {instrument=}, " f"{await api.fetch_ticker(instrument)}"
-        )
-        logger.info(
-            f"fetch_order_book {instrument=}, "
-            f"{await api.fetch_order_book(instrument, limit=10)}"
+            f"fetch_order_book {instrument=}, {await api.fetch_order_book(instrument, limit=10)}"
         )
         logger.info(
             f"fetch_recent_trades {instrument=}, "
             f"{await api.fetch_recent_trades(instrument, limit=7)}"
         )
-        logger.info(
-            f"fetch_trades {instrument=}, "
-            f"{await api.fetch_trades(instrument, limit=5)}"
-        )
+        logger.info(f"fetch_trades {instrument=}, {await api.fetch_trades(instrument, limit=5)}")
         logger.info(
             f"fetch_funding_rate_history {instrument=}, "
             f"{await api.fetch_funding_rate_history(instrument, limit=5)}"
@@ -88,7 +81,7 @@ async def print_instruments(api: GrvtCcxtPro):
             logger.info(f"fetch_ohlcv {type} {instrument=}, {ohlc}")
 
 
-async def send_order(api: GrvtCcxtPro, side: str, client_order_id: int) -> dict:
+async def send_order(api: GrvtCcxtPro, side: GrvtOrderSide, client_order_id: int) -> dict:
     price = 64_000 if side == "buy" else 65_000
     send_order_response = await api.create_order(
         symbol="BTC_USDT_Perp",
@@ -113,8 +106,9 @@ async def send_fetch_order(api: GrvtCcxtPro):
     )
     logger.info(f"result of fetch_order: {order_status=}")
 
+
 async def send_mkt_order(
-    api: GrvtCcxtPro, symbol: str, side: str, amount: Decimal, client_order_id: int
+    api: GrvtCcxtPro, symbol: str, side: GrvtOrderSide, amount: Decimal, client_order_id: int
 ) -> dict:
     send_order_response = await api.create_order(
         symbol=symbol,
@@ -184,16 +178,16 @@ async def fetch_all_markets(api: GrvtCcxtPro):
 
 
 async def print_account_summary(api: GrvtCcxtPro):
-    logger.info("print_account_summary: START")
-    logger.info(
-        f"sub-account summary:\n{await api.get_account_summary(type='sub-account')}"
-    )
-    logger.info(
-        f"funding-account summary:\n{await api.get_account_summary(type='funding')}"
-    )
-    logger.info(
-        f"aggregated-account summary:\n{await api.get_account_summary(type='aggregated')}"
-    )
+    try:
+        logger.info("print_account_summary: START")
+        logger.info(f"sub-account summary:\n{await api.get_account_summary(type='sub-account')}")
+        logger.info(f"funding-account summary:\n{await api.get_account_summary(type='funding')}")
+        logger.info(
+            f"aggregated-account summary:\n{await api.get_account_summary(type='aggregated')}"
+        )
+        logger.info(f"fetch_balances:\n{await api.fetch_balances()}")
+    except Exception as e:
+        logger.error(f"account summary failed: {e}")
 
 
 async def print_account_history(api: GrvtCcxtPro):
@@ -211,6 +205,13 @@ async def print_positions(api: GrvtCcxtPro):
         logger.error(f"positions failed: {e}")
 
 
+async def print_description(api: GrvtCcxtPro):
+    try:
+        logger.info(f"print_description: {api.describe()}")
+    except Exception as e:
+        logger.error(f"print_description failed: {e}")
+
+
 async def grvt_ccxt_pro():
     params = {
         "api_key": os.getenv("GRVT_API_KEY"),
@@ -218,16 +219,18 @@ async def grvt_ccxt_pro():
         "private_key": os.getenv("GRVT_PRIVATE_KEY"),
     }
     env = GrvtEnv(os.getenv("GRVT_ENV", "testnet"))
-    test_api = GrvtCcxtPro(env, logger, parameters=params)
+    test_api = GrvtCcxtPro(env, logger, parameters=params, order_book_ccxt_format=True)
     await test_api.load_markets()
     await asyncio.sleep(2)
     function_list = [
-        # fetch_all_markets,
-        # print_markets,
-        # print_instruments,
-        # print_account_summary,
-        # print_account_history,
-        # print_positions,
+        print_description,
+        # -------- MARKET related
+        fetch_all_markets,
+        print_markets,
+        print_instruments,
+        print_account_summary,
+        print_account_history,
+        print_positions,
         # Order / Trade history
         fetch_my_trades,
         fetch_order_history,

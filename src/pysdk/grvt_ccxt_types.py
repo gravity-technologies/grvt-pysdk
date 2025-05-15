@@ -11,6 +11,7 @@ from enum import Enum
 from typing import Literal
 
 Num = None | str | float | int | Decimal
+Amount = Decimal | int | float | str
 GrvtOrderSide = Literal["buy", "sell"]
 GrvtOrderType = Literal["limit", "market"]
 

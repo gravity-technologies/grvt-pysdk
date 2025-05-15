@@ -163,14 +163,14 @@ GRVT_ENDPOINTS = {
 }
 
 
-def get_grvt_endpoint(environment: GrvtEnv, end_point: str) -> str | None:
+def get_grvt_endpoint(environment: GrvtEnv, end_point: str) -> str:
     # if end_point == "GET_ALL_INSTRUMENTS":
     #     return "https://market-data.testnet.grvt.io/full/v1/instruments"
     endpoint_domains = get_grvt_endpoint_domains(environment.value)
     for endpoints_type, endpoints in GRVT_ENDPOINTS.items():
         if end_point in endpoints:
             return f"{endpoint_domains[endpoints_type]}/{endpoints[end_point]}"
-    return None
+    return ""
 
 
 def get_all_grvt_endpoints(environment: GrvtEnv) -> dict[str, str]:

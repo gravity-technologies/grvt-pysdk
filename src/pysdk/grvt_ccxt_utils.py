@@ -25,6 +25,7 @@ from .grvt_ccxt_env import CHAIN_IDS, GrvtEnv
 from .grvt_ccxt_types import (
     BTC_ETH_SIZE_MULTIPLIER,
     DURATION_SECOND_IN_NSEC,
+    Amount,
     GrvtOrderSide,
     GrvtOrderType,
     Num,
@@ -80,7 +81,7 @@ def get_EIP712_domain_data(env: GrvtEnv) -> dict[str, str | int]:
 
 def get_cookie_with_expiration(
     path: str, api_key: str | None
-) -> dict[str, str | None] | None:
+) -> dict[str, str | float | None] | None:
     """
     Authenticates and retrieves the session cookie, its expiration time and grvt-account-id token.
     :return: The session cookie.
@@ -99,7 +100,7 @@ def get_cookie_with_expiration(
             )
             if return_value.ok:
                 cookie = SimpleCookie()
-                cookie.load(return_value.headers.get("Set-Cookie"))
+                cookie.load(return_value.headers.get("Set-Cookie", ""))
                 cookie_value = cookie["gravity"].value
                 cookie_expiry = datetime.strptime(
                     cookie["gravity"]["expires"],
@@ -127,7 +128,7 @@ def get_cookie_with_expiration(
 
 async def get_cookie_with_expiration_async(
     path: str, api_key: str | None
-) -> dict[str, str] | None:
+) -> dict[str, str | float | None] | None:
     """
     Authenticates and retrieves the session cookie, its expiration time and grvt-account-id token.
     :return: The session cookie.
@@ -143,7 +144,7 @@ async def get_cookie_with_expiration_async(
                     logging.info(f"{FN} {return_value=}")
                     if return_value.ok:
                         cookie = SimpleCookie()
-                        cookie.load(return_value.headers.get("Set-Cookie"))
+                        cookie.load(return_value.headers.get("Set-Cookie", ""))
                         cookie_value = cookie["gravity"].value
                         cookie_expiry = datetime.strptime(
                             cookie["gravity"]["expires"],
@@ -189,15 +190,15 @@ def hexlify(data: bytes) -> str:
 
 
 class EnumEncoder(json.JSONEncoder):
-    def default(self, obj):
+    def default(self, o):
         """
         Custom JSON encoder for Enum types.
         :param obj: Object to serialize.
         :return: Serialized object.
         """
-        if isinstance(obj, Enum):
-            return obj.value
-        return super().default(obj)
+        if isinstance(o, Enum):
+            return o.value
+        return super().default(o)
 
 
 def get_kuq_from_symbol(symbol: str) -> tuple[str, str, str]:
@@ -331,7 +332,7 @@ class GrvtOrder:
 
 
 def get_signable_message(
-    order: GrvtOrder, env: GrvtEnv, instruments: list[dict]
+    order: GrvtOrder, env: GrvtEnv, instruments: dict[str, dict]
 ) -> bytes | None:
     FN = f"get_signable_message {order=}"
     size_multiplier = BTC_ETH_SIZE_MULTIPLIER
@@ -367,13 +368,13 @@ def get_signable_message(
         "nonce": order.signature.nonce,
         "expiration": order.signature.expiration,
     }
-    domain_data = get_EIP712_domain_data(env)
+    domain_data: dict[str, str | int]= get_EIP712_domain_data(env)
     logging.info(f"{FN} {domain_data=}\n{EIP712_ORDER_MESSAGE_TYPE=}\n{message_data=}")
     return encode_typed_data(domain_data, EIP712_ORDER_MESSAGE_TYPE, message_data)
 
 
 def get_order_payload(
-    order: GrvtOrder, private_key: str, env: GrvtEnv, instruments: list[dict]
+    order: GrvtOrder, private_key: str, env: GrvtEnv, instruments: dict[str, dict]
 ) -> dict:
     signable_message = get_signable_message(order, env, instruments)
     signed_message = Account.sign_message(signable_message, private_key)
@@ -417,7 +418,7 @@ def get_order_rpc_payload(
     order: GrvtOrder,
     private_key: str,
     env: GrvtEnv,
-    instruments: list[dict],
+    instruments: dict[str, dict],
     version: str = "v1",
 ) -> dict:
     order_payload = get_order_payload(order, private_key, env, instruments)
@@ -429,11 +430,11 @@ def get_order_rpc_payload(
 
 
 def get_grvt_order(
-    sub_account_id: int,
+    sub_account_id: str,
     symbol: str,
     order_type: GrvtOrderType,
     side: GrvtOrderSide,
-    amount: Num,
+    amount: Amount,
     limit_price: Num,
     order_duration_secs: float = 5 * 60,
     params: dict = {},

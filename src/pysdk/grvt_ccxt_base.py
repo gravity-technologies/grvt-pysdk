@@ -8,6 +8,7 @@
 
 import logging
 import time
+from datetime import datetime
 from decimal import Decimal
 from typing import get_args
 
@@ -43,22 +44,58 @@ class GrvtCcxtBase:
         env: GrvtEnv,
         logger: logging.Logger | None = None,
         parameters: dict = {},
+        order_book_ccxt_format: bool = False,
     ):
         """Initialize the GrvtCcxtBase part."""
+        self.name: str = "GRVT"
         self.logger = logger or logging.getLogger(__name__)
         self.env: GrvtEnv = env
         self._trading_account_id: str | None = parameters.get("trading_account_id")
-        self._private_key = parameters.get("private_key")
-        self._api_key = parameters.get("api_key")
+        self._private_key: str = str(parameters.get("private_key", ""))
+        self._api_key: str = str(parameters.get("api_key", ""))
+        self._order_book_ccxt_format: bool = order_book_ccxt_format
         self._path_return_value_map: dict = {}
         self._cookie: dict | None = None
-        self.markets: dict | None = None
+        self.markets: dict = {}
         self._clsname: str = type(self).__name__
         self.logger.info(f"GrvtCcxtBase: {self.env=}, {self._trading_account_id=}")
 
-    def get_trading_account_id(self) -> str | None:
+    def describe(self) -> list[str]:
+        """Returns the description of the class methods."""
+        return [
+            "create_order",
+            "create_limit_order",
+            "cancel_all_orders",
+            "cancel_order",
+            "fetch_balances",
+            "fetch_open_orders",
+            "fetch_order",
+            "fetch_order_history",
+            "get_account_summary",
+            "fetch_account_history",
+            "fetch_positions",
+            "fetch_my_trades",
+            "load_markets",
+            "fetch_markets",
+            "fetch_all_markets",
+            "fetch_market",
+            "fetch_ticker",
+            "fetch_mini_ticker",
+            "fetch_order_book",
+            "fetch_recent_trades",
+            "fetch_trades",
+            "fetch_funding_rate_history",
+            "fetch_ohlcv",
+        ]
+
+    def get_trading_account_id(self) -> str:
         """Returns the trading account id."""
-        return self._trading_account_id
+        return self._trading_account_id or ""
+
+    def is_order_book_ccxt_format(self) -> bool:
+        """Returns True if order book should be returned in CCXT format."""
+        return self._order_book_ccxt_format
+
 
     def should_refresh_cookie(self) -> bool:
         """
@@ -85,7 +122,7 @@ class GrvtCcxtBase:
 
     def get_endpoint_return_value(self, endpoint: str) -> dict:
         """Returns the return value for the endpoint."""
-        return self._path_return_value_map.get(endpoint)
+        return self._path_return_value_map.get(endpoint, {})
 
     def was_path_called(self, path: str) -> bool:
         """Returns True if the path was called."""
@@ -98,34 +135,23 @@ class GrvtCcxtBase:
     ) -> None:
         FN = f"{self._clsname} _check_order_arguments"
         if order_type not in get_args(GrvtOrderType):
-            raise GrvtInvalidOrder(
-                f"{FN}: order_type should be one of {get_args(GrvtOrderType)}"
-            )
+            raise GrvtInvalidOrder(f"{FN}: order_type should be one of {get_args(GrvtOrderType)}")
         if side not in get_args(GrvtOrderSide):
-            raise GrvtInvalidOrder(
-                f"{FN}: side should be one of {get_args(GrvtOrderSide)}"
-            )
+            raise GrvtInvalidOrder(f"{FN}: side should be one of {get_args(GrvtOrderSide)}")
         if order_type == "limit":
             if price is None or Decimal(price) <= Decimal("0"):
-                raise GrvtInvalidOrder(
-                    f"{FN}: requires a price argument for a limit order"
-                )
+                raise GrvtInvalidOrder(f"{FN}: requires a price argument for a limit order")
         elif order_type == "market":
             if price:
                 raise GrvtInvalidOrder(
-                    f"{FN}: should not have a positive price argument"
-                    " for a market order"
+                    f"{FN}: should not have a positive price argument for a market order"
                 )
         if not amount or Decimal(amount) < Decimal("0"):
-            raise GrvtInvalidOrder(
-                f"{FN}: amount should be above 0"
-            )
+            raise GrvtInvalidOrder(f"{FN}: amount should be above 0")
 
     def _check_account_auth(self) -> bool:
-        if not self._trading_account_id:
-            raise GrvtInvalidOrder(
-                f"{self._clsname}: this action requires a trading_account_id"
-            )
+        if not self.get_trading_account_id():
+            raise GrvtInvalidOrder(f"{self._clsname}: this action requires a trading_account_id")
         return True
 
     def _check_valid_symbol(self, symbol: str) -> bool:
@@ -150,7 +176,9 @@ class GrvtCcxtBase:
                 `quote`: (str) - The quote currency filter. Defaults to all quote currencies.<br>
         Returns: a dictionary with a payload for Rest API call to cancel all orders.<br>
         """
-        payload = {"sub_account_id": str(self._trading_account_id)}
+        payload: dict[str, str | int | bool | list] = {
+            "sub_account_id": str(self.get_trading_account_id())
+        }
         if "kind" in params:
             payload["kind"] = [params["kind"]]
         if "base" in params:
@@ -160,15 +188,15 @@ class GrvtCcxtBase:
         return payload
 
     def _get_payload_fetch_markets(self, params: dict) -> dict:
-        payload = {}
+        payload: dict[str, str | int | bool | list] = {}
         if params.get("kind"):
             payload["kind"] = [params.get("kind")]
         if params.get("base"):
             payload["base"] = [params.get("base")]
         if params.get("quote"):
             payload["quote"] = [params.get("quote")]
-        payload["limit"] = params.get("limit", 1_000)
-        payload["is_active"] = params.get("is_active", True)
+        payload["limit"] = int(params.get("limit", 1_000))
+        payload["is_active"] = bool(params.get("is_active", True))
         return payload
 
     def _get_payload_fetch_my_trades(
@@ -197,7 +225,9 @@ class GrvtCcxtBase:
         Returns:
             a dictionary with a payload for Rest API call to fetch trades.<br>
         """
-        payload = {"sub_account_id": str(self._trading_account_id)}
+        payload: dict[str, str | int | list] = {
+            "sub_account_id": str(self.get_trading_account_id())
+        }
         if params.get("cursor"):
             payload["cursor"] = params["cursor"]
         else:
@@ -243,8 +273,8 @@ class GrvtCcxtBase:
         Returns:
             a dictionary with a payload for Rest API call to fetch trades.<br>
         """
-        payload = {
-            "sub_account_id": str(self._trading_account_id),
+        payload: dict[str, str | int] = {
+            "sub_account_id": str(self.get_trading_account_id()),
             "instrument": symbol,
         }
         if params.get("cursor"):
@@ -276,7 +306,7 @@ class GrvtCcxtBase:
         Returns:
             a dictionary with a payload for Rest API call to fetch account history.<br>
         """
-        payload = {"sub_account_id": str(self._trading_account_id)}
+        payload: dict[str, str | int] = {"sub_account_id": str(self.get_trading_account_id())}
         if params.get("cursor"):
             payload["cursor"] = params["cursor"]
         else:
@@ -298,7 +328,9 @@ class GrvtCcxtBase:
 
         Returns: a dictionary with a payload for Rest API call to fetch positions.<br>
         """
-        payload = {"sub_account_id": str(self._trading_account_id)}
+        payload: dict[str, str | int | bool | list] = {
+            "sub_account_id": str(self.get_trading_account_id())
+        }
         if symbols:
             ks, us, qs = [], [], []
             for symbol in symbols:
@@ -308,9 +340,7 @@ class GrvtCcxtBase:
                     us.append(u)
                     qs.append(q)
                 except Exception as e:
-                    raise GrvtInvalidOrder(
-                        f"Invalid symbol {symbol} in fetch_positions {e}"
-                    )
+                    raise GrvtInvalidOrder(f"Invalid symbol {symbol} in fetch_positions {e}")
             payload["kind"] = list(set(ks))
             payload["base"] = list(set(us))
             payload["quote"] = list(set(qs))
@@ -341,7 +371,9 @@ class GrvtCcxtBase:
                 `cursor`: (str) The cursor to use for pagination. If nil, return the first page.<br>
         Returns: a dictionary with a payload for Rest API call to fetch order history.<br>
         """
-        payload = {"sub_account_id": str(self._trading_account_id)}
+        payload: dict[str, str | int | bool | list] = {
+            "sub_account_id": str(self.get_trading_account_id())
+        }
         if "limit" in params:
             payload["limit"] = params["limit"]
         if params.get("cursor"):
@@ -374,7 +406,9 @@ class GrvtCcxtBase:
                 `quote`: (str) - The quote currency filter. Defaults to all quote currencies.<br>
         Returns: a dictionary with a payload for Rest API call to fetch order history.<br>
         """
-        payload = {"sub_account_id": str(self._trading_account_id)}
+        payload: dict[str, str | int | bool | list] = {
+            "sub_account_id": str(self.get_trading_account_id())
+        }
         if symbol:
             try:
                 k, u, q = get_kuq_from_symbol(symbol)
@@ -382,9 +416,7 @@ class GrvtCcxtBase:
                 payload["base"] = [u]
                 payload["quote"] = [q]
             except Exception as e:
-                raise GrvtInvalidOrder(
-                    f"Invalid symbol {symbol} in fetch_open_orders {e}"
-                )
+                raise GrvtInvalidOrder(f"Invalid symbol {symbol} in fetch_open_orders {e}")
         else:
             if "kind" in params:
                 payload["kind"] = [params["kind"]]
@@ -423,10 +455,8 @@ class GrvtCcxtBase:
         """
         if timeframe not in ccxt_interval_to_grvt_candlestick_interval:
             raise ValueError(f"Invalid timeframe {timeframe}")
-        interval: CandlestickInterval = ccxt_interval_to_grvt_candlestick_interval[
-            timeframe
-        ]
-        payload = {"instrument": symbol}
+        interval: CandlestickInterval = ccxt_interval_to_grvt_candlestick_interval[timeframe]
+        payload: dict[str, str | int | bool | list] = {"instrument": symbol}
         if params.get("cursor"):
             payload["cursor"] = params["cursor"]
         else:
@@ -443,3 +473,57 @@ class GrvtCcxtBase:
             if limit:
                 payload["limit"] = limit
         return payload
+
+    def _get_balances_from_account_summary(self, account_summary: dict) -> dict:
+        balances: dict = {}
+        balances["info"] = account_summary.get("spot_balances", [])
+        balances["timestamp"] = int(int(account_summary.get("event_time", 0)) / 1_000_000)
+        balances["datetime"] = (
+            datetime.fromtimestamp(balances["timestamp"] / 1_000).strftime("%Y-%m-%dT%H:%M:%S.%f")[
+                :-3
+            ]
+            + "Z"
+        )
+        balances["total"] = {}
+        balances["free"] = {}
+        balances["used"] = {}
+        for currency_balance in account_summary.get("spot_balances", []):
+            if not currency_balance or not isinstance(currency_balance, dict):
+                continue
+            currency: str = currency_balance.get("currency", "")
+            if not currency:
+                continue
+            balances[currency] = {"total": currency_balance.get("balance", "0.0")}
+            balances["total"][currency] = balances[currency]["total"]
+            if currency == "USDT":
+                balances[currency]["free"] = account_summary.get("available_balance", "0.0")
+                balances[currency]["used"] = str(
+                    Decimal(balances[currency]["total"]) - Decimal(balances[currency]["free"])
+                )
+            else:
+                balances[currency]["free"] = balances[currency]["total"]
+                balances[currency]["used"] = "0.0"
+
+            balances["free"][currency] = balances[currency]["free"]
+            balances["used"][currency] = balances[currency]["used"]
+        return balances
+    
+    def convert_grvt_ob_to_ccxt(self, order_book: dict) -> dict:
+        """
+        Converts GRVT-specific order book format to CCXT format.
+        """
+        ob_time_ms: int = int(order_book["event_time"]) // 1_000_000
+        ccxt_ob = {
+            "symbol": order_book["instrument"],
+            "bids": [],
+            "asks": [],
+            "timestamp": ob_time_ms,
+            "datetime": datetime.fromtimestamp(ob_time_ms / 1_000).strftime(
+                "%Y-%m-%dT%H:%M:%S.%f"
+            )[:-3]
+            + "Z",
+            "nonce": int(order_book["event_time"]),
+        }
+        ccxt_ob["bids"] = [[bid["price"], bid["size"]] for bid in order_book["bids"]]
+        ccxt_ob["asks"] = [[ask["price"], ask["size"]] for ask in order_book["asks"]]
+        return ccxt_ob
