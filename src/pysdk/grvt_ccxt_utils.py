@@ -15,11 +15,12 @@ from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 from http.cookies import SimpleCookie
+from typing import Any
 
 import aiohttp
 import requests
 from eth_account import Account
-from eth_account.messages import encode_typed_data
+from eth_account.messages import encode_typed_data, SignableMessage
 
 from .grvt_ccxt_env import CHAIN_IDS, GrvtEnv
 from .grvt_ccxt_types import (
@@ -101,14 +102,12 @@ def get_cookie_with_expiration(
             if return_value.ok:
                 cookie = SimpleCookie()
                 cookie.load(return_value.headers.get("Set-Cookie", ""))
-                cookie_value = cookie["gravity"].value
-                cookie_expiry = datetime.strptime(
+                cookie_value: str = cookie["gravity"].value
+                cookie_expiry: datetime = datetime.strptime(
                     cookie["gravity"]["expires"],
                     "%a, %d %b %Y %H:%M:%S %Z",
                 )
-                grvt_account_id: str | None = return_value.headers.get(
-                    "X-Grvt-Account-Id"
-                )
+                grvt_account_id: str = return_value.headers.get("X-Grvt-Account-Id", "")
                 logging.info(
                     f"{FN} OK response {cookie_value=} {cookie_expiry=} {grvt_account_id=}"
                 )
@@ -145,14 +144,12 @@ async def get_cookie_with_expiration_async(
                     if return_value.ok:
                         cookie = SimpleCookie()
                         cookie.load(return_value.headers.get("Set-Cookie", ""))
-                        cookie_value = cookie["gravity"].value
-                        cookie_expiry = datetime.strptime(
+                        cookie_value: str = cookie["gravity"].value
+                        cookie_expiry: datetime = datetime.strptime(
                             cookie["gravity"]["expires"],
                             "%a, %d %b %Y %H:%M:%S %Z",
                         )
-                        grvt_account_id: str | None = return_value.headers.get(
-                            "X-Grvt-Account-Id"
-                        )
+                        grvt_account_id: str = return_value.headers.get("X-Grvt-Account-Id", "")
                         logging.info(
                             f"{FN} OK response {cookie_value=} {cookie_expiry=} {grvt_account_id=}"
                         )
@@ -377,6 +374,8 @@ def get_order_payload(
     order: GrvtOrder, private_key: str, env: GrvtEnv, instruments: dict[str, dict]
 ) -> dict:
     signable_message = get_signable_message(order, env, instruments)
+    if signable_message is None:
+        raise ValueError("Failed to create signable message")
     signed_message = Account.sign_message(signable_message, private_key)
     order.signature.s = "0x" + signed_message.s.to_bytes(32, byteorder="big").hex()
     order.signature.r = "0x" + signed_message.r.to_bytes(32, byteorder="big").hex()

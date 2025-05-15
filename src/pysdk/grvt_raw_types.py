@@ -13,11 +13,18 @@ from typing import Any
 class BridgeType(Enum):
     # XY Bridge type
     XY = "XY"
+    # Rhino Bridge type
+    RHINO = "RHINO"
 
 
 class BrokerTag(Enum):
-    # Unspecified
     UNSPECIFIED = "UNSPECIFIED"
+    # CoinRoutes
+    COIN_ROUTES = "COIN_ROUTES"
+    # Alertatron
+    ALERTATRON = "ALERTATRON"
+    # Origami
+    ORIGAMI = "ORIGAMI"
 
 
 class CancelStatus(Enum):
@@ -141,7 +148,7 @@ class Currency(Enum):
     # the AIXBT token
     AIXBT = "AIXBT"
     # the AI16Z token
-    AI16Z = "AI16Z"
+    AI_16_Z = "AI_16_Z"
     # the ADA token
     ADA = "ADA"
     # the AAVE token
@@ -281,6 +288,10 @@ class OrderRejectReason(Enum):
     CLIENT_CANCEL_ON_DISCONNECT_TRIGGERED = "CLIENT_CANCEL_ON_DISCONNECT_TRIGGERED"
     # the OCO counter part order was triggered
     OCO_COUNTER_PART_TRIGGERED = "OCO_COUNTER_PART_TRIGGERED"
+    # the remaining order size was cancelled because it exceeded current position size
+    REDUCE_ONLY_LIMIT = "REDUCE_ONLY_LIMIT"
+    # the order was replaced by a client replace request
+    CLIENT_REPLACE = "CLIENT_REPLACE"
 
 
 class OrderStatus(Enum):
@@ -318,6 +329,8 @@ class SubAccountTradeInterval(Enum):
     SAT_1_D = "SAT_1_D"
     # 1 hour
     SAT_1_H = "SAT_1_H"
+    # 4 hour
+    SAT_4_H = "SAT_4_H"
 
 
 class TimeInForce(Enum):
@@ -337,6 +350,19 @@ class TimeInForce(Enum):
     IMMEDIATE_OR_CANCEL = "IMMEDIATE_OR_CANCEL"
     # FOK - Both AoN and IoC. Either fill the full order when hitting the orderbook, or cancel it
     FILL_OR_KILL = "FILL_OR_KILL"
+    # RPI - A GTT + PostOnly maker order, that can only be taken by non-algorithmic UI users.
+    RETAIL_PRICE_IMPROVEMENT = "RETAIL_PRICE_IMPROVEMENT"
+
+
+class TimeInterval(Enum):
+    # 1 day
+    INTERVAL_1_D = "INTERVAL_1_D"
+    # 7 days
+    INTERVAL_7_D = "INTERVAL_7_D"
+    # 30 days
+    INTERVAL_30_D = "INTERVAL_30_D"
+    # 90 days
+    INTERVAL_90_D = "INTERVAL_90_D"
 
 
 class TransferType(Enum):
@@ -346,6 +372,10 @@ class TransferType(Enum):
     FAST_ARB_DEPOSIT = "FAST_ARB_DEPOSIT"
     # Fast Arb Withdrawal Metadata type
     FAST_ARB_WITHDRAWAL = "FAST_ARB_WITHDRAWAL"
+    # Transfer type for non native bridging deposit
+    NON_NATIVE_BRIDGE_DEPOSIT = "NON_NATIVE_BRIDGE_DEPOSIT"
+    # Transfer type for non native bridging withdrawal
+    NON_NATIVE_BRIDGE_WITHDRAWAL = "NON_NATIVE_BRIDGE_WITHDRAWAL"
 
 
 class TriggerBy(Enum):
@@ -380,6 +410,13 @@ class TriggerType(Enum):
     TAKE_PROFIT = "TAKE_PROFIT"
     # Stop Loss Order - Executes when the price reaches a specified level to limit losses.
     STOP_LOSS = "STOP_LOSS"
+
+
+class VaultType(Enum):
+    # Prime vault
+    PRIME = "PRIME"
+    # Launchpad vault
+    LAUNCH_PAD = "LAUNCH_PAD"
 
 
 class Venue(Enum):
@@ -451,6 +488,8 @@ class Positions:
     quote_index_price: str
     # The estimated liquidation price
     est_liquidation_price: str
+    # The current leverage value for this position
+    leverage: str
 
 
 @dataclass
@@ -539,6 +578,8 @@ class Fill:
     client_order_id: str
     # The address (public key) of the wallet signing the payload
     signer: str
+    # If the trade is a RPI trade
+    is_rpi: bool
     # Specifies the broker who brokered the order
     broker: BrokerTag | None = None
 
@@ -704,23 +745,6 @@ class ApiSubAccountHistoryResponse:
 
 
 @dataclass
-class ApiLatestSnapSubAccountsRequest:
-    """
-    The request to get the latest snapshot of list sub account
-
-    """
-
-    # The list of sub account ids to query
-    sub_account_i_ds: list[str]
-
-
-@dataclass
-class ApiLatestSnapSubAccountsResponse:
-    # The sub account history matching the request sub account
-    result: list[SubAccount]
-
-
-@dataclass
 class AggregatedAccountSummary:
     # The main account ID of the account to which the summary belongs
     main_account_id: str
@@ -750,26 +774,6 @@ class FundingAccountSummary:
 class ApiFundingAccountSummaryResponse:
     # The funding account summary
     result: FundingAccountSummary
-
-
-@dataclass
-class ApiSocializedLossStatusResponse:
-    # Whether the socialized loss is active
-    is_active: bool
-    # The socialized loss haircut ratio in centi-beeps
-    haircut_ratio: str
-
-
-@dataclass
-class ApiListAggregatedAccountSummaryRequest:
-    # The list of main account ID to request for
-    main_account_ids: list[bytes]
-
-
-@dataclass
-class ApiListAggregatedAccountSummaryResponse:
-    # The list of aggregated account summaries of requested main accounts
-    account_summaries: list[ApiAggregatedAccountSummaryResponse]
 
 
 @dataclass
@@ -1006,6 +1010,8 @@ class Trade:
     trade_id: str
     # The venue where the trade occurred
     venue: Venue
+    # If the trade is a RPI trade
+    is_rpi: bool
 
 
 @dataclass
@@ -1192,54 +1198,14 @@ class FundingRate:
     funding_time: str
     # The mark price of the instrument at funding timestamp, expressed in `9` decimals
     mark_price: str
+    # The 8h average funding rate of the instrument, expressed in percentage points
+    funding_rate_8_h_avg: str
 
 
 @dataclass
 class ApiFundingRateResponse:
     # The funding rate result set for given interval
     result: list[FundingRate]
-    # The cursor to indicate when to start the next query from
-    next: str | None = None
-
-
-@dataclass
-class ApiSettlementPriceRequest:
-    """
-    Lookup the historical settlement price of various pairs.
-
-    Pagination works as follows:<ul><li>We perform a reverse chronological lookup, starting from `end_time`. If `end_time` is not set, we start from the most recent data.</li><li>The lookup is limited to `limit` records. If more data is requested, the response will contain a `next` cursor for you to query the next page.</li><li>If a `cursor` is provided, it will be used to fetch results from that point onwards.</li><li>Pagination will continue until the `start_time` is reached. If `start_time` is not set, pagination will continue as far back as our data retention policy allows.</li></ul>
-    """
-
-    # The base currency to select
-    base: Currency
-    # The quote currency to select
-    quote: Currency
-    # Start time of settlement price in unix nanoseconds
-    start_time: str | None = None
-    # End time of settlement price in unix nanoseconds
-    end_time: str | None = None
-    # The limit to query for. Defaults to 500; Max 1000
-    limit: int | None = None
-    # The cursor to indicate when to start the query from
-    cursor: str | None = None
-
-
-@dataclass
-class APISettlementPrice:
-    # The base currency of the settlement price
-    base: Currency
-    # The quote currency of the settlement price
-    quote: Currency
-    # The settlement timestamp of the settlement price, expressed in unix nanoseconds
-    settlement_time: str
-    # The settlement price, expressed in `9` decimals
-    settlement_price: str
-
-
-@dataclass
-class ApiSettlementPriceResponse:
-    # The funding rate result set for given interval
-    result: list[APISettlementPrice]
     # The cursor to indicate when to start the next query from
     next: str | None = None
 
@@ -1298,8 +1264,12 @@ class JSONRPCResponse:
 @dataclass
 class WSSubscribeParams:
     """
-    All V1 Websocket Subscription Requests are housed in this wrapper. You may specify a stream, and a list of feeds to subscribe to.
+    All V1 Websocket Subscription Requests are housed in this wrapper. You may specify a stream and a list of feeds to subscribe to.
     When subscribing to the same primary selector again, the previous secondary selector will be replaced. See `Overview` page for more details.
+    Sequence numbers can be either gateway-specific or global:
+    - **Gateway Unique Sequence Number**: Increments by one per stream, resets to 0 on gateway restart.
+    - **Global Unique Sequence Number**: A cluster-wide unique number assigned to each cluster payload, does not reset on gateway restarts, and can be used to track and identify message order across streams using `sequence_number` and `prev_sequence_number` in the feed response.
+    Set `useGlobalSequenceNumber = true` if you need a persistent, unique identifier across all streams or ordering across multiple feeds.
     """
 
     # The channel to subscribe to (eg: ticker.s / ticker.d)
@@ -1435,11 +1405,18 @@ class WSOrderbookLevelsFeedDataV1:
     stream: str
     # Primary selector
     selector: str
-    # A running sequence number that determines global message order within the specific stream
+    """
+    A sequence number used to determine message order within a stream.
+    - If `useGlobalSequenceNumber` is **false**, this returns the gateway sequence number, which increments by one locally within each stream and resets on gateway restarts.
+    - If `useGlobalSequenceNumber` is **true**, this returns the global sequence number, which uniquely identifies messages across the cluster.
+      - A single cluster payload can be multiplexed into multiple stream payloads.
+      - To distinguish each stream payload, a `dedupCounter` is included.
+      - The returned sequence number is computed as: `cluster_sequence_number * 10^5 + dedupCounter`.
+    """
     sequence_number: str
     # An orderbook levels object matching the request filter
     feed: OrderbookLevels
-    # The previous sequence number that determines global message order within the specific stream
+    # The previous sequence number that determines the message order
     prev_sequence_number: str
 
 
@@ -1470,11 +1447,18 @@ class WSMiniTickerFeedDataV1:
     stream: str
     # Primary selector
     selector: str
-    # A running sequence number that determines global message order within the specific stream
+    """
+    A sequence number used to determine message order within a stream.
+    - If `useGlobalSequenceNumber` is **false**, this returns the gateway sequence number, which increments by one locally within each stream and resets on gateway restarts.
+    - If `useGlobalSequenceNumber` is **true**, this returns the global sequence number, which uniquely identifies messages across the cluster.
+      - A single cluster payload can be multiplexed into multiple stream payloads.
+      - To distinguish each stream payload, a `dedupCounter` is included.
+      - The returned sequence number is computed as: `cluster_sequence_number * 10^5 + dedupCounter`.
+    """
     sequence_number: str
     # A mini ticker matching the request filter
     feed: MiniTicker
-    # The previous sequence number that determines global message order within the specific stream
+    # The previous sequence number that determines the message order
     prev_sequence_number: str
 
 
@@ -1505,18 +1489,19 @@ class WSTickerFeedDataV1:
     stream: str
     # Primary selector
     selector: str
-    # A running sequence number that determines global message order within the specific stream
+    """
+    A sequence number used to determine message order within a stream.
+    - If `useGlobalSequenceNumber` is **false**, this returns the gateway sequence number, which increments by one locally within each stream and resets on gateway restarts.
+    - If `useGlobalSequenceNumber` is **true**, this returns the global sequence number, which uniquely identifies messages across the cluster.
+      - A single cluster payload can be multiplexed into multiple stream payloads.
+      - To distinguish each stream payload, a `dedupCounter` is included.
+      - The returned sequence number is computed as: `cluster_sequence_number * 10^5 + dedupCounter`.
+    """
     sequence_number: str
     # A ticker matching the request filter
     feed: Ticker
-    # The previous sequence number that determines global message order within the specific stream
+    # The previous sequence number that determines the message order
     prev_sequence_number: str
-
-
-@dataclass
-class ApiTickerFeedDataV1:
-    # The mini ticker matching the request asset
-    result: Ticker
 
 
 @dataclass
@@ -1533,11 +1518,18 @@ class WSTradeFeedDataV1:
     stream: str
     # Primary selector
     selector: str
-    # A running sequence number that determines global message order within the specific stream
+    """
+    A sequence number used to determine message order within a stream.
+    - If `useGlobalSequenceNumber` is **false**, this returns the gateway sequence number, which increments by one locally within each stream and resets on gateway restarts.
+    - If `useGlobalSequenceNumber` is **true**, this returns the global sequence number, which uniquely identifies messages across the cluster.
+      - A single cluster payload can be multiplexed into multiple stream payloads.
+      - To distinguish each stream payload, a `dedupCounter` is included.
+      - The returned sequence number is computed as: `cluster_sequence_number * 10^5 + dedupCounter`.
+    """
     sequence_number: str
     # A public trade matching the request filter
     feed: Trade
-    # The previous sequence number that determines global message order within the specific stream
+    # The previous sequence number that determines the message order
     prev_sequence_number: str
 
 
@@ -1562,11 +1554,18 @@ class WSCandlestickFeedDataV1:
     stream: str
     # Primary selector
     selector: str
-    # A running sequence number that determines global message order within the specific stream
+    """
+    A sequence number used to determine message order within a stream.
+    - If `useGlobalSequenceNumber` is **false**, this returns the gateway sequence number, which increments by one locally within each stream and resets on gateway restarts.
+    - If `useGlobalSequenceNumber` is **true**, this returns the global sequence number, which uniquely identifies messages across the cluster.
+      - A single cluster payload can be multiplexed into multiple stream payloads.
+      - To distinguish each stream payload, a `dedupCounter` is included.
+      - The returned sequence number is computed as: `cluster_sequence_number * 10^5 + dedupCounter`.
+    """
     sequence_number: str
     # A candlestick entry matching the request filters
     feed: Candlestick
-    # The previous sequence number that determines global message order within the specific stream
+    # The previous sequence number that determines the message order
     prev_sequence_number: str
 
 
@@ -1665,6 +1664,8 @@ class TPSLOrderMetadata:
     trigger_by: TriggerBy
     # The Trigger Price of the order, expressed in `9` decimals.
     trigger_price: str
+    # If True, the order will close the position when the trigger price is reached
+    close_position: bool
 
 
 @dataclass
@@ -1706,10 +1707,10 @@ class OrderMetadata:
     When GRVT Backend receives an order with an overlapping clientOrderID, we will reject the order with rejectReason set to overlappingClientOrderId
     """
     client_order_id: str
-    # Trigger fields are used to support any type of trigger order such as TP/SL
-    trigger: TriggerOrderMetadata | None = None
     # [Filled by GRVT Backend] Time at which the order was received by GRVT in unix nanoseconds
     create_time: str | None = None
+    # Trigger fields are used to support any type of trigger order such as TP/SL
+    trigger: TriggerOrderMetadata | None = None
     # Specifies the broker who brokered the order
     broker: BrokerTag | None = None
 
@@ -1773,7 +1774,7 @@ class Order:
     is_market: bool | None = None
     """
     If True, Order must be a maker order. It has to fill the orderbook instead of match it.
-    If False, Order can be either a maker or taker order.
+    If False, Order can be either a maker or taker order. <b>In this case, order creation is currently subject to a speedbump of 25ms to ensure orders are matched against updated orderbook quotes.</b>
 
     |               | Must Fill All | Can Fill Partial |
     | -             | -             | -                |
@@ -1823,12 +1824,6 @@ class ApiCancelOrderRequest:
 
 
 @dataclass
-class ApiCancelOrderResponse:
-    # The cancelled order
-    result: Order
-
-
-@dataclass
 class ApiCancelAllOrdersRequest:
     # The subaccount ID cancelling all orders
     sub_account_id: str
@@ -1838,12 +1833,6 @@ class ApiCancelAllOrdersRequest:
     base: list[Currency] | None = None
     # The quote filter to apply. If nil, this defaults to all quotes. Otherwise, only entries matching the filter will be cancelled
     quote: list[Currency] | None = None
-
-
-@dataclass
-class ApiCancelAllOrdersResponse:
-    # The number of orders cancelled
-    result: int
 
 
 @dataclass
@@ -1916,22 +1905,6 @@ class AckResponse:
 
 
 @dataclass
-class ApiOrderStateRequest:
-    # The subaccount ID to filter by
-    sub_account_id: str
-    # Filter for `order_id`
-    order_id: str | None = None
-    # Filter for `client_order_id`
-    client_order_id: str | None = None
-
-
-@dataclass
-class ApiOrderStateResponse:
-    # The order state for the requested filter
-    state: OrderState
-
-
-@dataclass
 class ApiGetOrderRequest:
     # The subaccount ID to filter by
     sub_account_id: str
@@ -1945,96 +1918,6 @@ class ApiGetOrderRequest:
 class ApiGetOrderResponse:
     # The order object for the requested filter
     result: Order
-
-
-@dataclass
-class ApiPreOrderCheckRequest:
-    # The subaccount ID of orders to query
-    sub_account_id: str
-    # The order to do pre-order check
-    orders: list[Order]
-
-
-@dataclass
-class AssetMaxQty:
-    # The asset associated with the max quantity
-    asset: str
-    # The maximum buy quantity
-    max_buy_qty: str
-    # The maximum sell quantity
-    max_sell_qty: str
-
-
-@dataclass
-class PreOrderCheckResult:
-    # The maximum quantity for each leg
-    max_qty: list[AssetMaxQty]
-    # The margin required for the order (reported in `settle_currency`)
-    margin_required: str
-    # Whether the order is valid
-    order_valid: bool
-    # The reason the order is invalid, if any
-    reason: str
-    # The subAccount settle currency
-    settle_currency: Currency
-
-
-@dataclass
-class ApiPreOrderCheckResponse:
-    # Pre order check for each new order in the request
-    results: list[PreOrderCheckResult]
-
-
-@dataclass
-class ApiPreDepositCheckRequest:
-    # The currency you hold the deposit in
-    currency: Currency
-    # The bridge type to conduct checks for
-    bridge: BridgeType
-
-
-@dataclass
-class ApiPreDepositCheckResponse:
-    # Max Deposit Limit reported for the Bridge Account reported in the currency balance
-    max_deposit_limit: str
-    # The currency you hold the deposit in
-    currency: Currency
-
-
-@dataclass
-class ApiDedustPositionRequest:
-    # The order to create
-    order: Order
-
-
-@dataclass
-class ApiDedustPositionResponse:
-    # The created order
-    result: Order
-
-
-@dataclass
-class ApiCreateBulkOrdersRequest:
-    """
-    Create multiple orders simultaneously for this trading account.
-
-    This endpoint supports the following order scenarios:
-    - One-Cancels-Other (OCO) orders combining TP/SL
-    - One-Sends-Other (OSO) orders
-
-    Usage:
-    - For OCO (TP/SL pair): Send exactly 2 orders in the same request - one Take Profit and one Stop Loss order
-    - For OSO: Send exactly one main order and one contingent order (TP and/or SL)
-    """
-
-    # The orders to create
-    orders: list[Order]
-
-
-@dataclass
-class ApiCreateBulkOrdersResponse:
-    # The created orders in same order as requested
-    result: list[Order]
 
 
 @dataclass
@@ -2068,651 +1951,6 @@ class ApiCancelOnDisconnectRequest:
 
 
 @dataclass
-class ApiGetOrderGroupRequest:
-    """
-    Retrieves the grouping of non-cancelled, non-filled client orders for a given subaccount when the grouping exist.
-
-    helping to identify TP/SL pairs or other order relationships within the account.
-    """
-
-    # The subaccount ID for which the order groups should be retrieved.
-    sub_account_id: str
-
-
-@dataclass
-class ClientOrderIDsByGroup:
-    """
-    Grouping for the client order id and their associated groups.
-
-    This is used to define TP/SL pairs or other order groupings after loading the list of Open Orders.
-    """
-
-    # The group this order belongs to. It can be used to define TP/SL pairs or other order groupings
-    group_id: str
-    # List of client order IDs in the group
-    client_order_id: list[str]
-    # The sub account ID that these orders belong to
-    sub_account_id: str
-
-
-@dataclass
-class ApiGetOrderGroupResponse:
-    """
-    A list of client orders grouped by their associated order group.
-    Each entry in the list contains a `groupID` and the corresponding `clientOrderID`s
-    that belong to that group.
-    """
-
-    result: list[ClientOrderIDsByGroup]
-
-
-@dataclass
-class ApiGetUserEcosystemPointRequest:
-    # The off chain account id
-    account_id: str
-    # Start time of the epoch - phase
-    calculate_from: str
-    # Include user rank in the response
-    include_user_rank: bool
-
-
-@dataclass
-class EcosystemPoint:
-    # The off chain account id
-    account_id: str
-    # The main account id
-    main_account_id: str
-    # Total ecosystem point
-    total_point: str
-    # Direct invite count
-    direct_invite_count: int
-    # Indirect invite count
-    indirect_invite_count: int
-    # Direct invite trading volume
-    direct_invite_trading_volume: str
-    # Indirect invite trading volume
-    indirect_invite_trading_volume: str
-    # The time when the ecosystem point is calculated
-    calculate_at: str
-    # Start time of the epoch - phase
-    calculate_from: str
-    # End time of the epoch - phase
-    calculate_to: str
-    # The rank of the account in the ecosystem
-    rank: int
-    # The epoch number of the ecosystem point
-    epoch: int
-    # Brokered trading volume
-    brokered_trading_volume: str
-
-
-@dataclass
-class ApiGetUserEcosystemPointResponse:
-    # The list of ecosystem points
-    points: list[EcosystemPoint]
-
-
-@dataclass
-class ApiGetEcosystemLeaderboardRequest:
-    # Start time of the epoch - phase
-    calculate_from: str
-    # The number of accounts to return
-    limit: int
-
-
-@dataclass
-class ApiGetVerifiedEcosystemLeaderboardRequest:
-    # Start time of the epoch
-    calculate_from: str
-    # Completed KYC before this time
-    completed_kyc_before: str
-
-
-@dataclass
-class ApiGetEcosystemLeaderboardResponse:
-    # The list of ecosystem points
-    points: list[EcosystemPoint]
-
-
-@dataclass
-class ApiGetEcosystemReferralStatResponse:
-    # Direct invite count
-    direct_invite_count: int
-    # Indirect invite count
-    indirect_invite_count: int
-    # Total volume traded by direct invites multiple by 1e9
-    direct_invite_trading_volume: str
-    # Total volume traded by indirect invites multiple by 1e9
-    indirect_invite_trading_volume: str
-
-
-@dataclass
-class ApiResolveEpochEcosystemMetricResponse:
-    # The name of the epoch
-    epoch_name: str
-    # Ecosystem points up to the most recently calculated time within this epoch
-    point: int
-    # The time in unix nanoseconds when the ecosystem points were last calculated
-    last_calculated_time: str
-
-
-@dataclass
-class EcosystemMetric:
-    # Direct invite count
-    direct_invite_count: int
-    # Indirect invite count
-    indirect_invite_count: int
-    # Direct invite trading volume
-    direct_invite_trading_volume: str
-    # Indirect invite trading volume
-    indirect_invite_trading_volume: str
-    # Total ecosystem point of this epoch/phase
-    total_point: str
-
-
-@dataclass
-class ApiFindFirstEpochMetricResponse:
-    # Phase zero metric
-    phase_zero_metric: EcosystemMetric
-    # Phase one metric
-    phase_one_metric: EcosystemMetric
-    # The rank of the account in the ecosystem
-    rank: int
-    # The total number of accounts in the ecosystem
-    total: int
-    # Total ecosystem point of the first epoch
-    total_point: str
-    # The time when the ecosystem points were last calculated
-    last_calculated_at: str
-
-
-@dataclass
-class ApiFindEcosystemEpochMetricResponse:
-    # The epoch metric
-    metric: EcosystemMetric
-    # The rank of the account in the ecosystem
-    rank: int
-    # The total number of accounts in the ecosystem
-    total: int
-    # The time when the ecosystem points were last calculated
-    last_calculated_at: str
-    # Direct invite count without relying on epochs
-    total_direct_invite_count: int
-    # Indirect invite count without relying on epochs
-    total_indirect_invite_count: int
-
-
-@dataclass
-class EcosystemLeaderboardUser:
-    # The off chain account id
-    account_id: str
-    # The rank of the account in the ecosystem
-    rank: int
-    # Total ecosystem point
-    total_point: str
-    # The twitter username of the account
-    twitter_username: str
-
-
-@dataclass
-class ApiFindEcosystemLeaderboardResponse:
-    # The list of ecosystem leaderboard users
-    users: list[EcosystemLeaderboardUser]
-
-
-@dataclass
-class QueryFindEpochRequest:
-    # The time to query the epoch
-    time: str | None = None
-    # The epoch number
-    epoch: int | None = None
-
-
-@dataclass
-class Epoch:
-    # The epoch number
-    epoch: int
-    # The start time of the epoch
-    start_time: str
-    # The end time of the epoch
-    end_time: str
-
-
-@dataclass
-class QueryFindEpochResponse:
-    # The epoch
-    epoch: Epoch
-
-
-@dataclass
-class QueryGetListEpochRequest:
-    # The limit to query for
-    limit: int | None = None
-
-
-@dataclass
-class QueryGetListEpochResponse:
-    # The list of epochs
-    result: list[Epoch]
-
-
-@dataclass
-class QueryEpochBadgeRequest:
-    # The off chain account id to get referral stats
-    account_id: str | None = None
-    # The numerical epoch index
-    epoch: int | None = None
-    # The type of the reward program
-    type: RewardProgramType | None = None
-    # The limit to query for. Defaults to 500; Max 1000
-    limit: int | None = None
-    # The cursor to indicate when to start the query from
-    cursor: str | None = None
-
-
-@dataclass
-class EpochBadge:
-    # The off chain account id
-    account_id: str
-    # The account ID
-    main_account_id: str
-    # The type of the reward program
-    type: RewardProgramType
-    # The epoch number
-    epoch: int
-    # The start time of the epoch
-    epoch_start_time: str
-    # The end time of the epoch
-    epoch_end_time: str
-    # The type of the badge
-    badge: EpochBadgeType
-    # The distributed badges
-    distributed_badges: list[EpochBadgeType]
-    # Total point
-    total_point: str
-    # Rank
-    rank: int
-    # The time when the badge was claimed, or the epoch end time if the user has already completed the KYC process
-    claimed_at: str
-
-
-@dataclass
-class QueryEpochBadgeResponse:
-    # The list of epoch badges
-    result: list[EpochBadge]
-    # The cursor to indicate when to start the query from
-    next: str
-
-
-@dataclass
-class QueryEpochBadgePointDistributionRequest:
-    # The type of the reward program
-    type: RewardProgramType
-    # The numerical epoch index
-    epoch: int | None = None
-
-
-@dataclass
-class EpochBadgePointDistribution:
-    # The type of the badge
-    badge: EpochBadgeType
-    # The epoch number
-    epoch: int
-    # The type of the reward program
-    type: RewardProgramType
-    # The minimum point to get the badge
-    min_point: str
-    # The maximum point to get the badge
-    max_point: str
-    # The minimum rank to get the badge
-    min_rank: int
-    # The maximum rank to get the badge
-    max_rank: int
-    # The total point to get the badge
-    total_point: str
-    # The number of users to get the badge
-    count: int
-
-
-@dataclass
-class QueryEpochBadgePointDistributionResponse:
-    # The list of epoch badges
-    result: list[EpochBadgePointDistribution]
-
-
-@dataclass
-class ApiGetListEpochBadgeResponse:
-    # The list of epoch badges
-    result: list[EpochBadge]
-
-
-@dataclass
-class GetClaimableEcosystemBadgeResponse:
-    # The epoch badge
-    badge: EpochBadge
-    # Whether the badge is claimable
-    is_claimable: bool
-    # The time when the badge is claimable
-    claimable_until: str
-
-
-@dataclass
-class ClaimEcosystemBadgeResponse:
-    # The epoch badge
-    badge: EpochBadge
-
-
-@dataclass
-class ApiGetListFlatReferralRequest:
-    # The off chain referrer account id to get all flat referrals
-    referral_id: str
-    # The off chain account id to get all user's referrers
-    account_id: str
-    # Optional. Start time in unix nanoseconds
-    start_time: str | None = None
-    # Optional. End time in unix nanoseconds
-    end_time: str | None = None
-
-
-@dataclass
-class FlatReferral:
-    # The off chain account id
-    account_id: str
-    # The off chain referrer account id
-    referrer_id: str
-    # The referrer level; 1: direct referrer, 2: indirect referrer
-    referrer_level: int
-    # The account creation time
-    account_create_time: str
-    # The main account id
-    main_account_id: str
-    # The referrer main account id
-    referrer_main_account_id: str
-    # The account is a business account or not
-    is_business: bool
-    # The account is KYC verified or not
-    is_kyc_completed: bool
-    # The KYC completed time
-    kyc_completed_at: str
-    # The KYC type, can be 'individual' or 'business'
-    kyc_type: str
-
-
-@dataclass
-class ApiGetListFlatReferralResponse:
-    # The list of flat referrals
-    flat_referrals: list[FlatReferral]
-
-
-@dataclass
-class ApiQueryFlatReferralStatRequest:
-    # The off chain account id to get referral stats
-    account_id: str
-
-
-@dataclass
-class ApiQueryFlatReferralStatResponse:
-    # Direct invite count
-    direct_invite_count: int
-    # Indirect invite count
-    indirect_invite_count: int
-
-
-@dataclass
-class LPSnapshot:
-    # The main account id
-    main_account_id: str
-    # The LP Asset
-    lp_asset: str
-    # Underlying multiplier
-    underlying_multiplier: str
-    # Maker trading volume
-    maker_trading_volume: str
-    # Fast market multiplier
-    bid_fast_market_multiplier: int
-    # Fast market multiplier
-    ask_fast_market_multiplier: int
-    # Liquidity score
-    liquidity_score: str
-    # The time when the snapshot was calculated
-    calculate_at: str
-
-
-@dataclass
-class ApproximateLPSnapshot:
-    # The main account id
-    main_account_id: str
-    # Underlying multiplier
-    underlying_multiplier: str
-    # Market share multiplier
-    market_share_multiplier: str
-    # Fast market multiplier
-    bid_fast_market_multiplier: int
-    # Fast market multiplier
-    ask_fast_market_multiplier: int
-    # Liquidity score
-    liquidity_score: str
-    # The time when the snapshot was calculated
-    calculate_at: str
-
-
-@dataclass
-class LPPoint:
-    # The main account id
-    main_account_id: str
-    # Liquidity score
-    liquidity_score: str
-    # The rank of user in the LP leaderboard
-    rank: int
-
-
-@dataclass
-class ApproximateLPPoint:
-    # The off chain account id
-    off_chain_account_id: str
-    # Liquidity score
-    liquidity_score: str
-    # The rank of user in the LP leaderboard
-    rank: int
-
-
-@dataclass
-class QueryGetLatestLPSnapshotResponse:
-    # The latest LP snapshot
-    snapshot: LPSnapshot
-
-
-@dataclass
-class ApiGetLatestLPSnapshotRequest:
-    # The kind filter to apply
-    kind: Kind | None = None
-    # The base filter to apply
-    base: Currency | None = None
-
-
-@dataclass
-class ApiGetLatestLPSnapshotResponse:
-    # The latest LP snapshot
-    snapshot: ApproximateLPSnapshot
-
-
-@dataclass
-class ApiGetLPLeaderboardRequest:
-    # The number of accounts to return
-    limit: int
-    # The kind filter to apply
-    kind: Kind
-    # The base filter to apply
-    base: Currency
-    # The epoch to filter
-    epoch: int | None = None
-
-
-@dataclass
-class ApiGetLPLeaderboardResponse:
-    # The list of LP points
-    points: list[ApproximateLPPoint]
-
-
-@dataclass
-class ApiGetLPPointRequest:
-    # The epoch to filter
-    epoch: int | None = None
-    # Optional. The kind filter to apply
-    kind: Kind | None = None
-    # Optional. The base filter to apply
-    base: Currency | None = None
-
-
-@dataclass
-class ApiGetLPPointResponse:
-    # LP points of user
-    point: LPPoint
-    # The number of maker
-    maker_count: int
-
-
-@dataclass
-class ApiGetLPInfoRequest:
-    # The kind filter to apply
-    kind: Kind
-    # The base filter to apply
-    base: Currency | None = None
-
-
-@dataclass
-class ApiGetLPInfoResponse:
-    # Is LP maker
-    is_lp_maker: bool
-    # The spread score value multiplier
-    spread_score_value_multiplier: str
-    # The depth score value multiplier
-    depth_score_value_multiplier: str
-    # The market share value multiplier
-    market_share_value_multiplier: str
-    # Underlying multiplier
-    underlying_multiplier: str
-    # The market share multiplier, equal to the maker trading volume in the past 2 hours
-    market_share_multiplier: str
-    # Ask fast market multiplier
-    ask_fast_market_multiplier: int
-    # Bid fast market multiplier
-    bid_fast_market_multiplier: int
-
-
-@dataclass
-class RewardEpochInfo:
-    # The epoch number
-    epoch: int
-    # The start time of the epoch
-    epoch_start_time: str
-    # The end time of the epoch
-    epoch_end_time: str
-    # The status of the epoch
-    status: RewardEpochStatus
-
-
-@dataclass
-class ApiGetListRewardEpochResponse:
-    # The list of epoch for ecosystem reward
-    ecosystem_epochs: list[RewardEpochInfo]
-    # The list of epoch for trader reward and lp reward
-    trading_epochs: list[RewardEpochInfo]
-
-
-@dataclass
-class ApiSubAccountTradeAggregationRequest:
-    # Optional. The limit of the number of results to return
-    limit: int
-    # The interval of each sub account trade
-    interval: SubAccountTradeInterval
-    # The list of sub account ids to query
-    sub_account_i_ds: list[str]
-    # Optional. The starting time in unix nanoseconds of a specific interval to query
-    start_interval: str
-    # Filter on the maker of the trade
-    is_maker: bool
-    # Filter on the taker of the trade
-    is_taker: bool
-    # Whether to group trades by signer per sub account
-    group_by_signer: bool
-    # Optional. Start time in unix nanoseconds
-    start_time: str | None = None
-    # Optional. End time in unix nanoseconds
-    end_time: str | None = None
-    # The cursor to indicate when to start the next query from
-    cursor: str | None = None
-
-
-@dataclass
-class SubAccountTradeAggregation:
-    # The sub account id
-    sub_account_id: str
-    # Total fee paid
-    total_fee: str
-    # Total volume traded
-    total_trade_volume: str
-    # Number of trades
-    num_traded: str
-    # Total positive fee paid by user
-    positive_fee: str
-    # The signer of the trade
-    signer: str
-
-
-@dataclass
-class ApiSubAccountTradeAggregationResponse:
-    # The sub account trade aggregation result set for given interval
-    result: list[SubAccountTradeAggregation]
-    # The cursor to indicate when to start the next query from
-    next: str | None = None
-
-
-@dataclass
-class ApiGetTraderStatResponse:
-    # Total fee paid
-    total_fee: str
-
-
-@dataclass
-class TraderMetric:
-    # Total fee paid
-    total_fee: str
-    # Total trader point of this epoch/phase
-    total_point: float
-
-
-@dataclass
-class ApiFindTraderEpochMetricResponse:
-    # Phase zero metric
-    metric: TraderMetric
-    # The rank of the account in the trader
-    rank: int
-    # The total number of accounts in the trader
-    total: int
-    # The time when the trader points were last calculated
-    last_calculated_at: str
-
-
-@dataclass
-class TraderLeaderboardUser:
-    # The off chain account id
-    account_id: str
-    # The rank of the account in the Trader
-    rank: int
-    # Total Trader point
-    total_point: float
-    # The twitter username of the account
-    twitter_username: str
-
-
-@dataclass
-class ApiFindTraderLeaderboardResponse:
-    # The list of trader leaderboard users
-    users: list[TraderLeaderboardUser]
-
-
-@dataclass
 class WSOrderFeedSelectorV1:
     """
     Subscribes to a feed of order updates pertaining to orders made by your account.
@@ -2733,11 +1971,18 @@ class WSOrderFeedDataV1:
     stream: str
     # Primary selector
     selector: str
-    # A running sequence number that determines global message order within the specific stream
+    """
+    A sequence number used to determine message order within a stream.
+    - If `useGlobalSequenceNumber` is **false**, this returns the gateway sequence number, which increments by one locally within each stream and resets on gateway restarts.
+    - If `useGlobalSequenceNumber` is **true**, this returns the global sequence number, which uniquely identifies messages across the cluster.
+      - A single cluster payload can be multiplexed into multiple stream payloads.
+      - To distinguish each stream payload, a `dedupCounter` is included.
+      - The returned sequence number is computed as: `cluster_sequence_number * 10^5 + dedupCounter`.
+    """
     sequence_number: str
     # The order object being created or updated
     feed: Order
-    # The previous sequence number that determines global message order within the specific stream
+    # The previous sequence number that determines the message order
     prev_sequence_number: str
 
 
@@ -2773,18 +2018,26 @@ class WSOrderStateFeedDataV1:
     stream: str
     # Primary selector
     selector: str
-    # A running sequence number that determines global message order within the specific stream
+    """
+    A sequence number used to determine message order within a stream.
+    - If `useGlobalSequenceNumber` is **false**, this returns the gateway sequence number, which increments by one locally within each stream and resets on gateway restarts.
+    - If `useGlobalSequenceNumber` is **true**, this returns the global sequence number, which uniquely identifies messages across the cluster.
+      - A single cluster payload can be multiplexed into multiple stream payloads.
+      - To distinguish each stream payload, a `dedupCounter` is included.
+      - The returned sequence number is computed as: `cluster_sequence_number * 10^5 + dedupCounter`.
+    """
     sequence_number: str
     # The Order State Feed
     feed: OrderStateFeed
-    # The previous sequence number that determines global message order within the specific stream
+    # The previous sequence number that determines the message order
     prev_sequence_number: str
 
 
 @dataclass
 class WSPositionsFeedSelectorV1:
     """
-    Subscribes to a feed of position updates. This happens when a trade is executed.
+    Subscribes to a feed of position updates.
+    Updates get published when a trade is executed, and when leverage configurations are changed for instruments with ongoing positions.
     To subscribe to all positions, specify an empty `instrument` (eg. `2345123`).
     Otherwise, specify the `instrument` to only receive positions for that instrument (eg. `2345123-BTC_USDT_Perp`).
     """
@@ -2801,11 +2054,18 @@ class WSPositionsFeedDataV1:
     stream: str
     # Primary selector
     selector: str
-    # A running sequence number that determines global message order within the specific stream
+    """
+    A sequence number used to determine message order within a stream.
+    - If `useGlobalSequenceNumber` is **false**, this returns the gateway sequence number, which increments by one locally within each stream and resets on gateway restarts.
+    - If `useGlobalSequenceNumber` is **true**, this returns the global sequence number, which uniquely identifies messages across the cluster.
+      - A single cluster payload can be multiplexed into multiple stream payloads.
+      - To distinguish each stream payload, a `dedupCounter` is included.
+      - The returned sequence number is computed as: `cluster_sequence_number * 10^5 + dedupCounter`.
+    """
     sequence_number: str
     # A Position being created or updated matching the request filter
     feed: Positions
-    # The previous sequence number that determines global message order within the specific stream
+    # The previous sequence number that determines the message order
     prev_sequence_number: str
 
 
@@ -2829,11 +2089,18 @@ class WSFillFeedDataV1:
     stream: str
     # Primary selector
     selector: str
-    # A running sequence number that determines global message order within the specific stream
+    """
+    A sequence number used to determine message order within a stream.
+    - If `useGlobalSequenceNumber` is **false**, this returns the gateway sequence number, which increments by one locally within each stream and resets on gateway restarts.
+    - If `useGlobalSequenceNumber` is **true**, this returns the global sequence number, which uniquely identifies messages across the cluster.
+      - A single cluster payload can be multiplexed into multiple stream payloads.
+      - To distinguish each stream payload, a `dedupCounter` is included.
+      - The returned sequence number is computed as: `cluster_sequence_number * 10^5 + dedupCounter`.
+    """
     sequence_number: str
     # A private trade matching the request filter
     feed: Fill
-    # The previous sequence number that determines global message order within the specific stream
+    # The previous sequence number that determines the message order
     prev_sequence_number: str
 
 
@@ -2883,11 +2150,18 @@ class WSTransferFeedDataV1:
     stream: str
     # Primary selector
     selector: str
-    # A running sequence number that determines global message order within the specific stream
+    """
+    A sequence number used to determine message order within a stream.
+    - If `useGlobalSequenceNumber` is **false**, this returns the gateway sequence number, which increments by one locally within each stream and resets on gateway restarts.
+    - If `useGlobalSequenceNumber` is **true**, this returns the global sequence number, which uniquely identifies messages across the cluster.
+      - A single cluster payload can be multiplexed into multiple stream payloads.
+      - To distinguish each stream payload, a `dedupCounter` is included.
+      - The returned sequence number is computed as: `cluster_sequence_number * 10^5 + dedupCounter`.
+    """
     sequence_number: str
     # The transfer history matching the requested filters
     feed: TransferHistory
-    # The previous sequence number that determines global message order within the specific stream
+    # The previous sequence number that determines the message order
     prev_sequence_number: str
 
 
@@ -2920,11 +2194,18 @@ class WSDepositFeedDataV1:
     stream: str
     # Primary selector
     selector: str
-    # A running sequence number that determines global message order within the specific stream
+    """
+    A sequence number used to determine message order within a stream.
+    - If `useGlobalSequenceNumber` is **false**, this returns the gateway sequence number, which increments by one locally within each stream and resets on gateway restarts.
+    - If `useGlobalSequenceNumber` is **true**, this returns the global sequence number, which uniquely identifies messages across the cluster.
+      - A single cluster payload can be multiplexed into multiple stream payloads.
+      - To distinguish each stream payload, a `dedupCounter` is included.
+      - The returned sequence number is computed as: `cluster_sequence_number * 10^5 + dedupCounter`.
+    """
     sequence_number: str
     # The Deposit object
     feed: Deposit
-    # The previous sequence number that determines global message order within the specific stream
+    # The previous sequence number that determines the message order
     prev_sequence_number: str
 
 
@@ -2959,11 +2240,18 @@ class WSWithdrawalFeedDataV1:
     stream: str
     # Primary selector
     selector: str
-    # A running sequence number that determines global message order within the specific stream
+    """
+    A sequence number used to determine message order within a stream.
+    - If `useGlobalSequenceNumber` is **false**, this returns the gateway sequence number, which increments by one locally within each stream and resets on gateway restarts.
+    - If `useGlobalSequenceNumber` is **true**, this returns the global sequence number, which uniquely identifies messages across the cluster.
+      - A single cluster payload can be multiplexed into multiple stream payloads.
+      - To distinguish each stream payload, a `dedupCounter` is included.
+      - The returned sequence number is computed as: `cluster_sequence_number * 10^5 + dedupCounter`.
+    """
     sequence_number: str
     # The Withdrawal object
     feed: Withdrawal
-    # The previous sequence number that determines global message order within the specific stream
+    # The previous sequence number that determines the message order
     prev_sequence_number: str
 
 
@@ -2989,11 +2277,18 @@ class WSCancelFeedDataV1:
     stream: str
     # Primary selector
     selector: str
-    # A running sequence number that determines global message order within the specific stream
+    """
+    A sequence number used to determine message order within a stream.
+    - If `useGlobalSequenceNumber` is **false**, this returns the gateway sequence number, which increments by one locally within each stream and resets on gateway restarts.
+    - If `useGlobalSequenceNumber` is **true**, this returns the global sequence number, which uniquely identifies messages across the cluster.
+      - A single cluster payload can be multiplexed into multiple stream payloads.
+      - To distinguish each stream payload, a `dedupCounter` is included.
+      - The returned sequence number is computed as: `cluster_sequence_number * 10^5 + dedupCounter`.
+    """
     sequence_number: str
     # Data relating to the status of the cancellation attempt
     feed: CancelStatusFeed
-    # The previous sequence number that determines global message order within the specific stream
+    # The previous sequence number that determines the message order
     prev_sequence_number: str
 
 
@@ -3010,31 +2305,6 @@ class WSCancelFeedSelectorV1:
 
     # The subaccount ID to filter by
     sub_account_id: str
-
-
-@dataclass
-class WSOrderGroupFeedSelectorV1:
-    """
-    Subscribes to a feed of order group to get updated when a new group is created for the subAccount specified.
-
-    """
-
-    # The subaccount ID to filter by
-    sub_account_id: str
-
-
-@dataclass
-class WSOrderGroupFeedDataV1:
-    # Stream name
-    stream: str
-    # Primary selector
-    selector: str
-    # A running sequence number that determines global message order within the specific stream
-    sequence_number: str
-    # The order object being created or updated
-    feed: ClientOrderIDsByGroup
-    # The previous sequence number that determines global message order within the specific stream
-    prev_sequence_number: str
 
 
 @dataclass
@@ -3096,6 +2366,20 @@ class ApiTransferRequest:
 
 
 @dataclass
+class ApiTransferAck:
+    # Gravity has acknowledged that the transfer has been successfully processed. If true, a `tx_id` will be returned. If false, an error will be returned.
+    ack: bool
+    # The transaction ID of the transfer. This is only returned if the transfer is successful.
+    tx_id: str
+
+
+@dataclass
+class ApiTransferResponse:
+    # The Transfer response object
+    result: ApiTransferAck
+
+
+@dataclass
 class ApiDepositHistoryRequest:
     """
     The request to get the historical deposits of an account
@@ -3114,6 +2398,8 @@ class ApiDepositHistoryRequest:
     limit: int | None = None
     # The cursor to indicate when to start the next query from
     cursor: str | None = None
+    # Main account ID being queried. By default, applies the requestor's main account ID.
+    main_account_id: str | None = None
 
 
 @dataclass
@@ -3165,6 +2451,8 @@ class ApiTransferHistoryRequest:
     cursor: str | None = None
     # The transaction ID to query for
     tx_id: str | None = None
+    # Main account ID being queried. By default, applies the requestor's main account ID.
+    main_account_id: str | None = None
 
 
 @dataclass
@@ -3194,6 +2482,8 @@ class ApiWithdrawalHistoryRequest:
     limit: int | None = None
     # The cursor to indicate when to start the next query from
     cursor: str | None = None
+    # Main account ID being queried. By default, applies the requestor's main account ID.
+    main_account_id: str | None = None
 
 
 @dataclass

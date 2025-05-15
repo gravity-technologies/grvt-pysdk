@@ -12,8 +12,9 @@ from pysdk.grvt_ccxt_utils import rand_uint32
 
 
 # Utility functions , not called directly by the __main__ test routine
-async def get_open_orders(api: GrvtCcxtPro) -> list:
-    open_orders: list = await api.fetch_open_orders(
+async def get_open_orders(api: GrvtCcxtPro) -> list[dict]:
+    open_orders = await api.fetch_open_orders(
+
         symbol="BTC_USDT_Perp",
         params={"kind": "PERPETUAL"},
     )
@@ -32,7 +33,7 @@ async def fetch_order_history(api: GrvtCcxtPro) -> dict:
 async def cancel_orders(api: GrvtCcxtPro, open_orders: list) -> int:
     FN = "cancel_orders"
     logger.info(f"{FN} START")
-    order_count = 0
+    order_count: int = 0
     for order_dict in open_orders:
         client_order_id = order_dict["metadata"].get("client_order_id")
         if client_order_id:
@@ -101,7 +102,6 @@ async def send_fetch_order(api: GrvtCcxtPro):
     _ = await send_order(api, side="buy", client_order_id=client_order_id)
     order_status = await api.fetch_order(
         id=None,
-        symbol="BTC_USDT_Perp",
         params={"client_order_id": client_order_id},
     )
     logger.info(f"result of fetch_order: {order_status=}")

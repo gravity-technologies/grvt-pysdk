@@ -9,7 +9,7 @@ from datetime import datetime
 import json
 import logging
 from decimal import Decimal
-from typing import Literal
+from typing import Any, Literal
 
 import requests
 
@@ -78,8 +78,7 @@ class GrvtCcxt(GrvtCcxtBase):
                     {"X-Grvt-Account-Id": self._cookie["X-Grvt-Account-Id"]}
                 )
             self.logger.info(
-                f"refresh_cookie {self._cookie=} {self._session.cookies=}"
-                f" {self._session.headers=}"
+                f"refresh_cookie {self._cookie=} {self._session.cookies=} {self._session.headers=}"
             )
         return self._cookie
 
@@ -103,9 +102,7 @@ class GrvtCcxt(GrvtCcxtBase):
         except Exception as err:
             self.logger.warning(f"{FN} Unable to parse {return_value=} as json. {err=}")
         if not return_value.ok:
-            self.logger.warning(
-                f"{FN} ERROR {payload_json=}\n{return_value=}\n{response=}"
-            )
+            self.logger.warning(f"{FN} ERROR {payload_json=}\n{return_value=}\n{response=}")
         else:
             if len(return_text) > MAX_LEN_TO_LOG:
                 self.logger.debug(f"{FN} OK {return_value=} {response=}")
@@ -220,7 +217,7 @@ class GrvtCcxt(GrvtCcxtBase):
         Args:
             id (str): exchange assigned order ID<br>
             symbol (str): trading symbol<br>
-            params: 
+            params:
                 * client_order_id (str): client assigned order ID<br>
                 * time_to_live_ms (str): lifetime of cancel requiest in millisecs<br>
         Returns:
@@ -289,16 +286,13 @@ class GrvtCcxt(GrvtCcxtBase):
         open_orders: list = response.get("result", [])
         if symbol:
             open_orders = [
-                o
-                for o in open_orders
-                if o.get("legs") and o["legs"][0].get("instrument") == symbol
+                o for o in open_orders if o.get("legs") and o["legs"][0].get("instrument") == symbol
             ]
         return open_orders
 
     def fetch_order(
         self,
         id: str | None = None,
-        symbol: str = "",
         params: dict = {},
     ) -> dict:
         """
@@ -309,7 +303,6 @@ class GrvtCcxt(GrvtCcxtBase):
         for details.<br>
         Args:
             id: (str) order_id to fetch.<br>
-            symbol: (str) get orders for this symbol only.<br>
             params: dictionary with parameters. Valid keys:<br>
                 `client_order_id` (int): client assigned order ID.<br>
         Return: dict with order's details or {} if order was NOT found.
@@ -324,8 +317,7 @@ class GrvtCcxt(GrvtCcxtBase):
             payload["client_order_id"] = str(params["client_order_id"])
         else:
             raise GrvtInvalidOrder(
-                f"{self._clsname} fetch_order() requires order_id "
-                "or params['client_order_id']"
+                f"{self._clsname} fetch_order() requires order_id or params['client_order_id']"
             )
         path = get_grvt_endpoint(self.env, "GET_ORDER")
         response: dict = self._auth_and_post(path, payload)
@@ -679,13 +671,13 @@ class GrvtCcxt(GrvtCcxtBase):
         # 'is_taker_buyer': True, 'size': '24000000000', 'price': '2600000000000',
         # 'mark_price': '2591055564869', 'index_price': '2592459142472', 'interest_rate': 0,
         # 'forward_price': '0', 'trade_id': '729726', 'venue': 'ORDERBOOK'}
-        payload = self._get_payload_fetch_trades(
+        payload: dict = self._get_payload_fetch_trades(
             symbol,
             since=since,
             limit=limit,
             params=params,
         )
-        path = get_grvt_endpoint(self.env, "GET_TRADE_HISTORY")
+        path: str = get_grvt_endpoint(self.env, "GET_TRADE_HISTORY")
         response: dict = self._auth_and_post(path, payload=payload)
         return response
 
@@ -767,7 +759,9 @@ class GrvtCcxt(GrvtCcxtBase):
                 `trades` - number of trades.<br>
         """
         FN = f"{self._clsname} fetch_ohlcv"
-        payload = self._get_payload_fetch_ohlcv(symbol, timeframe, since, limit, params)
+        payload: dict[str, Any] = self._get_payload_fetch_ohlcv(
+            symbol, timeframe, since, limit, params
+        )
         self.logger.info(f"{FN} {payload=}")
         path = get_grvt_endpoint(self.env, "GET_CANDLESTICK")
         response: dict = self._auth_and_post(path, payload=payload)

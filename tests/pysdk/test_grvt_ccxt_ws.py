@@ -6,6 +6,7 @@ import traceback
 
 from pysdk.grvt_ccxt_env import GrvtEnv, GrvtWSEndpointType
 from pysdk.grvt_ccxt_logging_selector import logger
+from pysdk.grvt_ccxt_types import GrvtOrderSide
 from pysdk.grvt_ccxt_utils import rand_uint32
 from pysdk.grvt_ccxt_ws import GrvtCcxtWS
 
@@ -137,7 +138,7 @@ async def subscribe(loop) -> GrvtCcxtWS:
 
 
 async def rpc_create_order(
-    test_api: GrvtCcxtWS, side: str, price: str, client_order_id: str = ""
+    test_api: GrvtCcxtWS, side: GrvtOrderSide, price: str, client_order_id: str = ""
 ) -> str:
     if test_api and test_api._private_key:
         # Send order
@@ -161,7 +162,7 @@ async def rpc_create_order(
 
 
 async def rpc_create_mkt_order(
-    test_api: GrvtCcxtWS, symbol: str, side: str, client_order_id: str = ""
+    test_api: GrvtCcxtWS, symbol: str, side: GrvtOrderSide, client_order_id: str = ""
 ) -> str:
     FN = "rpc_create_mkt_order"
     if test_api and test_api._private_key:
@@ -197,7 +198,7 @@ async def rpc_fetch_order(test_api: GrvtCcxtWS, client_order_id: str) -> None:
 async def rpc_fetch_open_orders(test_api: GrvtCcxtWS) -> None:
     if test_api and test_api._private_key:
         # Send order
-        payload = await test_api.rpc_fetch_open_orders()
+        payload: dict = await test_api.rpc_fetch_open_orders()
         logger.info(f"rpc_fetch_open_orders: {payload=}")
 
 
@@ -216,7 +217,7 @@ async def rpc_cancel_order(
 async def rpc_cancel_all_orders(test_api: GrvtCcxtWS) -> None:
     if test_api and test_api._private_key:
         # Send order
-        payload = await test_api.rpc_cancel_all_orders()
+        payload: dict = await test_api.rpc_cancel_all_orders()
         logger.info(f"rpc_cancel_all_orders: {payload=}")
 
 
@@ -256,7 +257,7 @@ async def send_check_cancel_rpc_order(test_api: GrvtCcxtWS) -> None:
 
 async def send_rpc_messages(test_api: GrvtCcxtWS) -> None:
     """Sends test RPC messages for send/fetch/cancel orders."""
-    # await send_check_cancel_rpc_order(test_api)
+    await send_check_cancel_rpc_order(test_api)
     await cancel_send_rpc_order(test_api)
 
 
@@ -285,6 +286,6 @@ if __name__ == "__main__":
             sig, lambda: asyncio.create_task(shutdown(loop, test_api))
         )
     loop.run_until_complete(asyncio.sleep(5))
-    # loop.run_until_complete(send_rpc_messages(test_api))
+    loop.run_until_complete(send_rpc_messages(test_api))
     loop.run_forever()
     loop.close()

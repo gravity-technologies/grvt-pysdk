@@ -64,7 +64,7 @@ def get_grvt_endpoint_domains(env_name: str) -> dict[GrvtEndpointType, str]:
 def get_grvt_ws_endpoint(
     env: str,
     endpoint_type: GrvtWSEndpointType,
-) -> str | None:
+) -> str:
     """Returns string pointing to WS endpoint for given environment and endpoint type."""
     if env == GrvtEnv.PROD.value:
         return {
@@ -72,29 +72,29 @@ def get_grvt_ws_endpoint(
             GrvtWSEndpointType.MARKET_DATA: "wss://market-data.grvt.io/ws",
             GrvtWSEndpointType.TRADE_DATA_RPC_FULL: "wss://trades.grvt.io/ws/full",
             GrvtWSEndpointType.MARKET_DATA_RPC_FULL: "wss://market-data.grvt.io/ws/full",
-        }.get(endpoint_type)
+        }.get(endpoint_type, "")
     if env == GrvtEnv.TESTNET.value:
         return {
             GrvtWSEndpointType.TRADE_DATA: f"wss://trades.{env}.grvt.io/ws",
             GrvtWSEndpointType.MARKET_DATA: f"wss://market-data.{env}.grvt.io/ws",
             GrvtWSEndpointType.TRADE_DATA_RPC_FULL: f"wss://trades.{env}.grvt.io/ws/full",
             GrvtWSEndpointType.MARKET_DATA_RPC_FULL: f"wss://market-data.{env}.grvt.io/ws/full",
-        }.get(endpoint_type)
+        }.get(endpoint_type, "")
     if env == GrvtEnv.STAGING.value:
         return {
             GrvtWSEndpointType.TRADE_DATA: f"wss://trades.{env}.gravitymarkets.io/ws",
             GrvtWSEndpointType.MARKET_DATA: f"wss://market-data.{env}.gravitymarkets.io/ws",
             GrvtWSEndpointType.TRADE_DATA_RPC_FULL: f"wss://trades.{env}.gravitymarkets.io/ws/full",
             GrvtWSEndpointType.MARKET_DATA_RPC_FULL: f"wss://market-data.{env}.gravitymarkets.io/ws/full",
-        }.get(endpoint_type)
+        }.get(endpoint_type, "")
     if env == GrvtEnv.DEV.value:
         return {
             GrvtWSEndpointType.TRADE_DATA: f"wss://trades.{env}.gravitymarkets.io/ws",
             GrvtWSEndpointType.MARKET_DATA: f"wss://market-data.{env}.gravitymarkets.io/ws",
             GrvtWSEndpointType.TRADE_DATA_RPC_FULL: f"wss://trades.{env}.gravitymarkets.io/ws/full",
             GrvtWSEndpointType.MARKET_DATA_RPC_FULL: f"wss://market-data.{env}.gravitymarkets.io/ws/full",
-        }.get(endpoint_type)
-    return None
+        }.get(endpoint_type, "")
+    return ""
 
 # Mapping of WS stream names to DEFAULT endpoint types
 GRVT_WS_STREAMS = {

@@ -10,7 +10,7 @@ import logging
 import time
 from datetime import datetime
 from decimal import Decimal
-from typing import get_args
+from typing import get_args, Any
 
 from .grvt_ccxt_env import GrvtEnv
 from .grvt_ccxt_types import (
@@ -54,6 +54,7 @@ class GrvtCcxtBase:
         self._private_key: str = str(parameters.get("private_key", ""))
         self._api_key: str = str(parameters.get("api_key", ""))
         self._order_book_ccxt_format: bool = order_book_ccxt_format
+
         self._path_return_value_map: dict = {}
         self._cookie: dict | None = None
         self.markets: dict = {}
@@ -179,6 +180,7 @@ class GrvtCcxtBase:
         payload: dict[str, str | int | bool | list] = {
             "sub_account_id": str(self.get_trading_account_id())
         }
+
         if "kind" in params:
             payload["kind"] = [params["kind"]]
         if "base" in params:
@@ -307,6 +309,7 @@ class GrvtCcxtBase:
             a dictionary with a payload for Rest API call to fetch account history.<br>
         """
         payload: dict[str, str | int] = {"sub_account_id": str(self.get_trading_account_id())}
+
         if params.get("cursor"):
             payload["cursor"] = params["cursor"]
         else:
@@ -455,6 +458,7 @@ class GrvtCcxtBase:
         """
         if timeframe not in ccxt_interval_to_grvt_candlestick_interval:
             raise ValueError(f"Invalid timeframe {timeframe}")
+
         interval: CandlestickInterval = ccxt_interval_to_grvt_candlestick_interval[timeframe]
         payload: dict[str, str | int | bool | list] = {"instrument": symbol}
         if params.get("cursor"):
