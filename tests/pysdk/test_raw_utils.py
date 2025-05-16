@@ -100,7 +100,7 @@ def get_test_transfer(api: GrvtRawSync) -> grvt_fixed_types.Transfer | None:
     funding_account_address = get_main_account_id(api)
 
     return sign_transfer(
-        grvt_raw_types.Transfer(
+        grvt_fixed_types.Transfer(
             from_account_id=funding_account_address,
             from_sub_account_id="0",
             to_account_id=funding_account_address,
@@ -117,6 +117,8 @@ def get_test_transfer(api: GrvtRawSync) -> grvt_fixed_types.Transfer | None:
                 ),  # 20 days
                 nonce=random.randint(0, 2**32 - 1),
             ),
+            transfer_type=grvt_fixed_types.TransferType.STANDARD,
+            transfer_metadata="",
         ),
         api.config,
         api.account,

@@ -26,6 +26,7 @@ from .grvt_ccxt_env import CHAIN_IDS, GrvtEnv
 from .grvt_ccxt_types import (
     BTC_ETH_SIZE_MULTIPLIER,
     DURATION_SECOND_IN_NSEC,
+    Amount,
     GrvtOrderSide,
     GrvtOrderType,
     Num,
@@ -79,7 +80,9 @@ def get_EIP712_domain_data(env: GrvtEnv) -> dict[str, str | int]:
     }
 
 
-def get_cookie_with_expiration(path: str, api_key: str | None) -> dict[str, str | float] | None:
+def get_cookie_with_expiration(
+    path: str, api_key: str | None
+) -> dict[str, str | float | None] | None:
     """
     Authenticates and retrieves the session cookie, its expiration time and grvt-account-id token.
     :return: The session cookie.
@@ -124,7 +127,7 @@ def get_cookie_with_expiration(path: str, api_key: str | None) -> dict[str, str 
 
 async def get_cookie_with_expiration_async(
     path: str, api_key: str | None
-) -> dict[str, str | float] | None:
+) -> dict[str, str | float | None] | None:
     """
     Authenticates and retrieves the session cookie, its expiration time and grvt-account-id token.
     :return: The session cookie.
@@ -326,11 +329,8 @@ class GrvtOrder:
 
 
 def get_signable_message(
-    order: GrvtOrder, env: GrvtEnv, instruments: dict[str, Any] | None
-) -> SignableMessage | None:
-    if instruments is None:
-        logging.error("get_signable_message: instruments is None")
-        return None
+    order: GrvtOrder, env: GrvtEnv, instruments: dict[str, dict]
+) -> bytes | None:
     FN = f"get_signable_message {order=}"
     size_multiplier = BTC_ETH_SIZE_MULTIPLIER
     PRICE_MULTIPLIER = 1_000_000_000
@@ -365,13 +365,13 @@ def get_signable_message(
         "nonce": order.signature.nonce,
         "expiration": order.signature.expiration,
     }
-    domain_data = get_EIP712_domain_data(env)
+    domain_data: dict[str, str | int]= get_EIP712_domain_data(env)
     logging.info(f"{FN} {domain_data=}\n{EIP712_ORDER_MESSAGE_TYPE=}\n{message_data=}")
     return encode_typed_data(domain_data, EIP712_ORDER_MESSAGE_TYPE, message_data)
 
 
 def get_order_payload(
-    order: GrvtOrder, private_key: str, env: GrvtEnv, instruments: dict[str, Any] | None
+    order: GrvtOrder, private_key: str, env: GrvtEnv, instruments: dict[str, dict]
 ) -> dict:
     signable_message = get_signable_message(order, env, instruments)
     if signable_message is None:
@@ -417,7 +417,7 @@ def get_order_rpc_payload(
     order: GrvtOrder,
     private_key: str,
     env: GrvtEnv,
-    instruments: dict[str, Any] | None,
+    instruments: dict[str, dict],
     version: str = "v1",
 ) -> dict:
     order_payload = get_order_payload(order, private_key, env, instruments)
@@ -433,7 +433,7 @@ def get_grvt_order(
     symbol: str,
     order_type: GrvtOrderType,
     side: GrvtOrderSide,
-    amount: float | Decimal | str | int,
+    amount: Amount,
     limit_price: Num,
     order_duration_secs: float = 5 * 60,
     params: dict = {},

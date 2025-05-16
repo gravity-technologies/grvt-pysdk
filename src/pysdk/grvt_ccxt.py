@@ -5,7 +5,7 @@
 # ruff: noqa: W291
 # ruff: noqa: D400
 # ruff: noqa: E501
-
+from datetime import datetime
 import json
 import logging
 from decimal import Decimal
@@ -16,6 +16,7 @@ import requests
 from .grvt_ccxt_base import GrvtCcxtBase
 from .grvt_ccxt_env import GrvtEnv, get_grvt_endpoint
 from .grvt_ccxt_types import (
+    Amount,
     GrvtInstrumentKind,
     GrvtInvalidOrder,
     GrvtOrderSide,
@@ -52,15 +53,16 @@ class GrvtCcxt(GrvtCcxtBase):
         env: GrvtEnv,
         logger: logging.Logger | None = None,
         parameters: dict = {},
+        order_book_ccxt_format: bool = False,
     ):
         """Initialize the GrvtCcxt instance."""
-        super().__init__(env, logger, parameters)
+        super().__init__(env, logger, parameters, order_book_ccxt_format)
         self._clsname: str = type(self).__name__
         self._session: requests.Session = requests.Session()
         self._session.headers.update({"Content-Type": "application/json"})
         self.refresh_cookie()
         # Assign markets here
-        self.markets = self.load_markets()
+        self.markets: dict[str, dict] = self.load_markets()
 
     def refresh_cookie(self) -> dict | None:
         """Refresh the session cookie."""
@@ -140,7 +142,7 @@ class GrvtCcxt(GrvtCcxtBase):
         symbol: str,
         order_type: GrvtOrderType,
         side: GrvtOrderSide,
-        amount: float | Decimal | int | str,
+        amount: Amount,
         price: Num = None,
         params={},
     ) -> dict:
@@ -152,7 +154,7 @@ class GrvtCcxt(GrvtCcxtBase):
         # create GrvtOrder object
         order_duration_secs = params.get("order_duration_secs", 24 * 60 * 60)
         order = get_grvt_order(
-            sub_account_id=self._trading_account_id,
+            sub_account_id=self.get_trading_account_id(),
             symbol=symbol,
             order_type=order_type,
             side=side,
@@ -167,7 +169,7 @@ class GrvtCcxt(GrvtCcxtBase):
         self,
         symbol: str,
         side: GrvtOrderSide,
-        amount: float | Decimal | int | str,
+        amount: Amount,
         price: Num = None,
         params={},
     ) -> dict:
@@ -224,7 +226,7 @@ class GrvtCcxt(GrvtCcxtBase):
         FN = f"{self._clsname} cancel_order"
         self._check_account_auth()
         payload: dict = {
-            "sub_account_id": str(self._trading_account_id),
+            "sub_account_id": self.get_trading_account_id(),
         }
         if id:
             payload["order_id"] = str(id)
@@ -238,7 +240,7 @@ class GrvtCcxt(GrvtCcxtBase):
 
         path = get_grvt_endpoint(self.env, "CANCEL_ORDER")
         self.logger.info(
-            f"{FN} Send cancel {payload=} for trading_account_id={self._trading_account_id}"
+            f"{FN} Send cancel {payload=} for trading_account_id={self.get_trading_account_id()}"
         )
         response: dict = self._auth_and_post(path, payload)
         cancel_ack = response.get("result", {}).get("ack")
@@ -307,7 +309,7 @@ class GrvtCcxt(GrvtCcxtBase):
         """
         self._check_account_auth()
         payload = {
-            "sub_account_id": str(self._trading_account_id),
+            "sub_account_id": self.get_trading_account_id(),
         }
         if id:
             payload["order_id"] = id
@@ -348,11 +350,13 @@ class GrvtCcxt(GrvtCcxtBase):
         response: dict = self._auth_and_post(path, payload)
         return response
 
-    def get_account_summary(self, type: Literal["sub-account", "funding", "aggregated"]) -> dict:
+    def get_account_summary(
+        self, type: Literal["sub-account", "funding", "aggregated"] = "sub-account"
+    ) -> dict:
         """
         Return: The account summary.
         Private call requires authorization.<br>
-        See [Account Summary](https://api-docs.grvt.io/trading_api/#account_summary)
+        See [Account Summary](https://api-docs.grvt.io/trading_api/#sub-account_summary)
         for details.<br>
         Returns: dictionary with account data.<br>.
         """
@@ -361,7 +365,7 @@ class GrvtCcxt(GrvtCcxtBase):
         payload = {}
         if type == "sub-account":
             path = get_grvt_endpoint(self.env, "GET_ACCOUNT_SUMMARY")
-            payload = {"sub_account_id": str(self._trading_account_id)}
+            payload = {"sub_account_id": self.get_trading_account_id()}
         elif type == "funding":
             path = get_grvt_endpoint(self.env, "GET_FUNDING_ACCOUNT_SUMMARY")
         elif type == "aggregated":
@@ -375,7 +379,25 @@ class GrvtCcxt(GrvtCcxtBase):
             self.logger.info(f"{FN} No account summary for {path=} {payload=}")
         return sub_account
 
-    def fetch_account_history(self, params: dict = {}) -> dict:
+    def fetch_balances(self, type: Literal["sub-account", "funding", "aggregated"] = "sub-account") -> dict:
+        """
+        Ccxt compliant signature
+        Fetch balances for the account.<br>
+        Private call requires authorization.<br>
+        See [Account Summary](https://api-docs.grvt.io/trading_api/#sub-account_summary)
+            for details.<br>.
+
+        Args:
+            type: (str) - The type of account to fetch balances for. Defaults to 'sub-account'.
+                Valid values: 'sub-account', 'funding', 'aggregated'.
+
+        Returns: dictionary with ccxt-compliant balance data https://docs.ccxt.com/#/README?id=account-balance.<br>.
+        """
+        account_summary: dict = self.get_account_summary(type)
+        return self._get_balances_from_account_summary(account_summary)
+
+
+    def fetch_account_history(self, params: dict = {}, limit: int = 500) -> dict:
         """
         HISTORICAL data.<br>
         Get account history.<br>
@@ -384,6 +406,7 @@ class GrvtCcxt(GrvtCcxtBase):
             for details.<br>.
 
         Args:
+            limit: maximum number of account snapshots per page to fetch.<br>
             params: dictionary with parameters. Valid keys:<br>
                 `start_time` (int): fetch orders since this timestamp in nanoseconds.<br>
                 `end_time` (int): fetch orders until this timestamp in nanoseconds.<br>
@@ -397,7 +420,7 @@ class GrvtCcxt(GrvtCcxtBase):
         """
         self._check_account_auth()
         # Prepare request payload
-        payload = self._get_payload_fetch_account_history(params)
+        payload = self._get_payload_fetch_account_history(limit, params)
         # Post payload and parse the response
         path = get_grvt_endpoint(self.env, "GET_ACCOUNT_HISTORY")
         response: dict = self._auth_and_post(path, payload=payload)
@@ -474,7 +497,7 @@ class GrvtCcxt(GrvtCcxtBase):
         return response
 
     # **************** PUBLIC API CALLS
-    def load_markets(self) -> dict | None:
+    def load_markets(self) -> dict[str, dict]:
         self.logger.info("load_markets START")
         instruments = self.fetch_markets(
             params={
@@ -484,7 +507,9 @@ class GrvtCcxt(GrvtCcxtBase):
             }
         )
         if instruments:
-            self.markets = {i.get("instrument"): i for i in instruments if i.get("instrument")}
+            self.markets = {
+                str(i.get("instrument", "")): i for i in instruments if i.get("instrument")
+            }
             self.logger.info(f"load_markets: loaded {len(self.markets)} markets.")
         else:
             self.logger.warning("load_markets: No markets found.")
@@ -603,6 +628,9 @@ class GrvtCcxt(GrvtCcxtBase):
             payload["depth"] = limit
         path = get_grvt_endpoint(self.env, "GET_ORDER_BOOK")
         response: dict = self._auth_and_post(path, payload=payload)
+        if self.is_order_book_ccxt_format():
+            # Convert to ccxt format
+            return self.convert_grvt_ob_to_ccxt(response.get("result", {}))
         return response.get("result", {})
 
     def fetch_recent_trades(
@@ -619,7 +647,7 @@ class GrvtCcxt(GrvtCcxtBase):
         # 'is_taker_buyer': True, 'size': '24000000000', 'price': '2600000000000',
         # 'mark_price': '2591055564869', 'index_price': '2592459142472', 'interest_rate': 0,
         # 'forward_price': '0', 'trade_id': '729726', 'venue': 'ORDERBOOK'}
-        payload: dict[str, Any] = {"instrument": symbol}
+        payload: dict[str, str | int] = {"instrument": symbol}
         if limit:
             payload["limit"] = limit
         path = get_grvt_endpoint(self.env, "GET_TRADES")
@@ -637,7 +665,7 @@ class GrvtCcxt(GrvtCcxtBase):
         Ccxt compliant signature, HISTORICAL data.<br>
         Retrieve trade history of a given instrument.
         :param symbol: The instrument name.
-        :return: The list of trades.
+        :return: dict with field 'result' containing a list of trades.
         """
         #  List of {'event_time': '1724248876870635916', 'instrument': 'ETH_USDT_Perp',
         # 'is_taker_buyer': True, 'size': '24000000000', 'price': '2600000000000',
@@ -672,13 +700,14 @@ class GrvtCcxt(GrvtCcxtBase):
                             If cursor is present then we ignore other filters.<br>
                 `end_time` (int): end time in nanoseconds.<br>
         Returns:
-            list of dictionaries repesenting funding rate at a point in time with fields:<br>
+            dict with field 'result' containing list of dictionaries repesenting funding rate
+            at a point in time with fields:<br>
                 `instrument` (str): instrument name.<br>
                 'funding_rate' (float): funding rate.<br>
                 'funding_time' (int): funding time in nanoseconds.<br>
                 'mark_price' (float): mark price.<br>.
         """
-        payload: dict[str, Any] = {"instrument": symbol}
+        payload: dict[str, str | int] = {"instrument": symbol}
         if params.get("cursor"):
             payload["cursor"] = params["cursor"]
         else:
@@ -717,13 +746,7 @@ class GrvtCcxt(GrvtCcxtBase):
                 `end_time` (int): end time in nanoseconds.
                 `candle_type` (str): candle type. Valid values: 'TRADE', 'MARK', 'INDEX'.
         Returns:
-            list of dictionaries repesenting funding rate at a point in time with fields:<br>
-                `instrument` (str): instrument name.<br>
-                'funding_rate' (float): funding rate.<br>
-                'funding_time' (int): funding time in nanoseconds.<br>
-                'mark_price' (float): mark price.<br>
-        Returns:
-            a list of dictionaries, each dict representing a candlestick with fields:<br>
+            dict with field 'result' containing a list of dictionaries, each dict representing a candlestick with fields:<br>
                 `instrument` - instrument name.<br>
                 `open_time` - start of interval in nanoseconds.<br>
                 `close_time` - end of interval in nanoseconds.<br>

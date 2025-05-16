@@ -11,6 +11,7 @@ from pysdk.grvt_ccxt_types import GrvtOrderSide
 from pysdk.grvt_ccxt_utils import rand_uint32
 
 
+
 def get_open_orders(api: GrvtCcxt) -> list[dict]:
     open_orders: list[dict] = api.fetch_open_orders(
         symbol="BTC_USDT_Perp",
@@ -61,21 +62,13 @@ def print_instruments(api: GrvtCcxt):
         logger.info(f"{market=}")
         instrument = market["instrument"]
         logger.info(f"fetch_market: {instrument=}, {api.fetch_market(instrument)}")
-        logger.info(
-            f"fetch_mini_ticker: {instrument=}, {api.fetch_mini_ticker(instrument)}"
-        )
+        logger.info(f"fetch_mini_ticker: {instrument=}, {api.fetch_mini_ticker(instrument)}")
         logger.info(f"fetch_ticker: {instrument=}, {api.fetch_ticker(instrument)}")
+        logger.info(f"fetch_order_book {instrument=}, {api.fetch_order_book(instrument, limit=10)}")
         logger.info(
-            f"fetch_order_book {instrument=}, "
-            f"{api.fetch_order_book(instrument, limit=10)}"
+            f"fetch_recent_trades {instrument=}, {api.fetch_recent_trades(instrument, limit=5)}"
         )
-        logger.info(
-            f"fetch_recent_trades {instrument=}, "
-            f"{api.fetch_recent_trades(instrument, limit=5)}"
-        )
-        logger.info(
-            f"fetch_trades {instrument=}, {api.fetch_trades(instrument, limit=5)}"
-        )
+        logger.info(f"fetch_trades {instrument=}, {api.fetch_trades(instrument, limit=5)}")
         logger.info(
             f"fetch_funding_rate_history {instrument=}, "
             f"{api.fetch_funding_rate_history(instrument, limit=5)}"
@@ -209,15 +202,10 @@ def fetch_all_markets(api: GrvtCcxt):
 
 def print_account_summary(api: GrvtCcxt):
     try:
-        logger.info(
-            f"sub-account summary:\n{api.get_account_summary(type='sub-account')}"
-        )
-        logger.info(
-            f"funding-account summary:\n{api.get_account_summary(type='funding')}"
-        )
-        logger.info(
-            f"aggregated-account summary:\n{api.get_account_summary(type='aggregated')}"
-        )
+        logger.info(f"sub-account summary:\n{api.get_account_summary(type='sub-account')}")
+        logger.info(f"funding-account summary:\n{api.get_account_summary(type='funding')}")
+        logger.info(f"aggregated-account summary:\n{api.get_account_summary(type='aggregated')}")
+        logger.info(f"fetch_balances:\n{api.fetch_balances()}")
     except Exception as e:
         logger.error(f"account summary failed: {e}")
 
@@ -237,6 +225,13 @@ def print_positions(api: GrvtCcxt):
         logger.error(f"positions failed: {e}")
 
 
+def print_description(api: GrvtCcxt):
+    try:
+        logger.info(f"print_description: {api.describe()}")
+    except Exception as e:
+        logger.error(f"print_description failed: {e}")
+
+
 def test_grvt_ccxt():
     params = {
         "api_key": os.getenv("GRVT_API_KEY"),
@@ -244,8 +239,10 @@ def test_grvt_ccxt():
         "private_key": os.getenv("GRVT_PRIVATE_KEY"),
     }
     env = GrvtEnv(os.getenv("GRVT_ENV", "testnet"))
-    test_api = GrvtCcxt(env, logger, parameters=params)
+    test_api = GrvtCcxt(env, logger, parameters=params, order_book_ccxt_format=True)
     function_list = [
+        print_description,
+        # -------- MARKET related
         fetch_all_markets,
         print_markets,
         print_instruments,

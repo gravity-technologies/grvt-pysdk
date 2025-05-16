@@ -50,6 +50,7 @@ build: ## Build the project
 
 .PHONY: publish
 publish: ## Publish the project
+	python3 build_readme.py
 	make build
 	uv run twine upload --skip-existing dist/*
 
