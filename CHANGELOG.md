@@ -1,5 +1,13 @@
 # Changelog
 
+## Version [0.1.27] - 2025-05-19
+
+### Changed
+
+- `GrvtCcxt` and `GrvtCcxtPro` classes:
+  
+  - renamed method `fetch_balances()` to `fetch_balance()` as defined in ccxt.
+
 ## Version [0.1.26] - 2025-05-15
 
 ### Added

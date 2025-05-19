@@ -410,7 +410,7 @@ class GrvtCcxtPro(GrvtCcxtBase):
             self.logger.info(f"{FN} No account summary for {path=} {payload=}")
         return sub_account
 
-    async def fetch_balances(
+    async def fetch_balance(
         self, type: Literal["sub-account", "funding", "aggregated"] = "sub-account"
     ) -> dict:
         """
