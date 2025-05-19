@@ -185,7 +185,7 @@ async def print_account_summary(api: GrvtCcxtPro):
         logger.info(
             f"aggregated-account summary:\n{await api.get_account_summary(type='aggregated')}"
         )
-        logger.info(f"fetch_balances:\n{await api.fetch_balances()}")
+        logger.info(f"fetch_balance:\n{await api.fetch_balance()}")
     except Exception as e:
         logger.error(f"account summary failed: {e}")
 

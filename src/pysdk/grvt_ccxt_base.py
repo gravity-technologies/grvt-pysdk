@@ -68,7 +68,7 @@ class GrvtCcxtBase:
             "create_limit_order",
             "cancel_all_orders",
             "cancel_order",
-            "fetch_balances",
+            "fetch_balance",
             "fetch_open_orders",
             "fetch_order",
             "fetch_order_history",

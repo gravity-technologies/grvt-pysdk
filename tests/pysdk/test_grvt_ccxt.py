@@ -205,7 +205,7 @@ def print_account_summary(api: GrvtCcxt):
         logger.info(f"sub-account summary:\n{api.get_account_summary(type='sub-account')}")
         logger.info(f"funding-account summary:\n{api.get_account_summary(type='funding')}")
         logger.info(f"aggregated-account summary:\n{api.get_account_summary(type='aggregated')}")
-        logger.info(f"fetch_balances:\n{api.fetch_balances()}")
+        logger.info(f"fetch_balance:\n{api.fetch_balance()}")
     except Exception as e:
         logger.error(f"account summary failed: {e}")
 
