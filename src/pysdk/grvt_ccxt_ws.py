@@ -171,16 +171,17 @@ class GrvtCcxtWS(GrvtCcxtPro):
                 return True
             self.subscribed_streams[grvt_endpoint_type] = {}
             extra_headers = {}
+            if self._cookie:
+                extra_headers = {"Cookie": f"gravity={self._cookie['gravity']}"}
+                if self._cookie["X-Grvt-Account-Id"]:
+                    extra_headers.update(
+                        {"X-Grvt-Account-Id": self._cookie["X-Grvt-Account-Id"]}
+                    )
             if grvt_endpoint_type in [
                 GrvtWSEndpointType.TRADE_DATA,
                 GrvtWSEndpointType.TRADE_DATA_RPC_FULL,
             ]:
                 if self._cookie:
-                    extra_headers = {"Cookie": f"gravity={self._cookie['gravity']}"}
-                    if self._cookie["X-Grvt-Account-Id"]:
-                        extra_headers.update(
-                            {"X-Grvt-Account-Id": self._cookie["X-Grvt-Account-Id"]}
-                        )
                     self.ws[grvt_endpoint_type] = await websockets.connect(
                         uri=self.api_url[grvt_endpoint_type],
                         extra_headers=extra_headers,
@@ -198,10 +199,11 @@ class GrvtCcxtWS(GrvtCcxtPro):
             ]:
                 self.ws[grvt_endpoint_type] = await websockets.connect(
                     uri=self.api_url[grvt_endpoint_type],
+                    extra_headers=extra_headers,
                     logger=self.logger,
                     open_timeout=5,
                 )
-                self.logger.info(f"{FN} Connected to {self.api_url[grvt_endpoint_type]}")
+                self.logger.info(f"{FN} Connected to {self.api_url[grvt_endpoint_type]} {extra_headers=}")
         except (
             websockets.exceptions.ConnectionClosedOK,
             websockets.exceptions.ConnectionClosed,
