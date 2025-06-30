@@ -243,18 +243,18 @@ class GrvtCcxtBase:
                 if "quote" in params:
                     payload["quote"] = [params["quote"]]
             if since:
-                payload["start_time"] = since
+                payload["start_time"] = str(since)
             if params.get("end_time"):
-                payload["end_time"] = params["end_time"]
+                payload["end_time"] = str(params["end_time"])
             if limit:
-                payload["limit"] = limit
+                payload["limit"] = int(limit)
         return payload
 
     def _get_payload_fetch_trades(
         self,
         symbol: str,
         since: int | None = None,
-        limit: int = 20,
+        limit: int = 1_000,
         params: dict = {},
     ) -> dict:
         """
@@ -283,10 +283,10 @@ class GrvtCcxtBase:
             payload["cursor"] = params["cursor"]
         else:
             if since:
-                payload["start_time"] = since
+                payload["start_time"] = str(since)
             if params.get("end_time"):
-                payload["end_time"] = params["end_time"]
-            payload["limit"] = limit | 20
+                payload["end_time"] = str(params["end_time"])
+            payload["limit"] = limit
         return payload
 
     def _get_payload_fetch_account_history(
@@ -316,9 +316,9 @@ class GrvtCcxtBase:
             start_time = params.get("start_time")
             end_time = params.get("end_time")
             if start_time:
-                payload["start_time"] = start_time
+                payload["start_time"] = str(start_time)
             if end_time:
-                payload["end_time"] = end_time
+                payload["end_time"] = str(end_time)
             payload["limit"] = limit | 500
         return payload
 
@@ -471,11 +471,11 @@ class GrvtCcxtBase:
                 candle_type = CandlestickType[params["candle_type"]]
             payload["type"] = candle_type.value
             if since:
-                payload["start_time"] = since
+                payload["start_time"] = str(since)
             if "end_time" in params:
-                payload["end_time"] = params["end_time"]
+                payload["end_time"] = str(params["end_time"])
             if limit:
-                payload["limit"] = limit
+                payload["limit"] = int(limit)
         return payload
 
     def _get_balances_from_account_summary(self, account_summary: dict) -> dict:
