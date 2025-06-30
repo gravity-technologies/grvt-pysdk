@@ -165,6 +165,14 @@ class Currency(Enum):
     KAITO = "KAITO"
     # the IP token
     IP = "IP"
+    # HYPE token
+    HYPE = "HYPE"
+    # the UNI token
+    UNI = "UNI"
+    # MOODENG token
+    MOODENG = "MOODENG"
+    # the LAUNCHCOIN token
+    LAUNCHCOIN = "LAUNCHCOIN"
 
 
 class EpochBadgeType(Enum):
