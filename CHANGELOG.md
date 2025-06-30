@@ -1,5 +1,11 @@
 # Changelog
 
+## Version [0.1.28] - 2025-06-02
+
+### Changed
+  - Renamed currency name `AI_16_Z` into `AI16Z` in the **raw** code to match the exchange currency name.
+
+
 ## Version [0.1.27] - 2025-05-19
 
 ### Changed
