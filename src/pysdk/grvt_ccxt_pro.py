@@ -8,8 +8,7 @@
 
 import json
 import logging
-from decimal import Decimal
-from typing import Literal, Any
+from typing import Literal
 
 import aiohttp
 
@@ -714,16 +713,16 @@ class GrvtCcxtPro(GrvtCcxtBase):
         self,
         symbol: str,
         since: int = 0,
-        limit: int = 10,
+        limit: int = 1_000,
         params: dict = {},
     ) -> dict:
         """
         ccxt-compliant signature, HISTORICAL data.<br>
         Retrieve the funding rates history of a given instrument.<br>
         Args:
-            symbol: The instrument name.<br>
-            since: fetch trades since this timestamp in nanoseconds.<br>
-            limit: maximum number of trades to fetch.<br>
+            symbol (str): The instrument name.<br>
+            since (int): fetch trades since this timestamp in nanoseconds.<br>
+            limit: int - maximum number of trades to fetch.<br>
             params: dictionary with parameters. Valid keys:<br>
                 `cursor` (str): cursor for the pagination.
                             If cursor is present then we ignore other filters.<br>
@@ -741,11 +740,11 @@ class GrvtCcxtPro(GrvtCcxtBase):
             payload["cursor"] = params["cursor"]
         else:
             if since:
-                payload["start_time"] = since
+                payload["start_time"] = str(since)
             if params.get("end_time"):
-                payload["end_time"] = params["end_time"]
+                payload["end_time"] = str(params["end_time"])
             if limit:
-                payload["limit"] = limit
+                payload["limit"] = int(limit)
         path: str = get_grvt_endpoint(self.env, "GET_FUNDING")
         response: dict = await self._auth_and_post(path, payload=payload)
         return response

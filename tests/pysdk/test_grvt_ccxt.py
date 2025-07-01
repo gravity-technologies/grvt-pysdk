@@ -1,15 +1,16 @@
+
 import os
 import time
 import traceback
+from datetime import datetime
 from decimal import Decimal
 
 from pysdk.grvt_ccxt import GrvtCcxt
 from pysdk.grvt_ccxt_env import GrvtEnv
 from pysdk.grvt_ccxt_logging_selector import logger
 from pysdk.grvt_ccxt_test_utils import validate_return_values
-from pysdk.grvt_ccxt_types import GrvtOrderSide
+from pysdk.grvt_ccxt_types import DURATION_SECOND_IN_NSEC, GrvtOrderSide
 from pysdk.grvt_ccxt_utils import rand_uint32
-
 
 
 def get_open_orders(api: GrvtCcxt) -> list[dict]:
@@ -27,6 +28,21 @@ def fetch_order_history(api: GrvtCcxt) -> dict:
     )
     logger.info(f"order_history: {order_history=}")
     return order_history
+
+def fetch_funding_history(api: GrvtCcxt) -> dict:
+    start_date: datetime = datetime.strptime("2025-05-01T00:00:00Z", "%Y-%m-%dT%H:%M:%SZ")
+    funding_history: dict = api.fetch_funding_rate_history(
+        symbol="BTC_USDT_Perp",
+        since=int(start_date.timestamp() * DURATION_SECOND_IN_NSEC),  # Convert to nanoseconds
+        limit=500,
+    )
+    results: list = funding_history.get("result", [])
+    if results:
+        logger.info(f"funding_history: START={results[0]}")
+        logger.info(f"funding_history: END={results[-1]}")
+    else:
+        logger.info(f"funding_history: No results found in {funding_history=}")
+    return funding_history
 
 
 def cancel_orders(api: GrvtCcxt, open_orders: list) -> int:
@@ -252,6 +268,7 @@ def test_grvt_ccxt():
         # -------- TRADE related
         # fetch_my_trades,
         fetch_order_history,
+        fetch_funding_history,
         # # -------- order related
         send_fetch_order,
         fetch_my_trades,
