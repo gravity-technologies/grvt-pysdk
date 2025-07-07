@@ -61,6 +61,26 @@ def cancel_orders(api: GrvtCcxt, open_orders: list) -> int:
             logger.warning(f"{FN} client_order_id not found in {order_dict=}")
     return order_count
 
+def show_derisk_mm_ratios(api: GrvtCcxt, keyword: str) -> None:
+    """Show the current derisking market making ratios."""
+    FN = "show_derisk_mm_ratios"
+    acc_summary = api.get_account_summary(type="sub-account")
+    maintenance_margin = acc_summary.get("maintenance_margin")
+    derisk_margin = acc_summary.get("derisk_margin")
+    derisk_ratio = acc_summary.get("derisk_to_maintenance_margin_ratio")
+    logger.info(f"{FN} {keyword} {maintenance_margin=}")
+    logger.info(f"{FN} {keyword} {derisk_margin=}")
+    logger.info(f"{FN} {keyword} {derisk_ratio=}")
+    logger.info(f"sub-account summary:\n{acc_summary}")
+
+def set_derisk_mm_ratio(api: GrvtCcxt, ratio: str = "1.5") -> None:
+    """Set the derisking market making ratio."""
+    FN = f"set_derisk_mm_ratio {ratio=}"
+    logger.info(f"{FN} START")
+    show_derisk_mm_ratios(api, "BEFORE")
+    api.set_derisk_mm_ratio(ratio)
+    show_derisk_mm_ratios(api, "AFTER")
+
 
 def cancel_all_orders(api: GrvtCcxt) -> bool:
     FN = "cancel_all_orders"
@@ -281,8 +301,10 @@ def test_grvt_ccxt():
         get_open_orders,
         cancel_all_orders,
         get_open_orders,
+        # Derisk MM ratio
+        set_derisk_mm_ratio,
     ]
-    for f in function_list:  # [get_open_orders]:
+    for f in [set_derisk_mm_ratio]:
         try:
             f(test_api)
         except Exception as e:
