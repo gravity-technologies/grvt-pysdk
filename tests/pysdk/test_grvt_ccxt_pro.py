@@ -282,8 +282,9 @@ async def grvt_ccxt_pro():
         get_open_orders,
         cancel_all_orders,
         get_open_orders,
+        set_derisk_mm_ratio,
     ]
-    for f in [set_derisk_mm_ratio]:
+    for f in function_list:
         try:
             await f(test_api)
         except Exception as e:

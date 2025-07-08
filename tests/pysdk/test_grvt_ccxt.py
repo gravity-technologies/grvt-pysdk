@@ -304,7 +304,7 @@ def test_grvt_ccxt():
         # Derisk MM ratio
         set_derisk_mm_ratio,
     ]
-    for f in [set_derisk_mm_ratio]:
+    for f in function_list:
         try:
             f(test_api)
         except Exception as e:
