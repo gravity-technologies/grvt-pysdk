@@ -173,7 +173,8 @@ class Currency(Enum):
     MOODENG = "MOODENG"
     # the LAUNCHCOIN token
     LAUNCHCOIN = "LAUNCHCOIN"
-
+    # the H token
+    H = "H"
 
 class EpochBadgeType(Enum):
     # Champion
