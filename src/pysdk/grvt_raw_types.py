@@ -178,7 +178,6 @@ class Currency(Enum):
     # the SAHARA token
     SAHARA = "SAHARA"
 
-
 class EpochBadgeType(Enum):
     # Champion
     CHAMPION = "CHAMPION"
