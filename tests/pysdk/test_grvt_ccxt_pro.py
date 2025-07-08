@@ -73,7 +73,7 @@ async def show_derisk_mm_ratios(api: GrvtCcxtPro, keyword: str) -> None:
     logger.info(f"{FN} {keyword} {derisk_ratio=}")
     logger.info(f"sub-account summary:\n{acc_summary}")
 
-async def set_derisk_mm_ratio(api: GrvtCcxtPro, ratio: str = "1.4") -> None:
+async def set_derisk_mm_ratio(api: GrvtCcxtPro, ratio: str = "1.5") -> None:
     """Set the derisking market making ratio."""
     FN = f"set_derisk_mm_ratio {ratio=}"
     logger.info(f"{FN} START")

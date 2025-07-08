@@ -249,7 +249,7 @@ class GrvtCcxt(GrvtCcxtBase):
         self.logger.info(f"{FN} Cancelled {response=}")
         return True
 
-    def set_derisk_mm_ratio(self, ratio: Amount) -> bool:
+    def set_derisk_mm_ratio(self, ratio: str) -> bool:
         """
         Ccxt compliant signature
         Set the Derisk to Maintenance marginb ratio for the account.

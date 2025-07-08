@@ -508,7 +508,7 @@ def sign_derisk_mm_ratio_request(
     :param private_key_hex: The private key in hexadecimal format.
     :return: A dictionary containing the signature for the payload.
     """
-    derisk_ratio_int = int(float(ratio) * 1_000_000)
+    derisk_ratio_int = int(Decimal(ratio) * 1_000_000)
     expiration_ns = int((time.time() + 86400) * 1_000_000_000)
     nonce = random.randint(1, 2**32 - 1)
 
