@@ -1,4 +1,10 @@
 # Changelog
+
+## Version [0.1.31] - 2025-07-08
+
+### Changes in 0.1.31
+- added `AVAX` in the **raw** code (testing purposes)
+
 ## Version [0.1.30] - 2025-07-08
 
 ### Changes in 0.1.30

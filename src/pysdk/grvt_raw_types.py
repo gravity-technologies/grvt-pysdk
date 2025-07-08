@@ -177,6 +177,9 @@ class Currency(Enum):
     H = "H"
     # the SAHARA token
     SAHARA = "SAHARA"
+    # the AVAX token (for *testing* purposes)
+    AVAX = "AVAX"
+
 
 class EpochBadgeType(Enum):
     # Champion
