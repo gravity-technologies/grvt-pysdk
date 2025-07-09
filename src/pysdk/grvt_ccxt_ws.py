@@ -451,6 +451,49 @@ class GrvtCcxtWS(GrvtCcxtPro):
         else:
             self.logger.info(f"{FN} Connection not open. Will subscribe on connect.")
 
+    async def re_subscribe_stream(
+        self,
+        stream: str,
+        callback: Callable,
+        ws_end_point_type: GrvtWSEndpointType | None = None,
+        params: dict = {},
+    ) -> None:
+        """ This method should be called in a separate task - 
+        otherwise it will block the event loop for 5 seconds.
+        Unsubscribe from a specific stream and subscribe again with optional parameters.
+        Call the callback function when a message is received.
+        callback function should have the following signature:
+        (dict) -> None.
+        """
+        FN = f"{self._clsname} re_subscribe {stream=}"
+        if not ws_end_point_type:  # use default endpoint type
+            ws_end_point_type = GRVT_WS_STREAMS.get(stream)
+        if not ws_end_point_type:
+            self.logger.error(f"{FN} unknown GrvtWSEndpointType for {stream=}")
+            return
+        if not self.is_connection_open(ws_end_point_type):
+            self.logger.info(f"{FN} {ws_end_point_type=} not open. Try again after connect.")
+            return
+        is_trade_data = is_trading_ws_endpoint(ws_end_point_type)
+        if is_trade_data and not self._trading_account_id:
+            self.logger.error(
+                f"{FN} {stream=} is a trading data connection. Requires trading_account_id."
+            )
+            return
+        # create selector string and register callback
+        selector: str = self._construct_selector(stream, params)
+        versioned_stream: str = self.get_versioned_stream(stream)
+        if versioned_stream not in self.callbacks[ws_end_point_type]:
+            self.callbacks[ws_end_point_type][versioned_stream] = {}
+        self.callbacks[ws_end_point_type][versioned_stream][selector] = callback
+        # self.logger.info(
+        #     f"{FN} {params=} {ws_end_point_type=}/{versioned_stream=}/{selector=} callback:{callback}"
+        # )
+        await self._unsubscribe_to_stream(ws_end_point_type, versioned_stream, selector)
+        await asyncio.sleep(5)  # wait for unsubscribe to complete
+        await self._subscribe_to_stream(ws_end_point_type, versioned_stream, selector)
+        
+
     def get_versioned_stream(self, stream: str) -> str:
         return (
             stream if self.api_ws_version == "v0" else f"{self.api_ws_version}.{stream}"
@@ -504,6 +547,47 @@ class GrvtCcxtWS(GrvtCcxtPro):
         stream: str = self.get_non_versioned_stream(versioned_stream)
         if stream not in self._last_message:
             self._last_message[stream] = {}
+    
+    async def _unsubscribe_to_stream(
+        self,
+        ws_end_point_type: GrvtWSEndpointType,
+        versioned_stream: str,
+        selector: str,
+    ) -> None:
+        FN = (
+            f"{self._clsname} _unsubscribe_to_stream {ws_end_point_type=}"
+            f" {versioned_stream=} {selector=}"
+        )
+        self._request_id += 1
+        if ws_end_point_type in [
+            GrvtWSEndpointType.TRADE_DATA,
+            GrvtWSEndpointType.MARKET_DATA,
+        ]:  # Legacy subscription
+            subscribe_json = json.dumps(
+                {
+                    "request_id": self._request_id,
+                    "stream": versioned_stream,
+                    "feed": [selector],
+                    "method": "unsubscribe",
+                    "is_full": True,
+                }
+            )
+            self.logger.info(f"{FN} {versioned_stream=} {subscribe_json=}")
+        else:  # RPC WS format
+            self._request_id += 1
+            subscribe_json = json.dumps(
+                {
+                    "jsonrpc": "2.0",
+                    "method": "unsubscribe",
+                    "params": {
+                        "stream": versioned_stream,
+                        "selectors": [selector],
+                    },
+                    "id": self._request_id,
+                }
+            )
+            self.logger.info(f"{FN} {versioned_stream=} {subscribe_json=}")
+        await self._send(ws_end_point_type, subscribe_json)
 
     def jsonrpc_wrap_payload(
         self, payload: dict, method: str, version: str = "v1"
