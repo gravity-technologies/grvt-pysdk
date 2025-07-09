@@ -303,6 +303,10 @@ publish                        Publish the project
 ## Changelog
 
 # Changelog
+## Version [0.1.30] - 2025-07-08
+
+### Changes in 0.1.30
+- added `H` in the **raw** code
 
 ## Version [0.1.29] - 2025-06-30
 

@@ -279,6 +279,31 @@ class GrvtCcxtPro(GrvtCcxtBase):
         self.logger.info(f"{FN} Cancelled {response=}")
         return True
 
+    async def set_derisk_mm_ratio(self, ratio: str) -> bool:
+        """
+
+        Set the Derisk to Maintenance marginb ratio for the account.
+        Private call requires authorization.
+        See [Set Derisk M M ratio](https://api-docs.grvt.io/trading_api/#set-derisk-m-m-ratio)
+        for details.
+
+        Args:
+            ratio (Amount): The new derisking market making ratio.
+
+        Returns:
+            True if the request was acknowledged by the exchange. False otherwise.
+        """
+        FN = f"{self._clsname} set_derisk_mm_ratio"
+        self._check_account_auth()
+        payload: dict[str, str | dict] = self._get_set_derisk_mm_ratio_payload(str(ratio))
+        path = get_grvt_endpoint(self.env, "SET_DERISK_MM_RATIO")
+        self.logger.info(
+            f"{FN} Send {payload=} for trading_account_id={self.get_trading_account_id()}"
+        )
+        response: dict = await self._auth_and_post(path, payload)
+        self.logger.info(f"{FN} Set derisk_mm_ratio {response=}")
+        return True
+
     async def fetch_open_orders(
         self,
         symbol: str | None = None,

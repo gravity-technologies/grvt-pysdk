@@ -147,6 +147,7 @@ GRVT_ENDPOINTS = {
         "GET_ORDER": f"full/{END_POINT_VERSION}/order",
         "GET_ORDER_HISTORY": f"full/{END_POINT_VERSION}/order_history",
         "GET_FILL_HISTORY": f"full/{END_POINT_VERSION}/fill_history",
+        "SET_DERISK_MM_RATIO": f"full/{END_POINT_VERSION}/set_derisk_mm_ratio",
     },
     GrvtEndpointType.MARKET_DATA: {
         "GET_ALL_INSTRUMENTS": f"full/{END_POINT_VERSION}/all_instruments",

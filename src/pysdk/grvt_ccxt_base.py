@@ -10,7 +10,7 @@ import logging
 import time
 from datetime import datetime
 from decimal import Decimal
-from typing import get_args, Any
+from typing import Any, get_args
 
 from .grvt_ccxt_env import GrvtEnv
 from .grvt_ccxt_types import (
@@ -22,7 +22,7 @@ from .grvt_ccxt_types import (
     Num,
     ccxt_interval_to_grvt_candlestick_interval,
 )
-from .grvt_ccxt_utils import get_kuq_from_symbol
+from .grvt_ccxt_utils import get_kuq_from_symbol, sign_derisk_mm_ratio_request
 
 # COOKIE_REFRESH_INTERVAL_SECS = 60 * 60  # 30 minutes
 
@@ -511,7 +511,27 @@ class GrvtCcxtBase:
             balances["free"][currency] = balances[currency]["free"]
             balances["used"][currency] = balances[currency]["used"]
         return balances
-    
+
+    def _get_set_derisk_mm_ratio_payload(
+        self,
+        ratio: str,
+    ) -> dict[str, str | dict]:
+        """
+        Returns a payload for setting the derisking market making ratio.
+        """
+        payload: dict[str, str | dict] = {
+            "sub_account_id": self.get_trading_account_id(),
+            "ratio": str(ratio),
+        }
+        signature: dict = sign_derisk_mm_ratio_request(
+            self.env,
+            int(self.get_trading_account_id()),
+            str(ratio),
+            self._private_key
+        )
+        payload["signature"] = signature
+        return payload
+
     def convert_grvt_ob_to_ccxt(self, order_book: dict) -> dict:
         """
         Converts GRVT-specific order book format to CCXT format.

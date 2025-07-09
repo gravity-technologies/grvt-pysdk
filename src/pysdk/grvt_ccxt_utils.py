@@ -496,3 +496,49 @@ def get_grvt_order(
         post_only=post_only,
         reduce_only=reduce_only,
     )
+
+def sign_derisk_mm_ratio_request(
+    env: GrvtEnv, sub_account_id: int, ratio: str, private_key_hex: str
+):
+    """
+    Generate a signature for setting the derisk to maintenance margin ratio.
+    
+    :param sub_account_id: The sub-account ID to set the ratio for.
+    :param ratio: The derisk to maintenance margin ratio as a string (e.g., "2.0").
+    :param private_key_hex: The private key in hexadecimal format.
+    :return: A dictionary containing the signature for the payload.
+    """
+    derisk_ratio_int = int(Decimal(ratio) * 1_000_000)
+    expiration_ns = int((time.time() + 86400) * 1_000_000_000)
+    nonce = random.randint(1, 2**32 - 1)
+
+    domain_data = get_EIP712_domain_data(env)
+
+    types = {
+        "SetDeriskToMaintenanceMarginRatio": [
+            {"name": "subAccountID", "type": "uint64"},
+            {"name": "deriskToMaintenanceMarginRatio", "type": "uint32"},
+            {"name": "nonce", "type": "uint32"},
+            {"name": "expiration", "type": "int64"},
+        ]
+    }
+
+    signature_payload = {
+        "subAccountID": sub_account_id,
+        "deriskToMaintenanceMarginRatio": derisk_ratio_int,
+        "nonce": nonce,
+        "expiration": expiration_ns,
+    }
+
+    message = encode_typed_data(domain_data, types, signature_payload)
+    signed = Account.sign_message(message, private_key_hex)
+    signer = Account.from_key(private_key_hex)
+
+    return {
+        "signer": signer.address.lower(),
+        "r": hex(signed.r),
+        "s": hex(signed.s),
+        "v": signed.v,
+        "expiration": str(expiration_ns),
+        "nonce": nonce,
+    }
