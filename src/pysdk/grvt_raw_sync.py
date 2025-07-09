@@ -252,6 +252,16 @@ class GrvtRawSync(GrvtRawSyncBase):
             types.ApiFundingAccountSummaryResponse, resp, Config(cast=[Enum])
         )
 
+    def set_derisk_mm_ratio_v1(
+        self, req: types.ApiSetDeriskToMaintenanceMarginRatioRequest
+    ) -> types.ApiSetDeriskToMaintenanceMarginRatioResponse | GrvtError:
+        resp = self._post(True, self.td_rpc + "/full/v1/set_derisk_mm_ratio", req)
+        if resp.get("code"):
+            return GrvtError(**resp)
+        return from_dict(
+            types.ApiSetDeriskToMaintenanceMarginRatioResponse, resp, Config(cast=[Enum])
+        )
+
     def get_all_initial_leverage_v1(
         self, req: types.ApiGetAllInitialLeverageRequest
     ) -> types.ApiGetAllInitialLeverageResponse | GrvtError:
@@ -269,3 +279,53 @@ class GrvtRawSync(GrvtRawSyncBase):
         if resp.get("code"):
             return GrvtError(**resp)
         return from_dict(types.ApiSetInitialLeverageResponse, resp, Config(cast=[Enum]))
+
+    def vault_burn_tokens_v1(
+        self, req: types.ApiVaultBurnTokensRequest
+    ) -> types.AckResponse | GrvtError:
+        resp = self._post(True, self.td_rpc + "/full/v1/vault_burn_tokens", req)
+        if resp.get("code"):
+            return GrvtError(**resp)
+        return from_dict(types.AckResponse, resp, Config(cast=[Enum]))
+
+    def vault_invest_v1(
+        self, req: types.ApiVaultInvestRequest
+    ) -> types.AckResponse | GrvtError:
+        resp = self._post(True, self.td_rpc + "/full/v1/vault_invest", req)
+        if resp.get("code"):
+            return GrvtError(**resp)
+        return from_dict(types.AckResponse, resp, Config(cast=[Enum]))
+
+    def vault_investor_summary_v1(
+        self, req: types.ApiVaultInvestorSummaryRequest
+    ) -> types.ApiVaultInvestorSummaryResponse | GrvtError:
+        resp = self._post(True, self.td_rpc + "/full/v1/vault_investor_summary", req)
+        if resp.get("code"):
+            return GrvtError(**resp)
+        return from_dict(types.ApiVaultInvestorSummaryResponse, resp, Config(cast=[Enum]))
+
+    def vault_redeem_v1(
+        self, req: types.ApiVaultRedeemRequest
+    ) -> types.AckResponse | GrvtError:
+        resp = self._post(True, self.td_rpc + "/full/v1/vault_redeem", req)
+        if resp.get("code"):
+            return GrvtError(**resp)
+        return from_dict(types.AckResponse, resp, Config(cast=[Enum]))
+
+    def vault_redeem_cancel_v1(
+        self, req: types.ApiVaultRedeemCancelRequest
+    ) -> types.AckResponse | GrvtError:
+        resp = self._post(True, self.td_rpc + "/full/v1/vault_redeem_cancel", req)
+        if resp.get("code"):
+            return GrvtError(**resp)
+        return from_dict(types.AckResponse, resp, Config(cast=[Enum]))
+
+    def vault_redemption_queue_v1(
+        self, req: types.ApiVaultViewRedemptionQueueRequest
+    ) -> types.ApiVaultViewRedemptionQueueResponse | GrvtError:
+        resp = self._post(True, self.td_rpc + "/full/v1/vault_view_redemption_queue", req)
+        if resp.get("code"):
+            return GrvtError(**resp)
+        return from_dict(
+            types.ApiVaultViewRedemptionQueueResponse, resp, Config(cast=[Enum])
+        )
