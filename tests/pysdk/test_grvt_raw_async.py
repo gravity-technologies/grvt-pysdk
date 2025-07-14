@@ -4,7 +4,12 @@ from pysdk import grvt_raw_types
 from pysdk.grvt_raw_async import GrvtRawAsync
 from pysdk.grvt_raw_base import GrvtError
 
-from .test_raw_utils import get_config, get_test_order, get_test_transfer, get_test_withdrawal
+from .test_raw_utils import (
+    get_config,
+    get_test_order,
+    get_test_transfer,
+    get_test_withdrawal,
+)
 
 
 async def get_all_instruments() -> None:
@@ -31,8 +36,8 @@ async def open_orders() -> None:
         grvt_raw_types.ApiOpenOrdersRequest(
             sub_account_id=str(api.config.trading_account_id),
             kind=[grvt_raw_types.Kind.PERPETUAL],
-            base=[grvt_raw_types.Currency.BTC, grvt_raw_types.Currency.ETH],
-            quote=[grvt_raw_types.Currency.USDT],
+            base=["BTC", "ETH"],
+            quote=["USDT"],
         )
     )
     if isinstance(resp, GrvtError):
@@ -67,7 +72,7 @@ async def create_order_with_signing() -> None:
 async def transfer_with_signing_async() -> None:
     api = GrvtRawAsync(config=get_config())
     transfer = get_test_transfer(api)
-    
+
     if transfer is None:
         return None  # Skip test if configs are not set
 
@@ -87,11 +92,12 @@ async def transfer_with_signing_async() -> None:
         raise ValueError(f"Received error: {resp}")
     if resp.result is None:
         raise ValueError("Expected transfer response to be non-null")
-    
+
+
 async def withdrawal_with_signing_async() -> None:
     api = GrvtRawAsync(config=get_config())
     withdrawal = get_test_withdrawal(api)
-    
+
     if withdrawal is None:
         return None  # Skip test if configs are not set
 

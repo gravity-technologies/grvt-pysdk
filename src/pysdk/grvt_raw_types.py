@@ -10,13 +10,6 @@ from enum import Enum
 from typing import Any
 
 
-class BridgeType(Enum):
-    # XY Bridge type
-    XY = "XY"
-    # Rhino Bridge type
-    RHINO = "RHINO"
-
-
 class BrokerTag(Enum):
     UNSPECIFIED = "UNSPECIFIED"
     # CoinRoutes
@@ -82,33 +75,6 @@ class CandlestickType(Enum):
     INDEX = "INDEX"
     # Tracks book mid prices
     MID = "MID"
-
-
-class EpochBadgeType(Enum):
-    # Champion
-    CHAMPION = "CHAMPION"
-    # Legend
-    LEGEND = "LEGEND"
-    # Veteran
-    VETERAN = "VETERAN"
-    # Elite
-    ELITE = "ELITE"
-    # Master
-    MASTER = "MASTER"
-    # Expert
-    EXPERT = "EXPERT"
-    # Warrior
-    WARRIOR = "WARRIOR"
-    # Sergeant
-    SERGEANT = "SERGEANT"
-    # Ranger
-    RANGER = "RANGER"
-    # Challenger
-    CHALLENGER = "CHALLENGER"
-    # Apprentice
-    APPRENTICE = "APPRENTICE"
-    # Rookie
-    ROOKIE = "ROOKIE"
 
 
 class InstrumentSettlementPeriod(Enum):
@@ -234,39 +200,6 @@ class OrderStatus(Enum):
     CANCELLED = "CANCELLED"
 
 
-class QueryMainAccountLeaderboardOrderBy(Enum):
-    # Sort by realized PnL
-    PNL = "PNL"
-    # Sort by trading volume
-    TRADING_VOLUME = "TRADING_VOLUME"
-
-
-class RewardEpochStatus(Enum):
-    # Past
-    PAST = "PAST"
-    # Current
-    CURRENT = "CURRENT"
-    # Future
-    FUTURE = "FUTURE"
-
-
-class RewardProgramType(Enum):
-    ECOSYSTEM = "ECOSYSTEM"
-    TRADER = "TRADER"
-    LP = "LP"
-
-
-class SubAccountTradeInterval(Enum):
-    # 1 month
-    SAT_1_MO = "SAT_1_MO"
-    # 1 day
-    SAT_1_D = "SAT_1_D"
-    # 1 hour
-    SAT_1_H = "SAT_1_H"
-    # 4 hour
-    SAT_4_H = "SAT_4_H"
-
-
 class TimeInForce(Enum):
     """
     |                       | Must Fill All | Can Fill Partial |
@@ -288,20 +221,9 @@ class TimeInForce(Enum):
     RETAIL_PRICE_IMPROVEMENT = "RETAIL_PRICE_IMPROVEMENT"
 
 
-class TimeInterval(Enum):
-    # 1 day
-    INTERVAL_1_D = "INTERVAL_1_D"
-    # 7 days
-    INTERVAL_7_D = "INTERVAL_7_D"
-    # 30 days
-    INTERVAL_30_D = "INTERVAL_30_D"
-    # 90 days
-    INTERVAL_90_D = "INTERVAL_90_D"
-    # Lifetime
-    INTERVAL_LIFETIME = "INTERVAL_LIFETIME"
-
-
 class TransferType(Enum):
+    # Default transfer that has nothing to do with bridging
+    UNSPECIFIED = "UNSPECIFIED"
     # Standard transfer that has nothing to do with bridging
     STANDARD = "STANDARD"
     # Fast Arb Deposit Metadata type
@@ -352,11 +274,28 @@ class TriggerType(Enum):
     STOP_LOSS = "STOP_LOSS"
 
 
-class VaultType(Enum):
-    # Prime vault
-    PRIME = "PRIME"
-    # Launchpad vault
-    LAUNCH_PAD = "LAUNCH_PAD"
+class VaultInvestorAction(Enum):
+    UNSPECIFIED = "UNSPECIFIED"
+    VAULT_INVEST = "VAULT_INVEST"
+    VAULT_BURN_LP_TOKEN = "VAULT_BURN_LP_TOKEN"
+    VAULT_REDEEM = "VAULT_REDEEM"
+
+
+class VaultRedemptionReqAgeCategory(Enum):
+    """
+    Denotes the age category of a given redemption request.
+
+
+    """
+
+    # This request is at least as old as the minimum redemption period, and is eligible for automated redemption.
+    NORMAL = "NORMAL"
+    # This request is nearing the maxmimum redemption period and will be factored into pre-order check margin requirements.
+    URGENT = "URGENT"
+    # This request has exceeded the maximum redemption period and will be considered for forced redemptions.
+    OVERDUE = "OVERDUE"
+    # This request has yet to exceed the minimum redemption period, and is not yet eligible for automated redemption.
+    PRE_MIN = "PRE_MIN"
 
 
 class Venue(Enum):
@@ -1597,6 +1536,40 @@ class ApiGetAllInstrumentsResponse:
 
 
 @dataclass
+class ApiQueryVaultManagerInvestorHistoryRequest:
+    # The unique identifier of the vault to filter by
+    vault_id: str
+    # Whether to only return investments made by the manager
+    only_own_investments: bool
+
+
+@dataclass
+class ApiVaultInvestorHistory:
+    # Time at which the event was emitted in unix nanoseconds
+    event_time: str
+    # The off chain account id of the investor, only visible to the manager
+    off_chain_account_id: str
+    # The unique identifier of the vault.
+    vault_id: str
+    # The type of transaction that occurred. List of types: vaultInvest, vaultBurnLpToken, vaultRedeem
+    type: VaultInvestorAction
+    # The price of the vault LP tokens at the time of the event.
+    price: str
+    # The amount of Vault LP tokens invested or redeemed.
+    size: str
+    # The realized PnL of the vault.
+    realized_pnl: str
+    # The performance fee of the vault.
+    performance_fee: str
+
+
+@dataclass
+class ApiQueryVaultManagerInvestorHistoryResponse:
+    # The list of vault investor history belong to the manager
+    result: list[ApiVaultInvestorHistory]
+
+
+@dataclass
 class OrderLeg:
     # The instrument to trade in this leg
     instrument: str
@@ -2488,9 +2461,9 @@ class ApiVaultInvestRequest:
     main_account_id: str
     # The unique identifier of the vault to invest in.
     vault_id: str
-    # The currency used for the investment (e.g., USDT, DAI).
+    # The currency used for the investment. This should be the vault's quote currency.
     currency: str
-    # The number of tokens to invest, in base units (e.g., 6 decimals for USDT).
+    # The investment sum, in terms of the token currency specified (i.e., `numTokens` of '1000' with `tokenCurrency` of 'USDT' denotes investment of 1,000 USDT).
     num_tokens: str
     """
     The digital signature from the investing account.
@@ -2512,9 +2485,9 @@ class ApiVaultRedeemRequest:
     main_account_id: str
     # The unique identifier of the vault to redeem from.
     vault_id: str
-    # The currency used for the redemption (e.g., USDT, DAI).
+    # The currency used for the redemption. This should be the vault's quote currency.
     currency: str
-    # The number of tokens to redeem, in base units (e.g., 6 decimals for USDT).
+    # The number of shares to redeem.
     num_tokens: str
     """
     The digital signature from the investing account.
@@ -2561,15 +2534,17 @@ class ApiVaultViewRedemptionQueueRequest:
 
 
 @dataclass
-class VaultRedemptionReqView:
+class VaultRedemptionRequest:
     # [Filled by GRVT Backend] Time at which the redemption request was received by GRVT in unix nanoseconds
     request_time: str
-    # The currency to redeem in
-    currency: str
-    # The number of LP tokens to redeem
+    # The number of shares to redeem
     num_lp_tokens: str
     # [Filled by GRVT Backend] Time in unix nanoseconds, beyond which the request will be force-redeemed.
     max_redemption_period_timestamp: str
+    # Age category of this redemption request.
+    age_category: VaultRedemptionReqAgeCategory
+    # `true` if this request belongs to the vault manager, omitted otherwise.
+    is_manager: bool | None = None
 
 
 @dataclass
@@ -2585,15 +2560,15 @@ class ApiVaultViewRedemptionQueueResponse:
     """
 
     # Outstanding vault redemption requests, ordered by descending priority. Excludes requests that have not yet aged past the minmimum redemption period.
-    redemption_queue: list[VaultRedemptionReqView]
-    # Number of LP Tokens pending redemption (at least held in queue for minimum redemption period).
+    redemption_queue: list[VaultRedemptionRequest]
+    # Number of shares eligible for automated redemption (held in queue for at least the minimum redemption period).
     pending_redemption_token_count: str
-    # Number of LP Tokens due for urgent redemption (>= 90% of maximum redemption period).
+    # Number of shares nearing the maximum redemption period (>= 90% of maximum redemption period).
     urgent_redemption_token_count: str
-    # Amount available for automated redemption request servicing, expressed in terms of the vault's quote currency.
-    auto_redeemable_balance_vault_quote_cur: str
-    # This vault's quote currency.
-    currency: str
+    # Amount available for automated redemption request servicing (in USD).
+    auto_redeemable_balance: str
+    # Current share price (in USD).
+    share_price: str
 
 
 @dataclass
@@ -2620,7 +2595,7 @@ class VaultRedemption:
 
     # The number of LP Tokens requested for redemption.
     num_lp_tokens: str
-    # The valuation of the redemption request.
+    # The valuation (in USD) of the redemption request.
     request_valuation: str
     # [Filled by GRVT Backend] Time at which the redemption request was received by GRVT in unix nanoseconds
     request_time: str
@@ -2640,13 +2615,13 @@ class VaultInvestorSummary:
     sub_account_id: str
     # The number of Vault LP tokens held by the investor.
     num_lp_tokens: str
-    # The average entry price of the vault LP tokens.
+    # The average entry price (in USD) of the vault LP tokens.
     avg_entry_price: str
-    # The current price of the vault LP tokens.
+    # The current price (in USD) of the vault LP tokens.
     current_price: str
-    # The current valuation of all held vault LP tokens.
+    # The current valuation (in USD) of all held vault LP tokens.
     total_equity: str
-    # The all-time realized PnL that the investor has received from the vault.
+    # The all-time realized PnL (in USD) that the investor has received from the vault.
     all_time_realized_pnl: str
     # The singleton pending redemption (omitted if none).
     pending_redemption: VaultRedemption | None = None
@@ -2676,9 +2651,9 @@ class ApiVaultBurnTokensRequest:
     main_account_id: str
     # The unique identifier of the vault to burn tokens from.
     vault_id: str
-    # The currency used for the burn (e.g., USDT, DAI).
+    # The currency used for the burn. This should be the vault's quote currency.
     currency: str
-    # The number of tokens to burn, in base units (e.g., 6 decimals for USDT).
+    # The number of tokens to burn.
     num_tokens: str
     """
     The digital signature from the investing account.

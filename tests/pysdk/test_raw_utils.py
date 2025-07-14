@@ -105,7 +105,7 @@ def get_test_transfer(api: GrvtRawSync) -> grvt_fixed_types.Transfer | None:
             from_sub_account_id="0",
             to_account_id=funding_account_address,
             to_sub_account_id=str(api.config.trading_account_id),
-            currency=grvt_raw_types.Currency.USDT,
+            currency="USDT",
             num_tokens="1",
             signature=grvt_raw_types.Signature(
                 signer="",
@@ -140,7 +140,7 @@ def get_test_withdrawal(api: GrvtRawSync) -> grvt_raw_types.Withdrawal | None:
         grvt_raw_types.Withdrawal(
             from_account_id=funding_account_address,
             to_eth_address="0xed3FF6F4E84a64556e8F7d149dC3533f0c7D9c49",  # Just a test address
-            currency=grvt_raw_types.Currency.USDT,
+            currency="USDT",
             num_tokens="1",
             signature=grvt_raw_types.Signature(
                 signer="",
