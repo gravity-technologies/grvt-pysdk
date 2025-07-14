@@ -5,8 +5,11 @@
 # ruff: noqa: W291
 # ruff: noqa: D400
 # ruff: noqa: E501
+from datetime import datetime
+import time
 import json
 import logging
+from decimal import Decimal
 from typing import Any, Literal
 
 import requests
@@ -31,6 +34,61 @@ from .grvt_ccxt_utils import (
 
 
 class GrvtCcxt(GrvtCcxtBase):
+    def fetch_trades_with_pagination(
+        self,
+        symbol: str,
+        since: int | None = None,
+        end_time: int | None = None,
+        limit: int = 1000,
+        params: dict = {},
+        delay: float = 0.1,
+        max_attempts: int = 50,
+    ) -> list[dict]:
+        """
+        Fetch all public trades for a symbol in a time range, using cursor-based pagination.
+        Args:
+            symbol (str): Instrument name.
+            since (int|None): Start time in nanoseconds.
+            end_time (int|None): End time in nanoseconds.
+            limit (int): Max trades per request (API max 1000).
+            params (dict): Additional params (can include 'kind', 'base', 'quote', etc).
+            delay (float): Delay between paginated requests (seconds).
+            max_attempts (int): Max number of paginated requests.
+        Returns:
+            List of trade dicts (all pages concatenated).
+        """
+        FN = "fetch_trades_with_pagination"
+        all_trades = []
+        cursor = None
+        attempts = 0
+        done = False
+        while not done and attempts < max_attempts:
+            page_params = params.copy() if params else {}
+            if cursor:
+                page_params["cursor"] = cursor
+            payload = self._get_payload_fetch_trades(
+                symbol,
+                since=since if not cursor else None,  # only send since on first page
+                limit=limit,
+                params=page_params,
+            )
+            path = get_grvt_endpoint(self.env, "GET_TRADE_HISTORY")
+            response = self._auth_and_post(path, payload=payload)
+            trades = response.get("result", [])
+            all_trades.extend(trades)
+            cursor = response.get("next", None)
+            attempts += 1
+            if not cursor or not trades:
+                done = True
+            else:
+                time.sleep(delay)
+        # Optionally filter by end_time if provided
+        if end_time is not None and all_trades:
+            all_trades = [
+                t for t in all_trades if int(t.get("event_time", 0)) <= end_time
+            ]
+        return all_trades
+
     """
     GrvtCcxt class to interact with Grvt Rest API in synchronous mode.
 
@@ -100,7 +158,9 @@ class GrvtCcxt(GrvtCcxtBase):
         except Exception as err:
             self.logger.warning(f"{FN} Unable to parse {return_value=} as json. {err=}")
         if not return_value.ok:
-            self.logger.warning(f"{FN} ERROR {payload_json=}\n{return_value=}\n{response=}")
+            self.logger.warning(
+                f"{FN} ERROR {payload_json=}\n{return_value=}\n{response=}"
+            )
         else:
             if len(return_text) > MAX_LEN_TO_LOG:
                 self.logger.debug(f"{FN} OK {return_value=} {response=}")
@@ -116,7 +176,9 @@ class GrvtCcxt(GrvtCcxtBase):
         :param order: The GrvtOrder object.
         Return: dictionary representing the order response.
         """
-        FN = f"{self._clsname} _create_grvt_order cloid:{order.metadata.client_order_id}"
+        FN = (
+            f"{self._clsname} _create_grvt_order cloid:{order.metadata.client_order_id}"
+        )
         order_payload = get_order_payload(
             order,
             private_key=self._private_key,
@@ -284,7 +346,9 @@ class GrvtCcxt(GrvtCcxtBase):
         open_orders: list = response.get("result", [])
         if symbol:
             open_orders = [
-                o for o in open_orders if o.get("legs") and o["legs"][0].get("instrument") == symbol
+                o
+                for o in open_orders
+                if o.get("legs") and o["legs"][0].get("instrument") == symbol
             ]
         return open_orders
 
@@ -377,7 +441,9 @@ class GrvtCcxt(GrvtCcxtBase):
             self.logger.info(f"{FN} No account summary for {path=} {payload=}")
         return sub_account
 
-    def fetch_balance(self, type: Literal["sub-account", "funding", "aggregated"] = "sub-account") -> dict:
+    def fetch_balance(
+        self, type: Literal["sub-account", "funding", "aggregated"] = "sub-account"
+    ) -> dict:
         """
         Ccxt compliant signature
         Fetch balances for the account.<br>
@@ -393,7 +459,6 @@ class GrvtCcxt(GrvtCcxtBase):
         """
         account_summary: dict = self.get_account_summary(type)
         return self._get_balances_from_account_summary(account_summary)
-
 
     def fetch_account_history(self, params: dict = {}, limit: int = 500) -> dict:
         """
@@ -506,7 +571,9 @@ class GrvtCcxt(GrvtCcxtBase):
         )
         if instruments:
             self.markets = {
-                str(i.get("instrument", "")): i for i in instruments if i.get("instrument")
+                str(i.get("instrument", "")): i
+                for i in instruments
+                if i.get("instrument")
             }
             self.logger.info(f"load_markets: loaded {len(self.markets)} markets.")
         else:
@@ -683,16 +750,16 @@ class GrvtCcxt(GrvtCcxtBase):
         self,
         symbol: str,
         since: int = 0,
-        limit: int = 1_000,
+        limit: int = 10,
         params: dict = {},
     ) -> dict:
         """
         Ccxt compliant signature, HISTORICAL data.<br>
         Retrieve the funding rates history of a given instrument.<br>
         Args:
-            symbol (str): The instrument name.<br>
-            since (int): fetch trades since this timestamp in nanoseconds.<br>
-            limit: int - maximum number of trades to fetch.<br>
+            symbol: The instrument name.<br>
+            since: fetch trades since this timestamp in nanoseconds.<br>
+            limit: maximum number of trades to fetch.<br>
             params: dictionary with parameters. Valid keys:<br>
                 `cursor` (str): cursor for the pagination.
                             If cursor is present then we ignore other filters.<br>
@@ -710,11 +777,12 @@ class GrvtCcxt(GrvtCcxtBase):
             payload["cursor"] = params["cursor"]
         else:
             if since:
-                payload["start_time"] = str(since)
+                payload["start_time"] = since
             if params.get("end_time"):
-                payload["end_time"] = str(params["end_time"])
+                payload["end_time"] = params["end_time"]
             if limit:
-                payload["limit"] = int(limit)
+                payload["limit"] = limit
+
         path = get_grvt_endpoint(self.env, "GET_FUNDING")
         response: dict = self._auth_and_post(path, payload=payload)
         return response
