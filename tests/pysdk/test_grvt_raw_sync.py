@@ -13,7 +13,9 @@ from .test_raw_utils import (
 
 def test_get_all_instruments() -> None:
     api = GrvtRawSync(config=get_config())
-    resp = api.get_all_instruments_v1(grvt_raw_types.ApiGetAllInstrumentsRequest(is_active=True))
+    resp = api.get_all_instruments_v1(
+        grvt_raw_types.ApiGetAllInstrumentsRequest(is_active=True)
+    )
     if isinstance(resp, GrvtError):
         raise ValueError(f"Received error: {resp}")
     if resp.result is None:
@@ -34,8 +36,8 @@ def test_open_orders() -> None:
             # sub_account_id=233, Uncomment to test error path with invalid sub account id
             sub_account_id=str(api.config.trading_account_id),
             kind=[grvt_raw_types.Kind.PERPETUAL],
-            base=[grvt_raw_types.Currency.BTC, grvt_raw_types.Currency.ETH],
-            quote=[grvt_raw_types.Currency.USDT],
+            base=["BTC", "ETH"],
+            quote=["USDT"],
         )
     )
     if isinstance(resp, GrvtError):
@@ -76,7 +78,9 @@ def test_create_tpsl_order_with_signing() -> None:
     if isinstance(inst_resp, GrvtError):
         raise ValueError(f"Received error: {inst_resp}")
 
-    order = get_test_tpsl_order(api, {inst.instrument: inst for inst in inst_resp.result})
+    order = get_test_tpsl_order(
+        api, {inst.instrument: inst for inst in inst_resp.result}
+    )
     if order is None:
         return None  # Skip test if configs are not set
     resp = api.create_order_v1(grvt_raw_types.ApiCreateOrderRequest(order=order))
@@ -103,6 +107,8 @@ def test_transfer_with_signing() -> None:
             transfer.currency,
             transfer.num_tokens,
             transfer.signature,
+            grvt_raw_types.TransferType.STANDARD,
+            "",
         )
     )
 
