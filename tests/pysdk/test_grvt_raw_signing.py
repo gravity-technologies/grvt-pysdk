@@ -9,7 +9,6 @@ from pysdk.grvt_raw_base import GrvtApiConfig
 from pysdk.grvt_raw_env import GrvtEnv
 from pysdk.grvt_raw_signing import sign_order, sign_transfer
 from pysdk.grvt_raw_types import (
-    Currency,
     Instrument,
     InstrumentSettlementPeriod,
     Kind,
@@ -179,8 +178,8 @@ def test_sign_order_table():
         "BTC_USDT_Perp": Instrument(
             instrument="BTC_USDT_Perp",
             instrument_hash="0x030501",
-            base=Currency.BTC,
-            quote=Currency.USDT,
+            base="BTC",
+            quote="USDT",
             kind=Kind.PERPETUAL,
             venues=[],
             settlement_period=InstrumentSettlementPeriod.DAILY,
@@ -239,7 +238,7 @@ def test_sign_transfer_table():
                 from_sub_account_id="0",
                 to_account_id=main_account_id,
                 to_sub_account_id=sub_account_id,
-                currency=Currency.USDT,
+                currency="USDT",
                 num_tokens="1",
                 signature=Signature(
                     signer="", r="", s="", v=0, expiration=expiry, nonce=nonce
@@ -259,7 +258,7 @@ def test_sign_transfer_table():
                 from_sub_account_id="0",
                 to_account_id=main_account_id,
                 to_sub_account_id=sub_account_id,
-                currency=Currency.USDT,
+                currency="USDT",
                 num_tokens="1.5",
                 signature=Signature(
                     signer="", r="", s="", v=0, expiration=expiry, nonce=nonce
@@ -279,7 +278,7 @@ def test_sign_transfer_table():
                 from_sub_account_id=sub_account_id,
                 to_account_id=main_account_id,
                 to_sub_account_id="0",
-                currency=Currency.USDT,
+                currency="USDT",
                 num_tokens="1",
                 signature=Signature(
                     signer="", r="", s="", v=0, expiration=expiry, nonce=nonce
@@ -299,7 +298,7 @@ def test_sign_transfer_table():
                 from_sub_account_id=sub_account_id,
                 to_account_id=main_account_id,
                 to_sub_account_id="0",
-                currency=Currency.USDT,
+                currency="USDT",
                 num_tokens="1.5",
                 signature=Signature(
                     signer="", r="", s="", v=0, expiration=expiry, nonce=nonce
@@ -319,7 +318,7 @@ def test_sign_transfer_table():
                 from_sub_account_id="0",
                 to_account_id="0x6a3434fce60ff567f60d80fb98f2f981e9b081fd",
                 to_sub_account_id="0",
-                currency=Currency.USDT,
+                currency="USDT",
                 num_tokens="1",
                 signature=Signature(
                     signer="", r="", s="", v=0, expiration=expiry, nonce=nonce
@@ -339,7 +338,7 @@ def test_sign_transfer_table():
                 from_sub_account_id="0",
                 to_account_id="0x922a4874196806460fc63b5bcbff45f94c87f76f",
                 to_sub_account_id="0",
-                currency=Currency.USDT,
+                currency="USDT",
                 num_tokens="1.5",
                 signature=Signature(
                     signer="", r="", s="", v=0, expiration=expiry, nonce=nonce
