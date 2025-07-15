@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from .grvt_raw_types import Currency, Signature, TransferType
+from .grvt_raw_types import Signature, TransferType
 
 
 @dataclass
@@ -14,7 +14,7 @@ class Transfer:
     # The subaccount to transfer to (0 if transferring to main account)
     to_sub_account_id: str
     # The token currency to transfer
-    currency: Currency
+    currency: str
     # The number of tokens to transfer
     num_tokens: str
     # The signature of the transfer
