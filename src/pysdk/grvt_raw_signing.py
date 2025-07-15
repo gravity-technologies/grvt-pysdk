@@ -152,13 +152,13 @@ EIP712_TRANSFER_MESSAGE_TYPE = {
 }
 
 
-def build_EIP712_transfer_message_data(transfer: Transfer):
+def build_EIP712_transfer_message_data(transfer: Transfer, currencyId: int):
     return {
         "fromAccount": transfer.from_account_id,
         "fromSubAccount": transfer.from_sub_account_id,
         "toAccount": transfer.to_account_id,
         "toSubAccount": transfer.to_sub_account_id,
-        "tokenCurrency": GrvtCurrency[transfer.currency.value].value,
+        "tokenCurrency": currencyId,
         "numTokens": int(
             Decimal(transfer.num_tokens) * Decimal(1e6)
         ),  # USDT has 6 decimals
@@ -172,13 +172,14 @@ def sign_transfer(
     config: GrvtApiConfig,
     account: Account,
     chainId: int | None = None,
+    currencyId: int = 3,  # currencyId of USDT; refer to Get Currency API
 ) -> Transfer:
     if config.private_key is None:
         raise ValueError("Private key is not set")
 
     domain = get_EIP712_domain_data(config.env, chainId)
 
-    message_data = build_EIP712_transfer_message_data(transfer)
+    message_data = build_EIP712_transfer_message_data(transfer, currencyId)
     signable_message = encode_typed_data(
         domain, EIP712_TRANSFER_MESSAGE_TYPE, message_data
     )
@@ -208,11 +209,11 @@ EIP712_WITHDRAWAL_MESSAGE_TYPE = {
 }
 
 
-def build_EIP712_withdrawal_message_data(withdrawal: Withdrawal):
+def build_EIP712_withdrawal_message_data(withdrawal: Withdrawal, currencyId: int):
     return {
         "fromAccount": withdrawal.from_account_id,
         "toEthAddress": withdrawal.to_eth_address,
-        "tokenCurrency": GrvtCurrency[withdrawal.currency.value].value,
+        "tokenCurrency": currencyId,
         "numTokens": int(
             Decimal(withdrawal.num_tokens) * Decimal(1e6)
         ),  # USDT has 6 decimals
@@ -226,13 +227,14 @@ def sign_withdrawal(
     config: GrvtApiConfig,
     account: Account,
     chainId: int | None = None,
+    currencyId: int = 3,  # currencyId of USDT; refer to Get Currency API
 ) -> Withdrawal:
     if config.private_key is None:
         raise ValueError("Private key is not set")
 
     domain = get_EIP712_domain_data(config.env, chainId)
 
-    message_data = build_EIP712_withdrawal_message_data(withdrawal)
+    message_data = build_EIP712_withdrawal_message_data(withdrawal, currencyId)
     signable_message = encode_typed_data(
         domain, EIP712_WITHDRAWAL_MESSAGE_TYPE, message_data
     )
