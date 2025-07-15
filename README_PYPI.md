@@ -308,6 +308,21 @@ publish                        Publish the project
 ### Changes in 0.1.30
 - added `H` in the **raw** code
 
+## Version [0.1.32] - 2025-07-15
+### Changes in 0.1.32
+- removed explicit enums in `grvt_raw_types.py` (no need to update SDK for when new coins are listed)
+- added vault-related functionality
+
+
+## Version [0.1.31] - 2025-07-08
+### Changes in 0.1.31
+- added AVAX in the raw code (testing purposes)
+
+## Version [0.1.30] - 2025-07-08
+
+### Changes in 0.1.30
+- added `H` in the **raw** code
+
 ## Version [0.1.29] - 2025-06-30
 
 ### Changes in 0.1.29
