@@ -327,7 +327,9 @@ class GrvtCcxt(GrvtCcxtBase):
         """
         FN = f"{self._clsname} set_derisk_mm_ratio"
         self._check_account_auth()
-        payload: dict[str, str | dict] = self._get_set_derisk_mm_ratio_payload(str(ratio))
+        payload: dict[str, str | dict] = self._get_set_derisk_mm_ratio_payload(
+            str(ratio)
+        )
         path = get_grvt_endpoint(self.env, "SET_DERISK_MM_RATIO")
         self.logger.info(
             f"{FN} Send {payload=} for trading_account_id={self.get_trading_account_id()}"
@@ -779,7 +781,7 @@ class GrvtCcxt(GrvtCcxtBase):
         self,
         symbol: str,
         since: int = 0,
-        limit: int = 10,
+        limit: int = 1_000,
         params: dict = {},
     ) -> dict:
         """
@@ -806,11 +808,11 @@ class GrvtCcxt(GrvtCcxtBase):
             payload["cursor"] = params["cursor"]
         else:
             if since:
-                payload["start_time"] = since
+                payload["start_time"] = str(since)
             if params.get("end_time"):
-                payload["end_time"] = params["end_time"]
+                payload["end_time"] = str(params["end_time"])
             if limit:
-                payload["limit"] = limit
+                payload["limit"] = int(limit)
 
         path = get_grvt_endpoint(self.env, "GET_FUNDING")
         response: dict = self._auth_and_post(path, payload=payload)
