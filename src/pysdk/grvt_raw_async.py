@@ -40,6 +40,14 @@ class GrvtRawAsync(GrvtRawAsyncBase):
             types.ApiGetFilteredInstrumentsResponse, resp, Config(cast=[Enum])
         )
 
+    async def get_currency_v1(
+        self, req: types.ApiGetCurrencyRequest
+    ) -> types.ApiGetCurrencyResponse | GrvtError:
+        resp = await self._post(False, self.md_rpc + "/full/v1/currency", req)
+        if resp.get("code"):
+            return GrvtError(**resp)
+        return from_dict(types.ApiGetCurrencyResponse, resp, Config(cast=[Enum]))
+
     async def mini_ticker_v1(
         self, req: types.ApiMiniTickerRequest
     ) -> types.ApiMiniTickerResponse | GrvtError:

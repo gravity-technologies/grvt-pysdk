@@ -658,9 +658,20 @@ class FundingAccountSummary:
 
 
 @dataclass
+class ClientTier:
+    tier: int
+    futures_taker_fee: int
+    futures_maker_fee: int
+    options_taker_fee: int
+    options_maker_fee: int
+
+
+@dataclass
 class ApiFundingAccountSummaryResponse:
     # The funding account summary
     result: FundingAccountSummary
+    # Client fee tier at the time of query
+    tier: ClientTier
 
 
 @dataclass
@@ -1447,6 +1458,29 @@ class ApiGetFilteredInstrumentsRequest:
 class ApiGetFilteredInstrumentsResponse:
     # The instruments matching the request filter
     result: list[Instrument]
+
+
+@dataclass
+class ApiGetCurrencyRequest:
+    pass
+
+
+@dataclass
+class CurrencyDetail:
+    # The integer value of the currency
+    id: int
+    # The name of the currency
+    symbol: str
+    # The balance decimals of the currency
+    balance_decimals: int
+    # The quantity multiplier of the currency
+    quantity_multiplier: str
+
+
+@dataclass
+class ApiGetCurrencyResponse:
+    # The list of currencies
+    result: list[CurrencyDetail]
 
 
 @dataclass
