@@ -304,6 +304,12 @@ publish                        Publish the project
 
 # Changelog
 
+## Version [0.2.0] - 2025-07-16
+### Changes in 0.2.0
+- additional fixes for removal of explicit enums in `grvt_raw_types.py` 
+- Note: this update would `break existing integrations` for `non-create-order flows` (e.g., transfer/withdrawal history, transfer, get open orders, get-instrument filters) to handle currency strings directly instead of enums.
+- users will be losing the currency enum when they upgrade, so they would need to call the currencies endpoin (https://api-docs.grvt.io/market_data_api/#get-currency ), for which the support has been added in PySDK (`get_currency_v1()` in grvt_raw_async.py and grvt_raw_sync.py), for the metadata attached to the currency strings.
+
 ## Version [0.1.32] - 2025-07-15
 ### Changes in 0.1.32
 - removed explicit enums in `grvt_raw_types.py` (no need to update SDK for when new coins are listed)
