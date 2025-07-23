@@ -6,8 +6,8 @@ from pysdk.grvt_ccxt_env import GrvtEnv
 from pysdk.grvt_ccxt_logging_selector import logger
 
 
-def test_vault_manager_investor_history(api: GrvtCcxt):
-    FN = "test_vault_manager_investor_history"
+def call_vault_manager_investor_history(api: GrvtCcxt):
+    FN = "call_vault_manager_investor_history"
     logger.info(f"{FN}: START")
     try:
         history = api.fetch_vault_manager_investor_history()
@@ -20,8 +20,8 @@ def test_vault_manager_investor_history(api: GrvtCcxt):
         logger.error(f"{FN} failed: {e}")
 
 
-def test_vault_redemption_queue(api: GrvtCcxt):
-    FN = "test_vault_redemption_queue"
+def call_vault_redemption_queue(api: GrvtCcxt):
+    FN = "call_vault_redemption_queue"
     logger.info(f"{FN}: START")
     try:
         redemption_queue = api.fetch_vault_redemption_queue()
@@ -39,8 +39,8 @@ def test_grvt_ccxt_vault():
     env = GrvtEnv(os.getenv("GRVT_ENV", "testnet"))
     test_api = GrvtCcxt(env, logger, parameters=params, order_book_ccxt_format=True)
     function_list = [
-        test_vault_manager_investor_history,
-        test_vault_redemption_queue,
+        call_vault_manager_investor_history,
+        call_vault_redemption_queue,
     ]
     for f in function_list:
         try:

@@ -7,8 +7,8 @@ from pysdk.grvt_ccxt_logging_selector import logger
 from pysdk.grvt_ccxt_pro import GrvtCcxtPro
 
 
-async def test_vault_manager_investor_history(api: GrvtCcxtPro):
-    FN = "test_vault_manager_investor_history"
+async def call_vault_manager_investor_history(api: GrvtCcxtPro):
+    FN = "call_vault_manager_investor_history"
     logger.info(f"{FN}: START")
     try:
         history = await api.fetch_vault_manager_investor_history()
@@ -21,8 +21,8 @@ async def test_vault_manager_investor_history(api: GrvtCcxtPro):
         logger.error(f"{FN} failed: {e}")
 
 
-async def test_vault_redemption_queue(api: GrvtCcxtPro):
-    FN = "test_vault_redemption_queue"
+async def call_vault_redemption_queue(api: GrvtCcxtPro):
+    FN = "call_vault_redemption_queue"
     logger.info(f"{FN}: START")
     try:
         redemption_queue = await api.fetch_vault_redemption_queue()
@@ -42,8 +42,8 @@ async def grvt_ccxt_vault_pro():
     await test_api.load_markets()
     await asyncio.sleep(2)
     function_list = [
-        test_vault_manager_investor_history,
-        test_vault_redemption_queue,
+        call_vault_manager_investor_history,
+        call_vault_redemption_queue,
     ]
     for f in function_list:
         try:
