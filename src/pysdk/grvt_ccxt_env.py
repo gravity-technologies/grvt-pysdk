@@ -148,6 +148,8 @@ GRVT_ENDPOINTS = {
         "GET_ORDER_HISTORY": f"full/{END_POINT_VERSION}/order_history",
         "GET_FILL_HISTORY": f"full/{END_POINT_VERSION}/fill_history",
         "SET_DERISK_MM_RATIO": f"full/{END_POINT_VERSION}/set_derisk_mm_ratio",
+        "GET_VAULT_MANAGER_INVESTOR_HISTORY": f"full/{END_POINT_VERSION}/vault_manager_investor_history",
+        "GET_VAULT_REDEMPTION_QUEUE": f"full/{END_POINT_VERSION}/vault_view_redemption_queue",
     },
     GrvtEndpointType.MARKET_DATA: {
         "GET_ALL_INSTRUMENTS": f"full/{END_POINT_VERSION}/all_instruments",
