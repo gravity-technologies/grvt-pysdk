@@ -1,5 +1,13 @@
 # Changelog
 
+## Version [0.2.1] - 2025-07-24
+
+### Changes in 0.2.1
+
+- New methods in ccxt-compatible code for Strategy (Vault) managers to view investment history and current redemption queue of a Vault.
+  - Classes `GrvtCcxt` and `GrvtCcxtPro`
+  - Methods `fetch_vault_manager_investor_history` and `fetch_vault_redemption_queue`
+
 ## Version [0.2.0] - 2025-07-16
 
 ### Changes in 0.2.0
