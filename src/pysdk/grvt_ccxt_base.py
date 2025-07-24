@@ -97,7 +97,6 @@ class GrvtCcxtBase:
         """Returns True if order book should be returned in CCXT format."""
         return self._order_book_ccxt_format
 
-
     def should_refresh_cookie(self) -> bool:
         """
         Retuns:
@@ -524,10 +523,7 @@ class GrvtCcxtBase:
             "ratio": str(ratio),
         }
         signature: dict = sign_derisk_mm_ratio_request(
-            self.env,
-            int(self.get_trading_account_id()),
-            str(ratio),
-            self._private_key
+            self.env, int(self.get_trading_account_id()), str(ratio), self._private_key
         )
         payload["signature"] = signature
         return payload
@@ -542,12 +538,49 @@ class GrvtCcxtBase:
             "bids": [],
             "asks": [],
             "timestamp": ob_time_ms,
-            "datetime": datetime.fromtimestamp(ob_time_ms / 1_000).strftime(
-                "%Y-%m-%dT%H:%M:%S.%f"
-            )[:-3]
+            "datetime": datetime.fromtimestamp(ob_time_ms / 1_000).strftime("%Y-%m-%dT%H:%M:%S.%f")[
+                :-3
+            ]
             + "Z",
             "nonce": int(order_book["event_time"]),
         }
         ccxt_ob["bids"] = [[bid["price"], bid["size"]] for bid in order_book["bids"]]
         ccxt_ob["asks"] = [[ask["price"], ask["size"]] for ask in order_book["asks"]]
         return ccxt_ob
+
+    # Vault Management APIs
+    def _get_fetch_vault_manager_investor_history_payload(
+        self,
+        vault_id: str,
+        only_own_investments: bool = False,
+    ) -> dict:
+        """
+        Prepares payload for fetch_vault_manager_investor_history() method.<br>.
+
+        Args:
+            vault_id: The vault id to fetch history for.<br>
+            only_own_investments: If True, fetch only investments by the manager.<br>
+
+        Returns:
+            A dictionary with a payload for Rest API call to fetch vault investor history.
+        """
+        payload: dict[str, str | bool] = {
+            "vault_id": vault_id,
+            "only_own_investments": only_own_investments,
+        }
+        return payload
+
+    def _get_fetch_vault_redemption_queue_payload(
+        self,
+        vault_id: str,
+    ) -> dict:
+        """
+        Prepares payload for fetch_vault_redemption_queue() method.<br>.
+
+        Args:
+            vault_id: The vault id to fetch redemption queue for.<br>
+
+        Returns:
+            A dictionary with a payload for Rest API call to fetch vault redemption queue.
+        """
+        return {"vault_id": vault_id}

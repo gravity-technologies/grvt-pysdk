@@ -6,6 +6,7 @@
 # ruff: noqa: D400
 # ruff: noqa: E501
 
+import asyncio
 import json
 import logging
 from typing import Literal
@@ -66,6 +67,13 @@ class GrvtCcxtPro(GrvtCcxtBase):
             get_grvt_endpoint(self.env, "AUTH"), self._api_key
         )
         self.update_session_with_cookie()
+
+    def __del__(self):
+        """Close the aiohttp session when the instance is deleted."""
+        self.logger.info(f"{self._clsname} __del__() called")
+        if self._session:
+            self.logger.info(f"{self._clsname} closing session")
+            asyncio.get_running_loop().create_task(self._session.close())
 
     def update_session_with_cookie(self) -> None:
         if self._cookie:
@@ -815,3 +823,19 @@ class GrvtCcxtPro(GrvtCcxtBase):
         path: str = get_grvt_endpoint(self.env, "GET_CANDLESTICK")
         response: dict = await self._auth_and_post(path, payload=payload)
         return response
+
+    # Vault Management APIs
+    async def fetch_vault_manager_investor_history(self, only_own_investments: bool = False) -> dict:
+        payload: dict = self._get_fetch_vault_manager_investor_history_payload(
+            vault_id=self.get_trading_account_id(),
+            only_own_investments=only_own_investments,  # Default to False to fetch all investments
+        )
+        path: str = get_grvt_endpoint(self.env, "GET_VAULT_MANAGER_INVESTOR_HISTORY")
+        return await self._auth_and_post(path, payload=payload)
+
+    async def fetch_vault_redemption_queue(self):
+        payload: dict = self._get_fetch_vault_redemption_queue_payload(
+            vault_id=self.get_trading_account_id()
+        )
+        path: str = get_grvt_endpoint(self.env, "GET_VAULT_REDEMPTION_QUEUE")
+        return await self._auth_and_post(path, payload=payload)
