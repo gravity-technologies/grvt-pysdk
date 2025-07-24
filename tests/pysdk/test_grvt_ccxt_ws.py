@@ -263,10 +263,16 @@ async def send_rpc_messages(test_api: GrvtCcxtWS) -> None:
 
 async def shutdown(loop, test_api: GrvtCcxtWS) -> None:
     """Clean up resources and stop the bot gracefully."""
+    import time
     logger.info("Shutting down gracefully...")
     if test_api:
         for stream, message in test_api._last_message.items():
             logger.info(f"Last message: {stream=} {message=}")
+    logger.info("Delete GrvtCcxtWS...")
+    del test_api  # Close the websocket connection and session
+    time.sleep(3)  # Allow time for cleanup
+    await asyncio.sleep(5)  # Allow time for cleanup
+    logger.info("Cancelling all tasks...")
     tasks = [t for t in asyncio.all_tasks(loop) if t is not asyncio.current_task(loop)]
     _ = [task.cancel() for task in tasks]
     logger.info(f"Cancelling {len(tasks)=}")

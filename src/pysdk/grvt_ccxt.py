@@ -406,7 +406,9 @@ class GrvtCcxt(GrvtCcxtBase):
             self.logger.info(f"{FN} No account summary for {path=} {payload=}")
         return sub_account
 
-    def fetch_balance(self, type: Literal["sub-account", "funding", "aggregated"] = "sub-account") -> dict:
+    def fetch_balance(
+        self, type: Literal["sub-account", "funding", "aggregated"] = "sub-account"
+    ) -> dict:
         """
         Ccxt compliant signature
         Fetch balances for the account.<br>
@@ -422,7 +424,6 @@ class GrvtCcxt(GrvtCcxtBase):
         """
         account_summary: dict = self.get_account_summary(type)
         return self._get_balances_from_account_summary(account_summary)
-
 
     def fetch_account_history(self, params: dict = {}, limit: int = 500) -> dict:
         """
@@ -790,5 +791,22 @@ class GrvtCcxt(GrvtCcxtBase):
         )
         self.logger.info(f"{FN} {payload=}")
         path = get_grvt_endpoint(self.env, "GET_CANDLESTICK")
-        response: dict = self._auth_and_post(path, payload=payload)
-        return response
+        return self._auth_and_post(path, payload=payload)
+
+    # Vault Management APIs
+    def fetch_vault_manager_investor_history(self, only_own_investments: bool = False) -> dict:
+        payload: dict = self._get_fetch_vault_manager_investor_history_payload(
+            vault_id=self.get_trading_account_id(),
+            only_own_investments=only_own_investments,  # Default to False to fetch all investments
+        )
+        path: str = get_grvt_endpoint(self.env, "GET_VAULT_MANAGER_INVESTOR_HISTORY")
+        # path = "https://trades.grvt.io/full/v1/vault_manager_investor_history"
+        return self._auth_and_post(path, payload=payload)
+
+    def fetch_vault_redemption_queue(self):
+        payload: dict = self._get_fetch_vault_redemption_queue_payload(
+            vault_id=self.get_trading_account_id()
+        )
+        path: str = get_grvt_endpoint(self.env, "GET_VAULT_REDEMPTION_QUEUE")
+        #  path = "https://trades.grvt.io/full/v1/vault_view_redemption_queue"
+        return self._auth_and_post(path, payload=payload)
