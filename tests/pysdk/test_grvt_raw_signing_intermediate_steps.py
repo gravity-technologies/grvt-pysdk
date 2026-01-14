@@ -824,6 +824,7 @@ Got:
 
 def main():
     functions = [
+        test_sign_order_table,
         test_sign_transfer_table,
     ]
     for f in functions:
