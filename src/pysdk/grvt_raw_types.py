@@ -1757,6 +1757,8 @@ class Order:
     post_only: bool | None = None
     # If True, Order must reduce the position size, or be cancelled
     reduce_only: bool | None = None
+    builder: str | None = None
+    builder_fee: str | None = None
     # [Filled by GRVT Backend] The current state of the order, ignored by the smart contract, and unsigned by the client
     state: OrderState | None = None
 

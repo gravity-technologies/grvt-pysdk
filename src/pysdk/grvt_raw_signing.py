@@ -75,6 +75,47 @@ EIP712_ORDER_MESSAGE_TYPE = {
     ],
 }
 
+#####################
+ # Sign Order With Builder Fee #
+ #####################
+
+BUILDER_FEE_DECIMALS = 4
+BUILDER_FEE_MULTIPLIER = 10**BUILDER_FEE_DECIMALS  # 10_000
+
+EIP712_ORDER_WITH_BUILDER_FEE_MESSAGE_TYPE = {
+    "OrderWithBuilderFee": [
+        {"name": "subAccountID", "type": "uint64"},
+        {"name": "isMarket", "type": "bool"},
+        {"name": "timeInForce", "type": "uint8"},
+        {"name": "postOnly", "type": "bool"},
+        {"name": "reduceOnly", "type": "bool"},
+        {"name": "legs", "type": "OrderLeg[]"},
+        {"name": "builder", "type": "address"},
+        {"name": "builderFee", "type": "uint32"},
+        {"name": "nonce", "type": "uint32"},
+        {"name": "expiration", "type": "int64"},
+    ],
+    "OrderLeg": [
+        {"name": "assetID", "type": "uint256"},
+        {"name": "contractSize", "type": "uint64"},
+        {"name": "limitPrice", "type": "uint64"},
+        {"name": "isBuyingContract", "type": "bool"},
+    ],
+}
+
+ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
+
+
+def _has_builder(order: Order) -> bool:
+    """Check if the order has a non-zero builder address."""
+    return (
+        hasattr(order, "builder")
+        and order.builder is not None
+        and order.builder != ""
+        and order.builder != "0"
+        and order.builder != ZERO_ADDRESS
+    )
+
 
 def sign_order(
     order: Order,
@@ -85,12 +126,21 @@ def sign_order(
     if config.private_key is None:
         raise ValueError("Private key is not set")
 
-    message_data = build_EIP712_order_message_data(order, instruments)
-
     domain_data = get_EIP712_domain_data(config.env, CHAIN_IDS[config.env])
-    signable_message = encode_typed_data(
-        domain_data, EIP712_ORDER_MESSAGE_TYPE, message_data
-    )
+
+    if _has_builder(order):
+        message_data = build_EIP712_order_with_builder_fee_message_data(
+            order, instruments
+        )
+        signable_message = encode_typed_data(
+            domain_data, EIP712_ORDER_WITH_BUILDER_FEE_MESSAGE_TYPE, message_data
+        )
+    else:
+        message_data = build_EIP712_order_message_data(order, instruments)
+        signable_message = encode_typed_data(
+            domain_data, EIP712_ORDER_MESSAGE_TYPE, message_data
+        )
+
     signed_message = account.sign_message(signable_message)
 
     order.signature.s = "0x" + signed_message.s.to_bytes(32, byteorder="big").hex()
@@ -99,6 +149,32 @@ def sign_order(
     order.signature.signer = str(account.address)
 
     return order
+
+
+def build_EIP712_order_with_builder_fee_message_data(
+    order: Order, instruments: dict[str, Instrument]
+) -> dict[str, Any]:
+    """Build EIP-712 message data for orders with a builder.
+
+    When an order has a non-zero builder address, the EIP-712 type changes to
+    OrderWithBuilderFee which includes builder (address) and builderFee (uint32)
+    in the signed struct. The builderFee is encoded as centibeeps with 4 decimal
+    places: "0.001" -> 0.001 * 10^4 = 10.
+    """
+    base = build_EIP712_order_message_data(order, instruments)
+    builder_fee_int = int(Decimal(order.builder_fee) * Decimal(BUILDER_FEE_MULTIPLIER))
+    return {
+        "subAccountID": base["subAccountID"],
+        "isMarket": base["isMarket"],
+        "timeInForce": base["timeInForce"],
+        "postOnly": base["postOnly"],
+        "reduceOnly": base["reduceOnly"],
+        "legs": base["legs"],
+        "builder": order.builder,
+        "builderFee": builder_fee_int,
+        "nonce": base["nonce"],
+        "expiration": base["expiration"],
+    }
 
 
 def build_EIP712_order_message_data(
