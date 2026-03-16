@@ -1,0 +1,5 @@
+# Requirements for the standalone GRVT Order Signer script
+# Install with: pip install -r requirements_standalone.txt
+
+eth-account>=0.13.4
+requests>=2.32.3

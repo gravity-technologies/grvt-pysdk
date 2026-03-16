@@ -1,0 +1,222 @@
+{
+  "AAVE_USDT_Perp": {
+    "instrument_hash": "0x032201",
+    "base_decimals": 9
+  },
+  "ADA_USDT_Perp": {
+    "instrument_hash": "0x032101",
+    "base_decimals": 6
+  },
+  "AI16Z_USDT_Perp": {
+    "instrument_hash": "0x032001",
+    "base_decimals": 6
+  },
+  "AIXBT_USDT_Perp": {
+    "instrument_hash": "0x031f01",
+    "base_decimals": 6
+  },
+  "ARB_USDT_Perp": {
+    "instrument_hash": "0x030701",
+    "base_decimals": 6
+  },
+  "ATOM_USDT_Perp": {
+    "instrument_hash": "0x030c01",
+    "base_decimals": 6
+  },
+  "AVAX_USDT_Perp": {
+    "instrument_hash": "0x033001",
+    "base_decimals": 6
+  },
+  "BERA_USDT_Perp": {
+    "instrument_hash": "0x032301",
+    "base_decimals": 6
+  },
+  "BNB_USDT_Perp": {
+    "instrument_hash": "0x030801",
+    "base_decimals": 9
+  },
+  "BTC_USDT_Perp": {
+    "instrument_hash": "0x030501",
+    "base_decimals": 9
+  },
+  "CFX_USDT_Perp": {
+    "instrument_hash": "0x033601",
+    "base_decimals": 6
+  },
+  "CRV_USDT_Perp": {
+    "instrument_hash": "0x033101",
+    "base_decimals": 6
+  },
+  "DOGE_USDT_Perp": {
+    "instrument_hash": "0x031e01",
+    "base_decimals": 6
+  },
+  "ENA_USDT_Perp": {
+    "instrument_hash": "0x031d01",
+    "base_decimals": 6
+  },
+  "ETH_USDT_Perp": {
+    "instrument_hash": "0x030401",
+    "base_decimals": 9
+  },
+  "FARTCOIN_USDT_Perp": {
+    "instrument_hash": "0x031c01",
+    "base_decimals": 6
+  },
+  "HBAR_USDT_Perp": {
+    "instrument_hash": "0x033401",
+    "base_decimals": 6
+  },
+  "HYPE_USDT_Perp": {
+    "instrument_hash": "0x032901",
+    "base_decimals": 6
+  },
+  "H_USDT_Perp": {
+    "instrument_hash": "0x032e01",
+    "base_decimals": 6
+  },
+  "IP_USDT_Perp": {
+    "instrument_hash": "0x032801",
+    "base_decimals": 6
+  },
+  "JUP_USDT_Perp": {
+    "instrument_hash": "0x031b01",
+    "base_decimals": 6
+  },
+  "KAITO_USDT_Perp": {
+    "instrument_hash": "0x032701",
+    "base_decimals": 6
+  },
+  "KBONK_USDT_Perp": {
+    "instrument_hash": "0x031a01",
+    "base_decimals": 6
+  },
+  "KPEPE_USDT_Perp": {
+    "instrument_hash": "0x030d01",
+    "base_decimals": 3
+  },
+  "KSHIB_USDT_Perp": {
+    "instrument_hash": "0x031601",
+    "base_decimals": 6
+  },
+  "LAUNCHCOIN_USDT_Perp": {
+    "instrument_hash": "0x032a01",
+    "base_decimals": 6
+  },
+  "LINEA_USDT_Perp": {
+    "instrument_hash": "0x033a01",
+    "base_decimals": 6
+  },
+  "LINK_USDT_Perp": {
+    "instrument_hash": "0x031901",
+    "base_decimals": 6
+  },
+  "LTC_USDT_Perp": {
+    "instrument_hash": "0x033301",
+    "base_decimals": 9
+  },
+  "MNT_USDT_Perp": {
+    "instrument_hash": "0x033801",
+    "base_decimals": 6
+  },
+  "MOODENG_USDT_Perp": {
+    "instrument_hash": "0x032b01",
+    "base_decimals": 6
+  },
+  "ONDO_USDT_Perp": {
+    "instrument_hash": "0x033501",
+    "base_decimals": 6
+  },
+  "OP_USDT_Perp": {
+    "instrument_hash": "0x030b01",
+    "base_decimals": 6
+  },
+  "PENDLE_USDT_Perp": {
+    "instrument_hash": "0x032501",
+    "base_decimals": 6
+  },
+  "PENGU_USDT_Perp": {
+    "instrument_hash": "0x031801",
+    "base_decimals": 6
+  },
+  "POL_USDT_Perp": {
+    "instrument_hash": "0x030a01",
+    "base_decimals": 6
+  },
+  "POPCAT_USDT_Perp": {
+    "instrument_hash": "0x031701",
+    "base_decimals": 6
+  },
+  "PROVE_USDT_Perp": {
+    "instrument_hash": "0x033701",
+    "base_decimals": 6
+  },
+  "PUMP_USDT_Perp": {
+    "instrument_hash": "0x032f01",
+    "base_decimals": 6
+  },
+  "SAHARA_USDT_Perp": {
+    "instrument_hash": "0x032d01",
+    "base_decimals": 6
+  },
+  "SEI_USDT_Perp": {
+    "instrument_hash": "0x033201",
+    "base_decimals": 6
+  },
+  "SOL_USDT_Perp": {
+    "instrument_hash": "0x030601",
+    "base_decimals": 9
+  },
+  "SUI_USDT_Perp": {
+    "instrument_hash": "0x031501",
+    "base_decimals": 6
+  },
+  "TON_USDT_Perp": {
+    "instrument_hash": "0x030e01",
+    "base_decimals": 6
+  },
+  "TRUMP_USDT_Perp": {
+    "instrument_hash": "0x031401",
+    "base_decimals": 6
+  },
+  "UNI_USDT_Perp": {
+    "instrument_hash": "0x032c01",
+    "base_decimals": 6
+  },
+  "UXLINK_USDT_Perp": {
+    "instrument_hash": "0x032601",
+    "base_decimals": 6
+  },
+  "VINE_USDT_Perp": {
+    "instrument_hash": "0x032401",
+    "base_decimals": 6
+  },
+  "VIRTUAL_USDT_Perp": {
+    "instrument_hash": "0x031301",
+    "base_decimals": 6
+  },
+  "WIF_USDT_Perp": {
+    "instrument_hash": "0x031201",
+    "base_decimals": 6
+  },
+  "WLD_USDT_Perp": {
+    "instrument_hash": "0x031101",
+    "base_decimals": 6
+  },
+  "WLFI_USDT_Perp": {
+    "instrument_hash": "0x033901",
+    "base_decimals": 6
+  },
+  "XLM_USDT_Perp": {
+    "instrument_hash": "0x031001",
+    "base_decimals": 6
+  },
+  "XRP_USDT_Perp": {
+    "instrument_hash": "0x030f01",
+    "base_decimals": 6
+  },
+  "ZK_USDT_Perp": {
+    "instrument_hash": "0x030901",
+    "base_decimals": 6
+  }
+}

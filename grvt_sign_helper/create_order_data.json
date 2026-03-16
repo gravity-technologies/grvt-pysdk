@@ -1,0 +1,24 @@
+{
+    "order": {
+        "sub_account_id": "7371323884240051",
+        "is_market": false,
+        "time_in_force": "GOOD_TILL_TIME",
+        "post_only": false,
+        "reduce_only": false,
+        "legs": [
+            {
+                "instrument": "ETH_USDT_Perp",
+                "size": "0.1",
+                "limit_price": "4538.1",
+                "is_buying_asset": true
+            }
+        ],
+        "signature": {
+            "expiration": "1757697532019000000",
+            "nonce": 1234562
+        },
+        "metadata": {
+            "client_order_id": "23043"
+        }
+    }
+}
