@@ -10,8 +10,10 @@ from pysdk.grvt_raw_base import GrvtApiConfig
 from pysdk.grvt_raw_env import GrvtEnv
 from pysdk.grvt_raw_signing import (
     EIP712_ORDER_MESSAGE_TYPE,
+    EIP712_ORDER_WITH_BUILDER_FEE_MESSAGE_TYPE,
     EIP712_TRANSFER_MESSAGE_TYPE,
     build_EIP712_order_message_data,
+    build_EIP712_order_with_builder_fee_message_data,
     build_EIP712_transfer_message_data,
     get_EIP712_domain_data,
     sign_order,
@@ -337,6 +339,212 @@ def test_sign_order_table():
         domain_data = get_EIP712_domain_data(config.env, 326)
         signable_message = encode_typed_data(
             domain_data, EIP712_ORDER_MESSAGE_TYPE, message_data
+        )
+        signed_message = account.sign_message(signable_message)
+        signed_order = sign_order(tc["order"], config, account, instruments)
+
+        # Convert to comparable strings
+        message_data_json = json.dumps(message_data, indent=2)
+        domain_data_json = json.dumps(domain_data, indent=2)
+        signable_message_json = json.dumps(
+            {
+                "version": signable_message.version.hex(),
+                "header": signable_message.header.hex(),
+                "body": signable_message.body.hex(),
+            },
+            indent=2,
+        )
+        signed_message_json = json.dumps(
+            {
+                "message_hash": signed_message.message_hash.hex(),
+                "r": signed_message.r,
+                "s": signed_message.s,
+                "v": signed_message.v,
+                "signature": signed_message.signature.hex(),
+            },
+            indent=2,
+        )
+        # EIP-712 signable message format: https://eips.ethereum.org/EIPS/eip-712
+        signed_message_hash_preimage = (
+            "0x19"
+            + signable_message.version.hex()
+            + signable_message.header.hex()
+            + signable_message.body.hex()
+        )
+
+        # Strip whitespace for comparison
+        assert (
+            message_data_json.strip() == tc["expected_message_data_json"].strip()
+        ), f"""
+Test '{tc['name']}' failed: message_data mismatch.
+Wanted:
+{tc['expected_message_data_json'].strip()}
+Got:
+{message_data_json.strip()}
+"""
+        assert (
+            domain_data_json.strip() == tc["expected_domain_data_json"].strip()
+        ), f"""
+Test '{tc['name']}' failed: domain_data mismatch.
+Wanted:
+{tc['expected_domain_data_json'].strip()}
+Got:
+{domain_data_json.strip()}
+"""
+        assert (
+            signable_message_json.strip() == tc["expected_signable_message"].strip()
+        ), f"""
+Test '{tc['name']}' failed: signable_message mismatch.
+Wanted:
+{tc['expected_signable_message'].strip()}
+Got:
+{signable_message_json.strip()}
+"""
+        assert (
+            signed_message_hash_preimage.strip() == tc["digest_input"].strip()
+        ), f"""
+Test '{tc['name']}' failed: digest_input mismatch.
+Wanted:
+{tc["digest_input"].strip()
+}
+Got:
+{signed_message_hash_preimage.strip()}
+"""
+        assert (
+            signed_message_json.strip() == tc["expected_signed_message"].strip()
+        ), f"""
+Test '{tc['name']}' failed: signed_message mismatch.
+Wanted:
+{tc['expected_signed_message'].strip()}
+Got:
+{signed_message_json.strip()}
+"""
+        assert (
+            signed_order.signature.signer == str(account.address) == "0x" + public_key
+        ), f"""Test '{tc['name']}' failed: signer mismatch."""
+
+
+def test_sign_order_with_builder_fee_table():
+    # Generated using https://key.tokenpocket.pro/#/?network=ETH
+    # NOTE: `0x` hexadecimal prefix removed
+    public_key = "ee2060eECaC18beC7F8F670D751801294911E445"
+    private_key = "c0663ca94684aead40c41a1cb3a94b68a24296e87245be3a186e882a29a15ee0"
+
+    sub_account_id = "8289849667772468"
+    expiry = 1730800479321350000
+    nonce = 828700936
+    builder = "0xAbC1230001230001230001230001230001230001"
+
+    test_cases = [
+        {
+            "name": "builder fee 0.001 (10 centibeeps)",
+            "order": Order(
+                metadata=OrderMetadata(
+                    client_order_id="1", create_time="1730800479321350000"
+                ),
+                sub_account_id=sub_account_id,
+                time_in_force=TimeInForce.GOOD_TILL_TIME,
+                post_only=False,
+                is_market=False,
+                reduce_only=False,
+                legs=[
+                    OrderLeg(
+                        instrument="BTC_USDT_Perp",
+                        size="1.013",
+                        limit_price="68900.5",
+                        is_buying_asset=False,
+                    )
+                ],
+                signature=Signature(
+                    signer="", r="", s="", v=0, expiration=expiry, nonce=nonce
+                ),
+                builder=builder,
+                builder_fee="0.001",
+            ),
+            "expected_message_data_json": """
+{
+  "subAccountID": "8289849667772468",
+  "isMarket": false,
+  "timeInForce": 1,
+  "postOnly": false,
+  "reduceOnly": false,
+  "legs": [
+    {
+      "assetID": "0x030501",
+      "contractSize": 1013000000,
+      "limitPrice": 68900500000000,
+      "isBuyingContract": false
+    }
+  ],
+  "builder": "0xAbC1230001230001230001230001230001230001",
+  "builderFee": 10,
+  "nonce": 828700936,
+  "expiration": 1730800479321350000
+}""",
+            "expected_domain_data_json": """
+{
+  "name": "GRVT Exchange",
+  "version": "0",
+  "chainId": 326
+}""",
+            # Per EIP-191: https://eips.ethereum.org/EIPS/eip-191
+            "expected_signable_message": """
+{
+  "version": "01",
+  "header": "1254f97f8495f704630a238cbcd898a4b8ab20d77bb93e17049d3445f4f81f16",
+  "body": "e25016c55a8577506f3d6218b660fc3c663cdaf2eded6517c9d501ca9f4addde"
+}""",
+            # EIP-712 signable message format: https://eips.ethereum.org/EIPS/eip-712
+            # Pre-image of the signed message's message hash
+            # encode(domainSeparator : 𝔹²⁵⁶, message : 𝕊) = "\x19"‖ version ‖ domainSeparator ‖ hashStruct(message)
+            "digest_input": "0x19011254f97f8495f704630a238cbcd898a4b8ab20d77bb93e17049d3445f4f81f16e25016c55a8577506f3d6218b660fc3c663cdaf2eded6517c9d501ca9f4addde",
+            "expected_signed_message": """
+{
+  "message_hash": "46a2a47820e288bb356e9bbca03cb169daf6e082798cb500e00ac8f28867b899",
+  "r": 99590726610796878098319305182735127944547486481805974671082568445140082746506,
+  "s": 4002118982202741720590382023438454012633311838342086530992505939716576782449,
+  "v": 27,
+  "signature": "dc2e5a8cf643d1634dfc46d58912b387aec669e1892d95df12d8a1f45255e48a08d91e7b7218ee70ec3cbd605ea7dfa197960468355e1971a5eb3502ed1228711b"
+}""",
+        },
+    ]
+
+    account = Account.from_key(private_key)
+
+    instruments = {
+        "BTC_USDT_Perp": Instrument(
+            instrument="BTC_USDT_Perp",
+            instrument_hash="0x030501",
+            base="BTC",
+            quote="USDT",
+            kind=Kind.PERPETUAL,
+            venues=[],
+            settlement_period=InstrumentSettlementPeriod.DAILY,
+            tick_size="0.00000001",
+            min_size="0.00000001",
+            create_time="123",
+            base_decimals=9,
+            quote_decimals=9,
+            max_position_size="1000000",
+        )
+    }
+
+    for tc in test_cases:
+        config = GrvtApiConfig(
+            env=GrvtEnv.TESTNET,
+            private_key=private_key,
+            trading_account_id=sub_account_id,
+            api_key="not-needed",
+            logger=logger,
+        )
+
+        # Get intermediate values
+        message_data = build_EIP712_order_with_builder_fee_message_data(
+            tc["order"], instruments
+        )
+        domain_data = get_EIP712_domain_data(config.env, 326)
+        signable_message = encode_typed_data(
+            domain_data, EIP712_ORDER_WITH_BUILDER_FEE_MESSAGE_TYPE, message_data
         )
         signed_message = account.sign_message(signable_message)
         signed_order = sign_order(tc["order"], config, account, instruments)
@@ -825,6 +1033,7 @@ Got:
 def main():
     functions = [
         test_sign_order_table,
+        test_sign_order_with_builder_fee_table,
         test_sign_transfer_table,
     ]
     for f in functions:
