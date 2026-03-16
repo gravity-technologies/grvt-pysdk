@@ -109,8 +109,7 @@ ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 def _has_builder(order: Order) -> bool:
     """Check if the order has a non-zero builder address."""
     return (
-        hasattr(order, "builder")
-        and order.builder is not None
+        order.builder is not None
         and order.builder != ""
         and order.builder != "0"
         and order.builder != ZERO_ADDRESS
@@ -161,6 +160,8 @@ def build_EIP712_order_with_builder_fee_message_data(
     in the signed struct. The builderFee is encoded as centibeeps with 4 decimal
     places: "0.001" -> 0.001 * 10^4 = 10.
     """
+    if order.builder_fee is None:
+        raise ValueError("builder_fee is required when builder is set")
     base = build_EIP712_order_message_data(order, instruments)
     builder_fee_int = int(Decimal(order.builder_fee) * Decimal(BUILDER_FEE_MULTIPLIER))
     return {
