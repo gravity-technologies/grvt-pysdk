@@ -108,13 +108,17 @@ def get_cookie_with_expiration(
                     "%a, %d %b %Y %H:%M:%S %Z",
                 )
                 grvt_account_id: str = return_value.headers.get("X-Grvt-Account-Id", "")
+                resp_body = return_value.json() if return_value.text else {}
+                trading_account_id: str = resp_body.get("trading_account_id", "")
                 logging.info(
-                    f"{FN} OK response {cookie_value=} {cookie_expiry=} {grvt_account_id=}"
+                    f"{FN} OK response {cookie_value=} {cookie_expiry=}"
+                    f" {grvt_account_id=} {trading_account_id=}"
                 )
                 return {
                     "gravity": cookie_value,
                     "expires": cookie_expiry.timestamp(),
                     "X-Grvt-Account-Id": grvt_account_id,
+                    "trading_account_id": trading_account_id,
                 }
             logging.warning(f"{FN} Invalid return_value {data=} {path=} {return_value=}")
             return None
@@ -150,13 +154,17 @@ async def get_cookie_with_expiration_async(
                             "%a, %d %b %Y %H:%M:%S %Z",
                         )
                         grvt_account_id: str = return_value.headers.get("X-Grvt-Account-Id", "")
+                        resp_body = await return_value.json() if return_value.content_length else {}
+                        trading_account_id: str = resp_body.get("trading_account_id", "") if isinstance(resp_body, dict) else ""
                         logging.info(
-                            f"{FN} OK response {cookie_value=} {cookie_expiry=} {grvt_account_id=}"
+                            f"{FN} OK response {cookie_value=} {cookie_expiry=}"
+                            f" {grvt_account_id=} {trading_account_id=}"
                         )
                         return {
                             "gravity": cookie_value,
                             "expires": cookie_expiry.timestamp(),
                             "X-Grvt-Account-Id": grvt_account_id,
+                            "trading_account_id": trading_account_id,
                         }
         except Exception as e:
             logging.error(f"{FN} Error getting cookie: {e}")
