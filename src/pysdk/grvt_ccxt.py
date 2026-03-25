@@ -59,6 +59,7 @@ class GrvtCcxt(GrvtCcxtBase):
         self._session: requests.Session = requests.Session()
         self._session.headers.update({"Content-Type": "application/json"})
         self.refresh_cookie()
+        self._set_trading_account_id_from_cookie()
         # Assign markets here
         self.markets: dict[str, dict] = self.load_markets()
 
@@ -75,6 +76,7 @@ class GrvtCcxt(GrvtCcxtBase):
                 self._session.headers.update(
                     {"X-Grvt-Account-Id": self._cookie["X-Grvt-Account-Id"]}
                 )
+            self._set_trading_account_id_from_cookie()
             self.logger.info(
                 f"refresh_cookie {self._cookie=} {self._session.cookies=} {self._session.headers=}"
             )

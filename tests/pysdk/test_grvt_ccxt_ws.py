@@ -34,7 +34,6 @@ async def subscribe(loop) -> GrvtCcxtWS:
     """Subscribe to Websocket channels and feeds."""
     params = {
         "api_key": os.getenv("GRVT_API_KEY"),
-        "trading_account_id": os.getenv("GRVT_TRADING_ACCOUNT_ID"),
         "api_ws_version": os.getenv("GRVT_WS_STREAM_VERSION", "v1"),
     }
     if os.getenv("GRVT_PRIVATE_KEY"):

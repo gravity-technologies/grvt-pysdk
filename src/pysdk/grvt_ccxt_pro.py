@@ -66,6 +66,7 @@ class GrvtCcxtPro(GrvtCcxtBase):
         self._cookie = get_cookie_with_expiration(
             get_grvt_endpoint(self.env, "AUTH"), self._api_key
         )
+        self._set_trading_account_id_from_cookie()
         self.update_session_with_cookie()
 
     def __del__(self):
@@ -82,6 +83,7 @@ class GrvtCcxtPro(GrvtCcxtBase):
                 self._session.headers.update(
                     {"X-Grvt-Account-Id": self._cookie["X-Grvt-Account-Id"]}
                 )
+            self._set_trading_account_id_from_cookie()
             self.logger.info(
                 f"update_session_with_cookie {self._cookie=} {self._session.cookie_jar=}"
                 f" {self._session.headers=}"

@@ -36,6 +36,7 @@ class GrvtCookie:
     gravity: str
     expires: datetime
     grvt_account_id: str | None = None
+    trading_account_id: str | None = None
 
 
 class GrvtRawBase:
@@ -98,6 +99,9 @@ class GrvtRawSyncBase(GrvtRawBase):
                 self._session.headers.update(
                     {"X-Grvt-Account-Id": self._cookie.grvt_account_id}
                 )
+            if not self.config.trading_account_id and self._cookie.trading_account_id:
+                self.config.trading_account_id = self._cookie.trading_account_id
+                self.logger.info(f"trading_account_id set from login: {self._cookie.trading_account_id}")
         return None
 
     def _get_cookie(self, path: str, api_key: str) -> GrvtCookie | None:
@@ -127,10 +131,13 @@ class GrvtRawSyncBase(GrvtRawBase):
                 grvt_account_id: str | None = return_value.headers.get(
                     "X-Grvt-Account-Id"
                 )
+                resp_body = return_value.json() if return_value.text else {}
+                trading_account_id: str | None = resp_body.get("trading_account_id")
                 return GrvtCookie(
                     gravity=cookie_value,
                     expires=cookie_expiry,
                     grvt_account_id=grvt_account_id,
+                    trading_account_id=trading_account_id,
                 )
             return None
         except Exception as e:
@@ -192,6 +199,9 @@ class GrvtRawAsyncBase(GrvtRawBase):
                 self._session.headers.update(
                     {"X-Grvt-Account-Id": self._cookie.grvt_account_id}
                 )
+            if not self.config.trading_account_id and self._cookie.trading_account_id:
+                self.config.trading_account_id = self._cookie.trading_account_id
+                self.logger.info(f"trading_account_id set from login: {self._cookie.trading_account_id}")
         return None
 
     async def _get_cookie(self, path: str, api_key: str) -> GrvtCookie | None:
@@ -219,10 +229,13 @@ class GrvtRawAsyncBase(GrvtRawBase):
                         grvt_account_id: str | None = return_value.headers.get(
                             "X-Grvt-Account-Id"
                         )
+                        resp_body = await return_value.json() if return_value.content_length else {}
+                        trading_account_id: str | None = resp_body.get("trading_account_id") if isinstance(resp_body, dict) else None
                         return GrvtCookie(
                             gravity=cookie_value,
                             expires=cookie_expiry,
                             grvt_account_id=grvt_account_id,
+                            trading_account_id=trading_account_id,
                         )
             return None
         except Exception as e:

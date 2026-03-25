@@ -93,6 +93,12 @@ class GrvtCcxtBase:
         """Returns the trading account id."""
         return self._trading_account_id or ""
 
+    def _set_trading_account_id_from_cookie(self) -> None:
+        """Sets trading_account_id from login response if not explicitly provided."""
+        if not self._trading_account_id and self._cookie and self._cookie.get("trading_account_id"):
+            self._trading_account_id = self._cookie["trading_account_id"]
+            self.logger.info(f"trading_account_id set from login: {self._trading_account_id}")
+
     def is_order_book_ccxt_format(self) -> bool:
         """Returns True if order book should be returned in CCXT format."""
         return self._order_book_ccxt_format

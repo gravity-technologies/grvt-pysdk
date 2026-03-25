@@ -93,11 +93,12 @@ Setup these environment variables:
 ```bash
 export GRVT_PRIVATE_KEY="`Secret Private Key` in API setup"
 export GRVT_API_KEY="`API Key` in API setup"
-export GRVT_TRADING_ACCOUNT_ID=<`Trading account ID` in API>
 export GRVT_ENV="testnet"
 export GRVT_END_POINT_VERSION="v1"
 export GRVT_WS_STREAM_VERSION="v1"
 ```
+
+> **Note:** `trading_account_id` is automatically retrieved from the login response. You can still pass it explicitly in `parameters` if needed.
 
 ## Usage
 

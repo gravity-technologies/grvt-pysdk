@@ -34,7 +34,6 @@ async def call_vault_redemption_queue(api: GrvtCcxtPro):
 async def grvt_ccxt_vault_pro():
     params = {
         "api_key": os.getenv("GRVT_API_KEY"),
-        "trading_account_id": os.getenv("GRVT_TRADING_ACCOUNT_ID"),
         "private_key": os.getenv("GRVT_PRIVATE_KEY"),
     }
     env = GrvtEnv(os.getenv("GRVT_ENV", "testnet"))
