@@ -171,6 +171,7 @@ class GrvtKind(Enum):
     CALL = 3
     PUT = 4
     SPOT = 5
+    SPOT_SWAP = 8
 
 
 class GrvtCurrency(Enum):
@@ -204,6 +205,8 @@ def get_kuq_from_symbol(symbol: str) -> tuple[str, str, str]:
         underlying, quote, kind = parts
         if kind == "Perp":
             kind = "PERPETUAL"
+        elif kind == "SpotSwap":
+            kind = "SPOT_SWAP"
         else:
             raise ValueError(f"Invalid {symbol=} {kind=}")
     elif len(parts) == 4:

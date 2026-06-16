@@ -79,3 +79,4 @@ class GrvtInstrumentKind(Enum):
     FUTURE = "FUTURE"
     CALL = "CALL"
     PUT = "PUT"
+    SPOT_SWAP = "SPOT_SWAP"

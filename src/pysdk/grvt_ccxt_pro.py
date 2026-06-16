@@ -563,10 +563,11 @@ class GrvtCcxtPro(GrvtCcxtBase):
     # **************** PUBLIC API CALLS
     async def load_markets(self) -> dict | None:
         self.logger.info("load_markets START")
-        instruments = await self.fetch_markets(
-            params={
-                "kind": GrvtInstrumentKind.PERPETUAL,
-            }
+        instruments = await self.fetch_all_markets(
+            kinds=[
+                GrvtInstrumentKind.PERPETUAL,
+                GrvtInstrumentKind.SPOT_SWAP,
+            ]
         )
         if instruments:
             self.markets = {i.get("instrument"): i for i in instruments}
@@ -612,16 +613,22 @@ class GrvtCcxtPro(GrvtCcxtBase):
     async def fetch_all_markets(
         self,
         is_active: bool | None = True,
+        kinds: list[str | GrvtInstrumentKind] | None = None,
     ) -> list[dict]:
         """
         Retrieve the list of all instruments supported by the exchange.<br>
         Params:<br>
-            `is_active` (bool) - defaults to True.<br>.
+            `is_active` (bool) - defaults to True.<br>
+            `kinds` (list[str]) - instrument kinds to fetch, e.g.
+                ['PERPETUAL', 'SPOT_SWAP']. If omitted, the exchange
+                defaults to perpetuals only.<br>
 
         Returns: list of dictionaries per instrument. See fetch_markets().<br>
         """
         # Prepare payload
-        payload = {"is_active": is_active}
+        payload: dict = {"is_active": is_active}
+        if kinds:
+            payload["kinds"] = kinds
         # Make the POST request to get all instruments
         path = get_grvt_endpoint(self.env, "GET_ALL_INSTRUMENTS")
         response: dict = await self._auth_and_post(path, payload=payload)
