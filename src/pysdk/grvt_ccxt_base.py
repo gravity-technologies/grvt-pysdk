@@ -318,7 +318,7 @@ class GrvtCcxtBase:
                 payload["start_time"] = str(start_time)
             if end_time:
                 payload["end_time"] = str(end_time)
-            payload["limit"] = limit | 500
+            payload["limit"] = limit or 500
         return payload
 
     def _get_payload_fetch_positions(self, symbols: list[str] = [], params={}) -> dict:
