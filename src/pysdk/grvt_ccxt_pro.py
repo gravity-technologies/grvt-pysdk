@@ -116,7 +116,6 @@ class GrvtCcxtPro(GrvtCcxtBase):
             headers={"Content-Type": "application/json"},
             timeout=5,
         ) as return_value:
-            return_text: str = ""
             try:
                 return_text = await return_value.text()
                 response = await return_value.json(content_type="application/json")
